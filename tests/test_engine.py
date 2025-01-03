@@ -1,52 +1,35 @@
 import pytest
-from pyquizhub.engine import QuizEngine
-
-
-def test_simple_quiz_flow():
-    """Test the flow of the simple quiz."""
-    engine = QuizEngine("tests/test_quiz_jsons/simple_quiz.json")
-
-    # Check initial question
-    assert engine.get_current_question()["id"] == 1
-
-    # Answer the first question
-    engine.answer_question("yes")
-
-    # Check scores
-    assert engine.scores["score_a"] == 1
-
-    # Check if the quiz loops to the same question
-    assert engine.get_current_question()["id"] == 1
-    assert not engine.is_quiz_finished()
+from pyquizhub.engine.engine import QuizEngine
 
 
 def test_complex_quiz_flow():
     """Test the flow of the complex quiz."""
     engine = QuizEngine("tests/test_quiz_jsons/complex_quiz.json")
 
+    # Start the quiz for a user
+    user_id = "user2"
+    engine.start_quiz(user_id)
+
     # Check initial question
-    assert engine.get_current_question()["id"] == 1
+    assert engine.get_current_question(user_id)["id"] == 1
+
+    # Check initial scores
+    assert engine.sessions[user_id]["scores"]["fruits"] == 0
+    assert engine.sessions[user_id]["scores"]["apples"] == 0
+    assert engine.sessions[user_id]["scores"]["pears"] == 0
 
     # Answer the first question
-    engine.answer_question("yes")
-    assert engine.scores["fruits"] == 1
-    assert engine.scores["apples"] == 2
-    print("Scores after first answer:", engine.scores)
+    result = engine.answer_question(user_id, "yes")
+    assert engine.sessions[user_id]["scores"]["fruits"] == 1
+    assert engine.sessions[user_id]["scores"]["apples"] == 2
+    assert engine.sessions[user_id]["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    print("Current question before next answer:", engine.get_current_question())
-    engine.answer_question("yes")
-    print("Scores after second answer:", engine.scores)
-
-
-def test_quiz_end():
-    """Test if the engine correctly identifies the end of the quiz."""
-    engine = QuizEngine("tests/test_quiz_jsons/simple_quiz.json")
-
-    # Simulate answering the only question and finishing the quiz
-    engine.answer_question("yes")
-    engine.answer_question("yes")  # Simulating looping
-    assert not engine.is_quiz_finished()
+    result = engine.answer_question(user_id, "yes")
+    assert result.get("message") == "Quiz completed!"
+    assert result["scores"]["fruits"] == 2
+    assert result["scores"]["apples"] == 2
+    assert result["scores"]["pears"] == 2
 
 
 def test_invalid_score_updates():

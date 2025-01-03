@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "quiz_id": "simple_quiz",
-        "title": "Simple Quiz",
-        "description": "A basic quiz with one question and a single transition",
+        "quiz_id": "warning_non_trivial_after_trivial",
+        "title": "Warning Non-Trivial After Trivial",
+        "description": "Tests for warnings when a non-trivial condition follows a trivial one",
         "author": "Test Author",
         "version": "1.0"
     },
@@ -23,21 +23,18 @@
                     "value": "no",
                     "label": "No"
                 }
-            ],
-            "score_updates": [
-                {
-                    "condition": "answer == 'yes'",
-                    "update": {
-                        "score_a": "score_a + 1"
-                    }
-                }
             ]
         }
     ],
     "transitions": {
         "1": [
             {
-                "next_question_id": null
+                "expression": "true",
+                "next_question_id": 1
+            },
+            {
+                "expression": "score_a > 0",
+                "next_question_id": 1
             }
         ]
     }

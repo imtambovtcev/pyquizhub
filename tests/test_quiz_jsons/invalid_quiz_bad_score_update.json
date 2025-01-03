@@ -1,10 +1,7 @@
 {
     "metadata": {
-        "quiz_id": "invalid_score_update",
-        "title": "Quiz with Invalid Score Update",
-        "description": "This quiz has an improper score update format",
-        "author": "Test Author",
-        "version": "1.0"
+        "quiz_id": "bad_score_update",
+        "title": "Bad Score Update Quiz"
     },
     "scores": {
         "score_a": 0
@@ -12,7 +9,7 @@
     "questions": [
         {
             "id": 1,
-            "text": "Do you like oranges?",
+            "text": "Do you like bananas?",
             "type": "multiple_choice",
             "options": [
                 {
@@ -26,22 +23,12 @@
             ],
             "score_updates": [
                 {
-                    "condition": "answer == 'yes'",
                     "update": {
-                        "score_a": "invalid_python_code"
+                        "score_a": "score_a + 1"
                     }
                 }
             ]
         }
     ],
-    "transitions": [
-        {
-            "conditions": [
-                {
-                    "expression": "score_a > 0",
-                    "next_question_id": 1
-                }
-            ]
-        }
-    ]
+    "transitions": {}
 }

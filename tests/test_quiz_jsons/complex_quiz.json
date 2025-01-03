@@ -67,18 +67,22 @@
             ]
         }
     ],
-    "transitions": [
-        {
-            "conditions": [
-                {
-                    "expression": "fruits >= 1",
-                    "next_question_id": 2
-                },
-                {
-                    "expression": "true",
-                    "next_question_id": 1
-                }
-            ]
-        }
-    ]
+    "transitions": {
+        "1": [
+            {
+                "expression": "fruits >= 1",
+                "next_question_id": 2
+            },
+            {
+                "expression": "true",
+                "next_question_id": 1
+            }
+        ],
+        "2": [
+            {
+                "expression": "true",
+                "next_question_id": null
+            }
+        ]
+    }
 }

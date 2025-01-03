@@ -1,0 +1,10 @@
+# Configuration for pyquizhub
+storage:
+  type: "file"  # Options: file, sql
+  file:
+    base_dir: ".pyquizhub"  # Default storage location
+  sql:
+    connection_string: "sqlite:///pyquizhub.db"  # SQLAlchemy connection string
+
+api:
+  base_url: "http://127.0.0.1:8000"

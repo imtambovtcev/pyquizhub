@@ -1,0 +1,42 @@
+{
+    "metadata": {
+        "quiz_id": "duplicate_question_ids",
+        "title": "Duplicate Question IDs"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "text": "Do you like apples?",
+            "type": "multiple_choice",
+            "options": [
+                {
+                    "value": "yes",
+                    "label": "Yes"
+                },
+                {
+                    "value": "no",
+                    "label": "No"
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "text": "Do you like oranges?",
+            "type": "multiple_choice",
+            "options": [
+                {
+                    "value": "yes",
+                    "label": "Yes"
+                },
+                {
+                    "value": "no",
+                    "label": "No"
+                }
+            ]
+        }
+    ],
+    "transitions": {}
+}

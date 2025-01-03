@@ -1,0 +1,11 @@
+{
+    "metadata": {
+        "quiz_id": "non_iterable_questions",
+        "title": "Non-Iterable Questions"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": "This should be a list, but it's a string.",
+    "transitions": {}
+}

@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "quiz_id": "simple_quiz",
-        "title": "Simple Quiz",
-        "description": "A basic quiz with one question and a single transition",
+        "quiz_id": "warning_no_trivial_condition",
+        "title": "Warning No Trivial Condition",
+        "description": "Tests for warnings when there is no trivial condition in the transitions",
         "author": "Test Author",
         "version": "1.0"
     },
@@ -12,7 +12,7 @@
     "questions": [
         {
             "id": 1,
-            "text": "Do you like apples?",
+            "text": "Do you like bananas?",
             "type": "multiple_choice",
             "options": [
                 {
@@ -23,21 +23,14 @@
                     "value": "no",
                     "label": "No"
                 }
-            ],
-            "score_updates": [
-                {
-                    "condition": "answer == 'yes'",
-                    "update": {
-                        "score_a": "score_a + 1"
-                    }
-                }
             ]
         }
     ],
     "transitions": {
         "1": [
             {
-                "next_question_id": null
+                "expression": "score_a > 0",
+                "next_question_id": 1
             }
         ]
     }
