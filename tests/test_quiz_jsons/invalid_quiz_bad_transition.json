@@ -1,0 +1,39 @@
+{
+    "metadata": {
+        "quiz_id": "invalid_transition",
+        "title": "Quiz with Invalid Transition",
+        "description": "This quiz has an improper transition format",
+        "author": "Test Author",
+        "version": "1.0"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "text": "Do you like bananas?",
+            "type": "multiple_choice",
+            "options": [
+                {
+                    "value": "yes",
+                    "label": "Yes"
+                },
+                {
+                    "value": "no",
+                    "label": "No"
+                }
+            ],
+            "score_updates": []
+        }
+    ],
+    "transitions": [
+        {
+            "conditions": [
+                {
+                    "expression": "score_a > 0"
+                }
+            ]
+        }
+    ]
+}
