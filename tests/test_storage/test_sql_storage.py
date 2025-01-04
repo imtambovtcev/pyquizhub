@@ -27,7 +27,8 @@ def test_add_and_get_quiz(sql_storage: SQLStorageManager):
         "title": "Sample Quiz",
         "questions": [{"id": 1, "text": "Q1"}]
     }
-    sql_storage.add_quiz("quiz_001", quiz_data)
+    creator_id = "user1"
+    sql_storage.add_quiz("quiz_001", quiz_data, creator_id)
     loaded_quiz = sql_storage.get_quiz("quiz_001")
     assert loaded_quiz == quiz_data
 

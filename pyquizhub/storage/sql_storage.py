@@ -69,14 +69,15 @@ class SQLStorageManager(StorageManager):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return result._mapping["data"]
 
-    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
-        query = insert(self.quizzes_table).values(id=quiz_id, data=quiz_data)
+    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any], creator_id: str) -> None:
+        query = insert(self.quizzes_table).values(
+            id=quiz_id, creator_id=creator_id, data=quiz_data)
         try:
             self._execute(query)
         except IntegrityError:
             query = update(self.quizzes_table).where(
                 self.quizzes_table.c.id == quiz_id
-            ).values(data=quiz_data)
+            ).values(creator_id=creator_id, data=quiz_data)
             self._execute(query)
 
     def get_results(self, user_id: str, quiz_id: str) -> Optional[Dict[str, Any]]:
@@ -132,3 +133,11 @@ class SQLStorageManager(StorageManager):
                     self.tokens_table.c.token == token["token"]
                 ).values(quiz_id=token["quiz_id"], type=token["type"])
                 self._execute(query)
+
+    def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
+        query = select(self.users_table.c.permissions).where(
+            self.users_table.c.id == user_id)
+        result = self._execute(query).fetchone()
+        if result and "create" in result._mapping["permissions"]:
+            return True
+        return False

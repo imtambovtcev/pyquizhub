@@ -27,3 +27,6 @@ class StorageManager:
 
     def add_tokens(self, tokens: List[Dict[str, Any]]) -> None:
         raise NotImplementedError
+
+    def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
+        raise NotImplementedError

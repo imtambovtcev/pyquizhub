@@ -68,7 +68,8 @@ class FileStorageManager(StorageManager):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return self._read_json(filepath)
 
-    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any], creator_id: str) -> None:
+        quiz_data["creator_id"] = creator_id
         filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
         self._write_json(filepath, quiz_data)
 
@@ -114,3 +115,9 @@ class FileStorageManager(StorageManager):
     def add_tokens(self, tokens: List[Dict[str, Any]]) -> None:
         self.tokens.extend(tokens)
         self._save("tokens.json", self.tokens)
+
+    def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
+        user = self.users.get(user_id)
+        if user and "create" in user.get("permissions", []):
+            return True
+        return False

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 from pyquizhub.storage.file_storage import FileStorageManager
@@ -72,6 +72,11 @@ class ResultResponse(BaseModel):
     answers: Dict[str, str]
 
 
+class CreateQuizRequest(BaseModel):
+    quiz: Quiz
+    creator_id: str
+
+
 # In-memory cache for single-use tokens
 single_use_tokens = set()
 
@@ -84,18 +89,26 @@ def read_root():
 
 
 @app.post("/create_quiz", response_model=QuizResponse)
-def create_quiz(quiz: Quiz):
+def create_quiz(request: CreateQuizRequest):
     """Create a new quiz."""
     quiz_id = f"quiz_{str(uuid.uuid4())[:8]}"
+    creator_id = request.creator_id
+
+    # Check if user has permission to create quizzes
+    if not storage_manager.user_has_permission_for_quiz_creation(creator_id):
+        raise HTTPException(
+            status_code=403, detail="User does not have permission to create quizzes")
 
     # Validate quiz
-    validation_result = QuizJSONValidator.validate(quiz.dict())
+    validation_result = QuizJSONValidator.validate(request.quiz.dict())
     if validation_result["errors"]:
         raise HTTPException(
             status_code=400, detail=validation_result["errors"])
 
-    storage_manager.add_quiz(quiz_id, quiz.dict())
-    return {"quiz_id": quiz_id, "title": quiz.metadata.title}
+    quiz_data = request.quiz.dict()
+    quiz_data["creator_id"] = creator_id
+    storage_manager.add_quiz(quiz_id, quiz_data)
+    return {"quiz_id": quiz_id, "title": request.quiz.metadata.title}
 
 
 @app.get("/quiz/{quiz_id}")

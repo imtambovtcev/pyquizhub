@@ -25,7 +25,8 @@ def test_add_and_get_quiz(file_storage: FileStorageManager):
         "title": "Sample Quiz",
         "questions": [{"id": 1, "text": "Q1"}]
     }
-    file_storage.add_quiz("quiz_001", quiz_data)
+    creator_id = "user1"
+    file_storage.add_quiz("quiz_001", quiz_data, creator_id)
     loaded_quiz = file_storage.get_quiz("quiz_001")
     assert loaded_quiz == quiz_data
 
@@ -38,7 +39,13 @@ def test_add_and_get_results(file_storage: FileStorageManager):
     }
     file_storage.add_results("user1", "quiz_001", results)
     loaded_results = file_storage.get_results("user1", "quiz_001")
-    assert loaded_results == results
+    expected_results = {
+        "user_id": "user1",
+        "quiz_id": "quiz_001",
+        "scores": {"math": 10},
+        "answers": {"1": "A"}
+    }
+    assert loaded_results == expected_results
 
 
 def test_add_and_get_tokens(file_storage: FileStorageManager):

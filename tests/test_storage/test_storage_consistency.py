@@ -38,8 +38,9 @@ def test_storage_consistency_quiz(file_storage: FileStorageManager, sql_storage:
         "title": "Sample Quiz",
         "questions": [{"id": 1, "text": "Q1"}]
     }
-    file_storage.add_quiz("quiz_001", quiz_data)
-    sql_storage.add_quiz("quiz_001", quiz_data)
+    creator_id = "user1"
+    file_storage.add_quiz("quiz_001", quiz_data, creator_id)
+    sql_storage.add_quiz("quiz_001", quiz_data, creator_id)
 
     file_quiz = file_storage.get_quiz("quiz_001")
     sql_quiz = sql_storage.get_quiz("quiz_001")
