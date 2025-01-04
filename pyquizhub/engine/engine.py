@@ -4,17 +4,18 @@ from .json_validator import QuizJSONValidator
 
 
 class QuizEngine:
-    def __init__(self, quiz_path):
-        self.quiz = self.load_quiz(quiz_path)
+    def __init__(self, quiz_data):
+        """Initialize the QuizEngine with quiz data."""
+        self.quiz = self.load_quiz(quiz_data)
         self.sessions = {}  # Active user sessions
 
-    def load_quiz(self, quiz_path):
-        validation_result = QuizJSONValidator.validate(quiz_path)
+    def load_quiz(self, quiz_data):
+        """Validate and load the quiz data."""
+        validation_result = QuizJSONValidator.validate(quiz_data)
         if validation_result["errors"]:
             raise ValueError(
                 f"Quiz validation failed: {validation_result['errors']}")
-        with open(quiz_path, 'r') as f:
-            return json.load(f)
+        return quiz_data
 
     def start_quiz(self, user_id):
         if user_id in self.sessions:
@@ -34,7 +35,9 @@ class QuizEngine:
         if question_id is None:
             return None  # Return None if the quiz is complete
         question = next(
-            (q for q in self.quiz.get("questions", []) if q.get("id") == question_id), None)
+            (q for q in self.quiz.get("questions", [])
+             if q.get("id") == question_id), None
+        )
         if not question:
             raise ValueError(f"Question with ID {question_id} not found.")
         return question
@@ -54,7 +57,6 @@ class QuizEngine:
 
         # Update scores based on the answer
         for update in current_question.get("score_updates", []):
-            # Default to always true
             condition = update.get("condition", "true")
             if SafeEvaluator.eval_expr(condition, {"answer": answer, **session["scores"]}):
                 for score, expr in update.get("update", {}).items():
@@ -63,7 +65,8 @@ class QuizEngine:
 
         # Determine the next question
         next_question_id = self._get_next_question(
-            current_question["id"], session["scores"])
+            current_question["id"], session["scores"]
+        )
         if next_question_id is not None:
             session["current_question_id"] = next_question_id
             return self.get_current_question(user_id)

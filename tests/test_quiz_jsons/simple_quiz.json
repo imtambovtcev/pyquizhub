@@ -1,6 +1,5 @@
 {
     "metadata": {
-        "quiz_id": "simple_quiz",
         "title": "Simple Quiz",
         "description": "A basic quiz with one question and a single transition",
         "author": "Test Author",

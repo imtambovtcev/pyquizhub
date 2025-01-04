@@ -2,6 +2,7 @@ import argparse
 import requests
 import sys
 import yaml
+import json
 
 # Load configuration
 CONFIG_PATH = "pyquizhub/config/config.yaml"
@@ -12,44 +13,30 @@ with open(CONFIG_PATH, "r") as f:
 BASE_URL = config["api"]["base_url"]
 
 
-def create_quiz():
-    """Create a new quiz."""
-    title = input("Enter the quiz title: ")
-    questions = []
-    print("Enter questions (leave question text empty to finish):")
-    while True:
-        question_text = input("Question text: ").strip()
-        if not question_text:
-            break
-        question_type = input(
-            "Question type (multiple_choice/text/number): ").strip()
-        options = []
-        if question_type == "multiple_choice":
-            print("Enter options (leave option empty to finish):")
-            while True:
-                option = input("Option: ").strip()
-                if not option:
-                    break
-                options.append(option)
-        questions.append(
-            {"text": question_text, "type": question_type, "options": options})
-
-    quiz = {"title": title, "questions": questions}
-    response = requests.post(f"{BASE_URL}/create_quiz", json=quiz)
-    if response.status_code == 200:
-        data = response.json()
-        print(f"Quiz created successfully with ID: {data['quiz_id']}")
-    else:
-        print("Failed to create quiz:", response.json().get(
-            "detail", "Unknown error"))
+def add_quiz(file_path=None):
+    """Add an existing quiz to the storage."""
+    if not file_path:
+        file_path = input("Enter the path to the quiz JSON file: ").strip()
+    try:
+        with open(file_path, "r") as f:
+            quiz_data = json.load(f)
+        response = requests.post(f"{BASE_URL}/add_quiz", json=quiz_data)
+        if response.status_code == 200:
+            print("Quiz added successfully.")
+            print("Quiz ID:", response.json().get("quiz_id"))
+        else:
+            print("Failed to add quiz:", response.json().get(
+                "detail", "Unknown error"))
+    except FileNotFoundError:
+        print("Error: File not found.")
+    except Exception as e:
+        print(f"Error: {e}")
 
 
-def start_quiz():
+def start_quiz(user_id, token):
     """Start a quiz."""
-    token = input("Enter the quiz token: ").strip()
-    user_id = input("Enter your user ID: ").strip()
     response = requests.post(
-        f"{BASE_URL}/start_quiz", json={"token": token, "user_id": user_id})
+        f"{BASE_URL}/start_quiz?token={token}&user_id={user_id}")
     if response.status_code == 200:
         quiz = response.json()
         print(f"Starting quiz: {quiz['title']}")
@@ -75,7 +62,7 @@ def start_quiz():
 def submit_answers(quiz_id, user_id, answers):
     """Submit answers for a quiz."""
     response = requests.post(
-        f"{BASE_URL}/submit_answer/{quiz_id}", json={"user_id": user_id, "answer": answers})
+        f"{BASE_URL}/submit_answers/{quiz_id}", json={"user_id": user_id, "answers": answers})
     if response.status_code == 200:
         data = response.json()
         print("Answers submitted successfully!")
@@ -100,10 +87,8 @@ def view_results():
               response.json().get("detail", "Unknown error"))
 
 
-def generate_token():
+def generate_token(quiz_id, token_type):
     """Generate a token for a quiz."""
-    quiz_id = input("Enter the quiz ID: ").strip()
-    token_type = input("Enter token type (permanent/single-use): ").strip()
     response = requests.post(
         f"{BASE_URL}/generate_token", json={"quiz_id": quiz_id, "type": token_type})
     if response.status_code == 200:
@@ -118,17 +103,33 @@ def main():
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="Quiz Engine CLI")
     parser.add_argument("command", choices=[
-                        "create", "start", "results", "token"], help="Command to execute")
+                        "add", "start", "results", "token"], help="Command to execute")
+    parser.add_argument(
+        "--file", help="Path to the quiz JSON file (for 'add' command only)")
+    parser.add_argument(
+        "--user_id", help="User ID (for 'start' command only)")
+    parser.add_argument(
+        "--token", help="Quiz token (for 'start' command only)")
+    parser.add_argument(
+        "--quiz_id", help="Quiz ID (for 'token' command only)")
+    parser.add_argument(
+        "--token_type", help="Token type (permanent/single-use) (for 'token' command only)")
     args = parser.parse_args()
 
-    if args.command == "create":
-        create_quiz()
+    if args.command == "add":
+        add_quiz(file_path=args.file)
     elif args.command == "start":
-        start_quiz()
+        if not args.user_id or not args.token:
+            print("Error: 'start' command requires --user_id and --token arguments.")
+            sys.exit(1)
+        start_quiz(user_id=args.user_id, token=args.token)
     elif args.command == "results":
         view_results()
     elif args.command == "token":
-        generate_token()
+        if not args.quiz_id or not args.token_type:
+            print("Error: 'token' command requires --quiz_id and --token_type arguments.")
+            sys.exit(1)
+        generate_token(quiz_id=args.quiz_id, token_type=args.token_type)
     else:
         print("Unknown command. Use --help for usage instructions.")
         sys.exit(1)

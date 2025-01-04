@@ -44,12 +44,12 @@ class SQLStorageManager(StorageManager):
             conn.commit()  # Ensure changes are saved
             return result
 
-    def load_users(self) -> Dict[str, Any]:
+    def get_users(self) -> Dict[str, Any]:
         query = select(self.users_table)
         result = self._execute(query)
         return {row._mapping["id"]: row._mapping["permissions"] for row in result}
 
-    def save_users(self, users: Dict[str, Any]) -> None:
+    def add_users(self, users: Dict[str, Any]) -> None:
         for user_id, permissions in users.items():
             query = insert(self.users_table).values(
                 id=user_id, permissions=permissions)
@@ -61,7 +61,7 @@ class SQLStorageManager(StorageManager):
                 ).values(permissions=permissions)
                 self._execute(query)
 
-    def load_quiz(self, quiz_id: str) -> Dict[str, Any]:
+    def get_quiz(self, quiz_id: str) -> Dict[str, Any]:
         query = select(self.quizzes_table).where(
             self.quizzes_table.c.id == quiz_id)
         result = self._execute(query).fetchone()
@@ -69,7 +69,7 @@ class SQLStorageManager(StorageManager):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return result._mapping["data"]
 
-    def save_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
         query = insert(self.quizzes_table).values(id=quiz_id, data=quiz_data)
         try:
             self._execute(query)
@@ -79,7 +79,24 @@ class SQLStorageManager(StorageManager):
             ).values(data=quiz_data)
             self._execute(query)
 
-    def load_results(self, user_id: str, quiz_id: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, user_id: str, quiz_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve the results of a quiz for a specific user.
+
+        Args:
+            user_id (str): The ID of the user.
+            quiz_id (str): The ID of the quiz.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary containing the results in the format:
+                {
+                    'user_id': <user_id>,
+                    'quiz_id': <quiz_id>,
+                    'scores': <scores_dict>,
+                    'answers': <answers_dict>
+                }
+                or None if the results file does not exist.
+        """
         query = select(self.results_table).where(
             self.results_table.c.user_id == user_id,
             self.results_table.c.quiz_id == quiz_id
@@ -87,7 +104,7 @@ class SQLStorageManager(StorageManager):
         result = self._execute(query).fetchone()
         return dict(result._mapping) if result else None
 
-    def save_results(self, user_id: str, quiz_id: str, results: Dict[str, Any]) -> None:
+    def add_results(self, user_id: str, quiz_id: str, results: Dict[str, Any]) -> None:
         query = insert(self.results_table).values(
             user_id=user_id, quiz_id=quiz_id, scores=results["scores"], answers=results["answers"]
         )
@@ -100,12 +117,12 @@ class SQLStorageManager(StorageManager):
             ).values(scores=results["scores"], answers=results["answers"])
             self._execute(query)
 
-    def load_tokens(self) -> List[Dict[str, Any]]:
+    def get_tokens(self) -> List[Dict[str, Any]]:
         query = select(self.tokens_table)
         result = self._execute(query)
         return [dict(row._mapping) for row in result]
 
-    def save_tokens(self, tokens: List[Dict[str, Any]]) -> None:
+    def add_tokens(self, tokens: List[Dict[str, Any]]) -> None:
         for token in tokens:
             query = insert(self.tokens_table).values(token)
             try:

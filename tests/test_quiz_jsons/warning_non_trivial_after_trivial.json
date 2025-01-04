@@ -1,6 +1,5 @@
 {
     "metadata": {
-        "quiz_id": "warning_non_trivial_after_trivial",
         "title": "Warning Non-Trivial After Trivial",
         "description": "Tests for warnings when a non-trivial condition follows a trivial one",
         "author": "Test Author",

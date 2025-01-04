@@ -4,9 +4,12 @@ from .safe_evaluator import SafeEvaluator
 
 class QuizJSONValidator:
     @staticmethod
-    def validate(quiz_json):
+    def validate(quiz_data):
         """
         Validate the JSON structure and contents, returning detailed validation results.
+
+        Args:
+            quiz_data (dict): The quiz data as a dictionary.
 
         Returns:
             dict: A dictionary containing 'errors' and 'warnings'.
@@ -14,36 +17,28 @@ class QuizJSONValidator:
         errors = []
         warnings = []
 
-        # Load and validate JSON structure
-        try:
-            with open(quiz_json, "r") as f:
-                data = json.load(f)
-        except Exception as e:
-            errors.append(f"Error loading JSON: {e}")
-            return {"errors": errors, "warnings": warnings}
-
         # Ensure the data is a dictionary
-        if not isinstance(data, dict):
+        if not isinstance(quiz_data, dict):
             errors.append("Top-level JSON structure must be a dictionary.")
             return {"errors": errors, "warnings": warnings}
 
         # Validate top-level keys
         required_keys = {"metadata", "scores", "questions", "transitions"}
-        missing_keys = required_keys - data.keys()
+        missing_keys = required_keys - quiz_data.keys()
         if missing_keys:
             errors.append(f"Missing required top-level keys: {missing_keys}")
             return {"errors": errors, "warnings": warnings}
 
         # Default variables for validation
-        default_variables = {"answer": None, **data.get("scores", {})}
+        default_variables = {"answer": None, **quiz_data.get("scores", {})}
 
         # Validate scores
-        if not isinstance(data["scores"], dict):
+        if not isinstance(quiz_data["scores"], dict):
             errors.append("The 'scores' field must be a dictionary.")
 
         # Validate questions
         question_ids = set()
-        questions = data.get("questions", [])
+        questions = quiz_data.get("questions", [])
         if not isinstance(questions, list):
             errors.append("The 'questions' field must be a list.")
             questions = []
@@ -91,7 +86,7 @@ class QuizJSONValidator:
                             f"Invalid score update condition or expression in question {question['id']}: {e}")
 
         # Validate transitions
-        transitions = data.get("transitions", {})
+        transitions = quiz_data.get("transitions", {})
         if not isinstance(transitions, dict):
             errors.append("The 'transitions' field must be a dictionary.")
             transitions = {}

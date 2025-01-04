@@ -17,6 +17,27 @@ class FileStorageManager(StorageManager):
         if not os.path.exists(os.path.join(self.base_dir, "tokens.json")):
             self._write_json("tokens.json", [])
 
+        # Load existing data from the filesystem
+        self.users = self._load("users.json")
+        self.tokens = self._load("tokens.json")
+        self.quizzes = {}
+        quizzes_dir = os.path.join(self.base_dir, "quizzes")
+        for quiz_file in os.listdir(quizzes_dir):
+            if quiz_file.endswith(".json"):
+                quiz_id = os.path.splitext(quiz_file)[0]
+                self.quizzes[quiz_id] = self.load_quiz(quiz_id)
+        self.results = {}
+        results_dir = os.path.join(self.base_dir, "results")
+        for user_id in os.listdir(results_dir):
+            user_results_dir = os.path.join(results_dir, user_id)
+            if os.path.isdir(user_results_dir):
+                self.results[user_id] = {}
+                for result_file in os.listdir(user_results_dir):
+                    if result_file.endswith("_results.json"):
+                        quiz_id = result_file.replace("_results.json", "")
+                        self.results[user_id][quiz_id] = self.load_results(
+                            user_id, quiz_id)
+
     def _read_json(self, filename: str) -> Any:
         filepath = os.path.join(self.base_dir, filename)
         with open(filepath, "r") as f:
@@ -28,37 +49,68 @@ class FileStorageManager(StorageManager):
         with open(filepath, "w") as f:
             json.dump(data, f, indent=4)
 
-    def load_users(self) -> Dict[str, Any]:
-        return self._read_json("users.json")
+    def _load(self, filename: str) -> Any:
+        return self._read_json(filename)
 
-    def save_users(self, users: Dict[str, Any]) -> None:
-        self._write_json("users.json", users)
+    def _save(self, filename: str, data: Any) -> None:
+        self._write_json(filename, data)
 
-    def load_quiz(self, quiz_id: str) -> Dict[str, Any]:
+    def get_users(self) -> Dict[str, Any]:
+        return self.users
+
+    def add_users(self, users: Dict[str, Any]) -> None:
+        self.users.update(users)
+        self._save("users.json", self.users)
+
+    def get_quiz(self, quiz_id: str) -> Dict[str, Any]:
         filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return self._read_json(filepath)
 
-    def save_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
         filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
         self._write_json(filepath, quiz_data)
 
-    def load_results(self, user_id: str, quiz_id: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, user_id: str, quiz_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve the results of a quiz for a specific user.
+
+        Args:
+            user_id (str): The ID of the user.
+            quiz_id (str): The ID of the quiz.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary containing the results in the format:
+                {
+                    'user_id': <user_id>,
+                    'quiz_id': <quiz_id>,
+                    'scores': <scores_dict>,
+                    'answers': <answers_dict>
+                }
+                or None if the results file does not exist.
+        """
         filepath = os.path.join(self.base_dir, "results",
                                 user_id, f"{quiz_id}_results.json")
         if not os.path.exists(filepath):
             return None
-        return self._read_json(filepath)
+        results = self._read_json(filepath)
+        return {
+            'user_id': user_id,
+            'quiz_id': quiz_id,
+            'scores': results.get('scores', {}),
+            'answers': results.get('answers', {})
+        }
 
-    def save_results(self, user_id: str, quiz_id: str, results: Dict[str, Any]) -> None:
+    def add_results(self, user_id: str, quiz_id: str, results: Dict[str, Any]) -> None:
         user_dir = os.path.join(self.base_dir, "results", user_id)
         os.makedirs(user_dir, exist_ok=True)
         filepath = os.path.join(user_dir, f"{quiz_id}_results.json")
         self._write_json(filepath, results)
 
-    def load_tokens(self) -> List[Dict[str, Any]]:
-        return self._read_json("tokens.json")
+    def get_tokens(self) -> List[Dict[str, Any]]:
+        return self.tokens
 
-    def save_tokens(self, tokens: List[Dict[str, Any]]) -> None:
-        self._write_json("tokens.json", tokens)
+    def add_tokens(self, tokens: List[Dict[str, Any]]) -> None:
+        self.tokens.extend(tokens)
+        self._save("tokens.json", self.tokens)

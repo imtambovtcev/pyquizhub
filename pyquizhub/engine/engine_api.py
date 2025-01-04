@@ -1,12 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 from pyquizhub.storage.file_storage import FileStorageManager
 from pyquizhub.storage.sql_storage import SQLStorageManager
 from pyquizhub.storage.storage_manager import StorageManager
+from pyquizhub.engine.json_validator import QuizJSONValidator
 import uuid
-import os
 import yaml
+from pyquizhub.utils import generate_token as generate_quiz_token
 
 # Load configuration
 CONFIG_PATH = "pyquizhub/config/config.yaml"
@@ -33,10 +34,18 @@ app = FastAPI()
 # Pydantic models
 
 
-class Quiz(BaseModel):
+class Metadata(BaseModel):
     title: str
+    description: Optional[str] = None
+    author: Optional[str] = None
+    version: Optional[str] = None
+
+
+class Quiz(BaseModel):
+    metadata: Metadata
+    scores: Dict[str, int]
     questions: List[Dict]
-    metadata: Optional[Dict] = None
+    transitions: Dict[str, List[Dict]]
 
 
 class TokenRequest(BaseModel):
@@ -55,12 +64,12 @@ class TokenResponse(BaseModel):
 
 class AnswerRequest(BaseModel):
     user_id: str
-    answer: Dict
+    answer: Dict[str, str]
 
 
 class ResultResponse(BaseModel):
-    scores: Dict
-    answers: Dict
+    scores: Dict[str, int]
+    answers: Dict[str, str]
 
 
 # In-memory cache for single-use tokens
@@ -78,15 +87,22 @@ def read_root():
 def create_quiz(quiz: Quiz):
     """Create a new quiz."""
     quiz_id = f"quiz_{str(uuid.uuid4())[:8]}"
-    storage_manager.save_quiz(quiz_id, quiz.dict())
-    return {"quiz_id": quiz_id, "title": quiz.title}
+
+    # Validate quiz
+    validation_result = QuizJSONValidator.validate(quiz.dict())
+    if validation_result["errors"]:
+        raise HTTPException(
+            status_code=400, detail=validation_result["errors"])
+
+    storage_manager.add_quiz(quiz_id, quiz.dict())
+    return {"quiz_id": quiz_id, "title": quiz.metadata.title}
 
 
 @app.get("/quiz/{quiz_id}")
 def get_quiz(quiz_id: str):
     """Retrieve a quiz by its ID."""
     try:
-        quiz = storage_manager.load_quiz(quiz_id)
+        quiz = storage_manager.get_quiz(quiz_id)
         return quiz
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Quiz not found")
@@ -97,7 +113,7 @@ def generate_token(request: TokenRequest):
     """Generate a token for accessing a quiz."""
     quiz_id = request.quiz_id
     try:
-        storage_manager.load_quiz(quiz_id)
+        storage_manager.get_quiz(quiz_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
@@ -105,10 +121,10 @@ def generate_token(request: TokenRequest):
     if request.type == "single-use":
         single_use_tokens.add(token)
     elif request.type == "permanent":
-        tokens = storage_manager.load_tokens()
+        tokens = storage_manager.get_tokens()
         tokens.append(
             {"token": token, "quiz_id": quiz_id, "type": "permanent"})
-        storage_manager.save_tokens(tokens)
+        storage_manager.add_tokens(tokens)
     else:
         raise HTTPException(status_code=400, detail="Invalid token type")
 
@@ -118,7 +134,7 @@ def generate_token(request: TokenRequest):
 @app.post("/start_quiz")
 def start_quiz(token: str, user_id: str):
     """Start a quiz using a token."""
-    tokens = storage_manager.load_tokens()
+    tokens = storage_manager.get_tokens()
     token_data = next((t for t in tokens if t["token"] == token), None)
 
     if not token_data and token not in single_use_tokens:
@@ -128,22 +144,22 @@ def start_quiz(token: str, user_id: str):
         single_use_tokens.remove(token)
 
     quiz_id = token_data["quiz_id"] if token_data else None
-    quiz = storage_manager.load_quiz(quiz_id)
-    return {"quiz_id": quiz_id, "title": quiz["title"], "questions": quiz["questions"]}
+    quiz = storage_manager.get_quiz(quiz_id)
+    return {"quiz_id": quiz_id, "title": quiz["metadata"]["title"], "questions": quiz["questions"]}
 
 
 @app.post("/submit_answer/{quiz_id}", response_model=ResultResponse)
 def submit_answer(quiz_id: str, request: AnswerRequest):
     """Submit an answer for a quiz question."""
     user_id = request.user_id
-    user_results = storage_manager.load_results(user_id, quiz_id) or {
+    user_results = storage_manager.get_results(user_id, quiz_id) or {
         "scores": {}, "answers": {}}
 
     # Update answers
     user_results["answers"].update(request.answer)
 
     # Update scores based on the submitted answer
-    quiz = storage_manager.load_quiz(quiz_id)
+    quiz = storage_manager.get_quiz(quiz_id)
     for question in quiz["questions"]:
         if question["id"] in request.answer:
             answer = request.answer[question["id"]]
@@ -151,17 +167,36 @@ def submit_answer(quiz_id: str, request: AnswerRequest):
                 condition = update["condition"]
                 if eval(condition, {}, {"answer": answer, **user_results["scores"]}):
                     for score, value in update["update"].items():
-                        user_results["scores"][score] = user_results["scores"].get(
-                            score, 0) + value
+                        user_results["scores"][score] = eval(
+                            value, {}, user_results["scores"])
 
-    storage_manager.save_results(user_id, quiz_id, user_results)
+    storage_manager.add_results(user_id, quiz_id, user_results)
     return user_results
 
 
 @app.get("/results/{quiz_id}/{user_id}", response_model=ResultResponse)
 def get_results(quiz_id: str, user_id: str):
     """Get the results for a user."""
-    results = storage_manager.load_results(user_id, quiz_id)
+    results = storage_manager.get_results(user_id, quiz_id)
     if not results:
         raise HTTPException(status_code=404, detail="Results not found")
     return results
+
+
+@app.post("/add_quiz", response_model=QuizResponse)
+def add_quiz(quiz: Quiz):
+    """Add an existing quiz to the storage."""
+    quiz_id = generate_quiz_token()
+    # Validate quiz
+    validation_result = QuizJSONValidator.validate(quiz.dict())
+    if validation_result["errors"]:
+        raise HTTPException(
+            status_code=400, detail=validation_result["errors"])
+
+    try:
+        storage_manager.get_quiz(quiz_id)
+        raise HTTPException(
+            status_code=400, detail="Quiz with this ID already exists")
+    except FileNotFoundError:
+        storage_manager.add_quiz(quiz_id, quiz.dict())
+        return {"quiz_id": quiz_id, "title": quiz.metadata.title}

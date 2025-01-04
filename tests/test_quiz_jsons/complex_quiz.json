@@ -1,6 +1,5 @@
 {
     "metadata": {
-        "quiz_id": "complex_quiz",
         "title": "Complex Quiz",
         "description": "A quiz with multiple scores, branching logic, and conditions",
         "author": "Advanced Author",
