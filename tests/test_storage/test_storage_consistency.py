@@ -36,7 +36,16 @@ def test_storage_consistency_quiz(file_storage: FileStorageManager, sql_storage:
     """Test consistency of quiz data between file and SQL storage."""
     quiz_data = {
         "title": "Sample Quiz",
-        "questions": [{"id": 1, "text": "Q1"}]
+        "questions": [
+            {
+                "id": 1,
+                "data": {
+                    "text": "Q1",
+                    "type": "multiple_choice",
+                    "options": [{"value": "A", "label": "Option A"}]
+                }
+            }
+        ]
     }
     creator_id = "user1"
     file_storage.add_quiz("quiz_001", quiz_data, creator_id)

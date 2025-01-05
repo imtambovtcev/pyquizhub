@@ -48,7 +48,7 @@ class QuizJSONValidator:
                 errors.append(f"Question must be a dictionary: {question}")
                 continue
 
-            if not all(key in question for key in ["id", "text", "type"]):
+            if not all(key in question for key in ["id", "data"]):
                 errors.append(f"Invalid question format: {question}")
                 continue
 
@@ -56,9 +56,18 @@ class QuizJSONValidator:
                 errors.append(f"Duplicate question ID found: {question['id']}")
             question_ids.add(question["id"])
 
-            if question["type"] == "multiple_choice" and "options" not in question:
+            data = question["data"]
+            if not isinstance(data, dict):
+                errors.append(f"Question data must be a dictionary: {data}")
+                continue
+
+            if not all(key in data for key in ["text", "type"]):
+                errors.append(f"Invalid question data format: {data}")
+                continue
+
+            if data["type"] == "multiple_choice" and "options" not in data:
                 errors.append(
-                    f"Multiple choice question missing options: {question}")
+                    f"Multiple choice question missing options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]

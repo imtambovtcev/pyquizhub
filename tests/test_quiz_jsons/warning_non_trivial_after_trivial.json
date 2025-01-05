@@ -11,18 +11,20 @@
     "questions": [
         {
             "id": 1,
-            "text": "Do you like apples?",
-            "type": "multiple_choice",
-            "options": [
-                {
-                    "value": "yes",
-                    "label": "Yes"
-                },
-                {
-                    "value": "no",
-                    "label": "No"
-                }
-            ]
+            "data": {
+                "text": "Do you like apples?",
+                "type": "multiple_choice",
+                "options": [
+                    {
+                        "value": "yes",
+                        "label": "Yes"
+                    },
+                    {
+                        "value": "no",
+                        "label": "No"
+                    }
+                ]
+            }
         }
     ],
     "transitions": {

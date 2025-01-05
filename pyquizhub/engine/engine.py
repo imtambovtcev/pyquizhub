@@ -1,6 +1,7 @@
 import json
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
+import logging
 
 
 class QuizEngine:
@@ -19,13 +20,24 @@ class QuizEngine:
 
     def start_quiz(self, user_id):
         if user_id in self.sessions:
-            raise ValueError("Quiz session already active for this user.")
+            logging.warning(f"Quiz session already active for user {user_id}.")
+            return {
+                **self.get_current_question_id_and_data(user_id),
+                "warning": "Quiz session already active for this user."
+            }
         self.sessions[user_id] = {
             "current_question_id": self.quiz["questions"][0]["id"],
             "scores": {key: 0 for key in self.quiz.get("scores", {}).keys()},
             "answers": []
         }
         return self.get_current_question(user_id)
+
+    def get_current_question_id_and_data(self, user_id):
+        question = self.get_current_question(user_id)
+
+        if question is None:
+            return None
+        return {'id': question['id'], 'data': question['data']}
 
     def get_current_question(self, user_id):
         session = self.sessions.get(user_id)
@@ -40,6 +52,7 @@ class QuizEngine:
         )
         if not question:
             raise ValueError(f"Question with ID {question_id} not found.")
+        print(f"Question {question_id}: {question}")
         return question
 
     def answer_question(self, user_id, answer):
@@ -67,9 +80,12 @@ class QuizEngine:
         next_question_id = self._get_next_question(
             current_question["id"], session["scores"]
         )
+
+        print(f"Next question ID: {next_question_id}")
+
         if next_question_id is not None:
             session["current_question_id"] = next_question_id
-            return self.get_current_question(user_id)
+            return self.get_current_question_id_and_data(user_id)
         else:
             session["current_question_id"] = None
             return self.end_quiz(user_id)

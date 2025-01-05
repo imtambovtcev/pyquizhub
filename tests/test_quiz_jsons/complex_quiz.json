@@ -13,18 +13,20 @@
     "questions": [
         {
             "id": 1,
-            "text": "Do you like apples?",
-            "type": "multiple_choice",
-            "options": [
-                {
-                    "value": "yes",
-                    "label": "Yes"
-                },
-                {
-                    "value": "no",
-                    "label": "No"
-                }
-            ],
+            "data": {
+                "text": "Do you like apples?",
+                "type": "multiple_choice",
+                "options": [
+                    {
+                        "value": "yes",
+                        "label": "Yes"
+                    },
+                    {
+                        "value": "no",
+                        "label": "No"
+                    }
+                ]
+            },
             "score_updates": [
                 {
                     "condition": "answer == 'yes'",
@@ -43,18 +45,20 @@
         },
         {
             "id": 2,
-            "text": "Do you like pears?",
-            "type": "multiple_choice",
-            "options": [
-                {
-                    "value": "yes",
-                    "label": "Yes"
-                },
-                {
-                    "value": "no",
-                    "label": "No"
-                }
-            ],
+            "data": {
+                "text": "Do you like pears?",
+                "type": "multiple_choice",
+                "options": [
+                    {
+                        "value": "yes",
+                        "label": "Yes"
+                    },
+                    {
+                        "value": "no",
+                        "label": "No"
+                    }
+                ]
+            },
             "score_updates": [
                 {
                     "condition": "answer == 'yes'",

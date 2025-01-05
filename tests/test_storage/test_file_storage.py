@@ -23,7 +23,16 @@ def test_add_and_get_quiz(file_storage: FileStorageManager):
     """Test adding and getting quiz data."""
     quiz_data = {
         "title": "Sample Quiz",
-        "questions": [{"id": 1, "text": "Q1"}]
+        "questions": [
+            {
+                "id": 1,
+                "data": {
+                    "text": "Q1",
+                    "type": "multiple_choice",
+                    "options": [{"value": "A", "label": "Option A"}]
+                }
+            }
+        ]
     }
     creator_id = "user1"
     file_storage.add_quiz("quiz_001", quiz_data, creator_id)
