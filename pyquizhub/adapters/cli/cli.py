@@ -33,43 +33,74 @@ def add_quiz(file_path=None):
         print(f"Error: {e}")
 
 
+def handle_question(question):
+    """Handle a single quiz question."""
+
+    if question['data']["type"] == "final_message":
+        print(question['data']['text'])
+        return None
+
+    elif question['data']["type"] == "multiple_choice":
+        print(f"Question {question['id']}: {question['data']['text']}")
+        print("Options:")
+        for idx, option in enumerate(question['data'].get("options", [])):
+            print(f"  {idx + 1}: {option['label']}")
+        answer = input("Enter the number of your choice: ").strip()
+        selected_option = question['data']["options"][int(answer) - 1]["value"]
+    else:
+        selected_option = input("Your answer: ").strip()
+
+    return {"answer": selected_option}
+
+
 def start_quiz(user_id, token):
     """Start a quiz."""
     response = requests.post(
         f"{BASE_URL}/start_quiz?token={token}&user_id={user_id}")
     if response.status_code == 200:
-        quiz = response.json()
-        print(f"Starting quiz: {quiz['title']}")
-        print("Answer the following questions:")
-        results = {}
-        for question in quiz["questions"]:
-            print(f"Question {question['id']}: {question['text']}")
-            if question["type"] == "multiple_choice":
-                print("Options:")
-                for idx, option in enumerate(question.get("options", [])):
-                    print(f"  {idx + 1}: {option}")
-                answer = input("Enter the number of your choice: ").strip()
-                results[question["id"]] = answer
-            else:
-                answer = input("Your answer: ").strip()
-                results[question["id"]] = answer
-        submit_answers(quiz["quiz_id"], user_id, results)
+        quiz_id = response.json().get("quiz_id")
+        if not quiz_id:
+            print("Failed to start quiz:", response.json().get(
+                "detail", "Unknown error"))
+            return
+        initial_response = response.json()
+        print(f'{initial_response = }')
+        if "warning" in initial_response:
+            print("Warning:", initial_response["warning"])
+        else:
+            print(f"Starting quiz: {initial_response['title']}")
+        answer = handle_question(initial_response["question"])
+        print(f'{answer = }')
     else:
         print("Failed to start quiz:", response.json().get(
             "detail", "Unknown error"))
 
+    new_response = submit_answer(
+        quiz_id, user_id, initial_response["question"]["id"], answer)
 
-def submit_answers(quiz_id, user_id, answers):
-    """Submit answers for a quiz."""
+    while new_response["question"]['id'] is not None:
+        answer = handle_question(new_response["question"])
+
+        new_response = submit_answer(
+            quiz_id, user_id, new_response["question"]["id"], answer)
+        print(f'{new_response = }')
+
+    print("Quiz completed!")
+
+
+def submit_answer(quiz_id, user_id, question_id, answer):
+    """Submit an answer for a quiz question."""
     response = requests.post(
-        f"{BASE_URL}/submit_answers/{quiz_id}", json={"user_id": user_id, "answers": answers})
-    if response.status_code == 200:
-        data = response.json()
-        print("Answers submitted successfully!")
-        print("Your scores:", data["scores"])
-    else:
-        print("Failed to submit answers:",
+        f"{BASE_URL}/submit_answer/{quiz_id}",
+        json={"user_id": user_id, "question_id": question_id, "answer": answer}
+    )
+    if response.status_code != 200:
+        print("Failed to submit answer:",
               response.json().get("detail", "Unknown error"))
+
+        return None
+
+    return response.json()
 
 
 def view_results():
@@ -90,7 +121,7 @@ def view_results():
 def generate_token(quiz_id, token_type):
     """Generate a token for a quiz."""
     response = requests.post(
-        f"{BASE_URL}/generate_token", json={"quiz_id": quiz_id, "type": token_type})
+        f"{BASE_URL}/creator/generate_token", json={"quiz_id": quiz_id, "type": token_type})
     if response.status_code == 200:
         data = response.json()
         print(f"Token generated successfully: {data['token']}")

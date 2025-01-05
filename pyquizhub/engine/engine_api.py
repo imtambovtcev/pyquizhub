@@ -76,6 +76,12 @@ class ResultResponse(BaseModel):
     answers: Dict[str, str]
 
 
+class NextQuestionResponse(BaseModel):
+    quiz_id: str
+    title: str
+    question: Optional[Dict] = None
+
+
 class CreateQuizRequest(BaseModel):
     quiz: Quiz
     creator_id: str
@@ -194,7 +200,7 @@ def get_participated_users(quiz_id: str):
 
 # User commands
 
-@app.post("/start_quiz")
+@app.post("/start_quiz", response_model=NextQuestionResponse)
 def start_quiz(token: str, user_id: str):
     """User: Start a quiz using a token."""
     quiz_id = storage_manager.get_quiz_id_by_token(token)
@@ -210,7 +216,9 @@ def start_quiz(token: str, user_id: str):
     if quiz_id not in quiz_engines:
         quiz_engines[quiz_id] = QuizEngine(quiz)
 
-    question = quiz_engines[quiz_id].start_quiz(user_id)
+    quiz_engine: QuizEngine = quiz_engines[quiz_id]
+
+    question = quiz_engine.start_quiz(user_id)
     return {
         "quiz_id": quiz_id,
         "title": quiz["metadata"]["title"],
@@ -218,21 +226,27 @@ def start_quiz(token: str, user_id: str):
     }
 
 
-@app.post("/submit_answer/{quiz_id}", response_model=ResultResponse)
+@app.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse)
 def submit_answer(quiz_id: str, request: AnswerRequest):
     """User: Submit an answer for a quiz question."""
     user_id = request.user_id
-    answer = request.answer
+    answer = request.answer['answer']
+
+    print(f'{quiz_id = }\n{user_id = }\n{answer = }')
 
     if quiz_id not in quiz_engines:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
-    next_question = quiz_engines[quiz_id].answer_question(user_id, answer)
+    quiz_engine: QuizEngine = quiz_engines[quiz_id]
+
+    next_question = quiz_engine.answer_question(user_id, answer)
     if next_question is None:
-        results = quiz_engines[quiz_id].end_quiz(user_id)
+        results = quiz_engine.end_quiz(user_id)
         storage_manager.add_results(user_id, quiz_id, results)
         return results
 
     return {
+        "quiz_id": quiz_id,
+        "title": quiz_engine.quiz["metadata"]["title"],
         "question": next_question
     }

@@ -35,10 +35,8 @@ def test_complex_quiz_flow():
 
     # Simulate moving to the next question
     result = engine.answer_question(user_id, "yes")
-    assert result["message"] == "Quiz completed!"
-    assert result["scores"]["fruits"] == 2
-    assert result["scores"]["apples"] == 2
-    assert result["scores"]["pears"] == 2
+    assert result["id"] is None
+    assert result["data"]["type"] == "final_message"
 
 
 def test_complex_quiz_loop_flow():
@@ -72,10 +70,8 @@ def test_complex_quiz_loop_flow():
 
     # Simulate moving to the next question
     result = engine.answer_question(user_id, "yes")
-    assert result["message"] == "Quiz completed!"
-    assert result["scores"]["fruits"] == 2
-    assert result["scores"]["apples"] == 1
-    assert result["scores"]["pears"] == 2
+    assert result["id"] is None
+    assert result["data"]["type"] == "final_message"
 
 
 def test_invalid_score_updates():

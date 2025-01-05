@@ -105,8 +105,4 @@ class QuizEngine:
         session = self.sessions.get(user_id)
         if not session:
             raise ValueError("No active session for this user.")
-        return {
-            "scores": session["scores"],
-            "answers": session["answers"],
-            "message": "Quiz completed!" if session["current_question_id"] is None else "Quiz still in progress!"
-        }
+        return {'id': None,  'data': {"type": 'final_message', "text": "Quiz completed!" if session["current_question_id"] is None else "Quiz still in progress, but the quiz was terminated."}}
