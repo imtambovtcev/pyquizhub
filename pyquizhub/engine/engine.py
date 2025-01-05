@@ -18,6 +18,15 @@ class QuizEngine:
                 f"Quiz validation failed: {validation_result['errors']}")
         return quiz_data
 
+    def get_results(self, user_id):
+        session = self.sessions.get(user_id)
+        if not session:
+            raise ValueError("No active session for this user.")
+        return {
+            "scores": session["scores"],
+            "answers": session["answers"]
+        }
+
     def start_quiz(self, user_id):
         if user_id in self.sessions:
             logging.warning(f"Quiz session already active for user {user_id}.")

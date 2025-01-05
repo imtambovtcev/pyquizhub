@@ -91,6 +91,19 @@ class ParticipatedUsersResponse(BaseModel):
     user_ids: List[str]
 
 
+def _get_results(quiz_id: str, user_id: str):
+    """Creator: Get the results for a user."""
+    results = storage_manager.get_results(user_id, quiz_id)
+    if not results:
+        raise HTTPException(status_code=404, detail="Results not found")
+    return results
+
+
+def _get_participated_users(quiz_id: str):
+    """Creator: Get all users who participated in a quiz."""
+    user_ids = storage_manager.get_participated_users(quiz_id)
+    return {"user_ids": user_ids}
+
 # Routes
 
 
@@ -140,6 +153,19 @@ def admin_get_all_tokens():
     """Admin: Retrieve all tokens."""
     return storage_manager.get_all_tokens()
 
+
+@app.get("/admin/results/{quiz_id}/{user_id}", response_model=ResultResponse)
+def get_results(quiz_id: str, user_id: str):
+    """Admin: Get the results for a user."""
+    return _get_results(quiz_id, user_id)
+
+
+@app.get("/admin/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
+def get_participated_users(quiz_id: str):
+    """Admin: Get all users who participated in a quiz."""
+    return _get_participated_users(quiz_id)
+
+
 # Creator commands
 
 
@@ -185,17 +211,13 @@ def generate_token(request: TokenRequest):
 @app.get("/creator/results/{quiz_id}/{user_id}", response_model=ResultResponse)
 def get_results(quiz_id: str, user_id: str):
     """Creator: Get the results for a user."""
-    results = storage_manager.get_results(user_id, quiz_id)
-    if not results:
-        raise HTTPException(status_code=404, detail="Results not found")
-    return results
+    return _get_results(quiz_id, user_id)
 
 
 @app.get("/creator/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
 def get_participated_users(quiz_id: str):
     """Creator: Get all users who participated in a quiz."""
-    user_ids = storage_manager.get_participated_users(quiz_id)
-    return {"user_ids": user_ids}
+    return _get_participated_users(quiz_id)
 
 
 # User commands
@@ -232,18 +254,17 @@ def submit_answer(quiz_id: str, request: AnswerRequest):
     user_id = request.user_id
     answer = request.answer['answer']
 
-    print(f'{quiz_id = }\n{user_id = }\n{answer = }')
-
     if quiz_id not in quiz_engines:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     quiz_engine: QuizEngine = quiz_engines[quiz_id]
 
     next_question = quiz_engine.answer_question(user_id, answer)
-    if next_question is None:
-        results = quiz_engine.end_quiz(user_id)
-        storage_manager.add_results(user_id, quiz_id, results)
-        return results
+
+    if next_question["id"] is None:
+        # Quiz is complete
+        storage_manager.add_results(
+            user_id, quiz_id, quiz_engine.get_results(user_id))
 
     return {
         "quiz_id": quiz_id,

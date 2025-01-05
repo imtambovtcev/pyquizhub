@@ -109,9 +109,9 @@ class FileStorageManager(StorageManager):
         }
 
     def add_results(self, user_id: str, quiz_id: str, results: Dict[str, Any]) -> None:
-        user_dir = os.path.join(self.base_dir, "results", user_id)
-        os.makedirs(user_dir, exist_ok=True)
-        filepath = os.path.join(user_dir, f"{quiz_id}_results.json")
+        filepath = f"results/{user_id}/{quiz_id}_results.json"
+        print(f"Saving results to {filepath}")
+        print(f"{results = }")
         self._write_json(filepath, results)
 
     def get_tokens(self) -> List[Dict[str, Any]]:

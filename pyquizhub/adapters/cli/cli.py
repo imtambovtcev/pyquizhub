@@ -70,7 +70,6 @@ def start_quiz(user_id, token):
         else:
             print(f"Starting quiz: {initial_response['title']}")
         answer = handle_question(initial_response["question"])
-        print(f'{answer = }')
     else:
         print("Failed to start quiz:", response.json().get(
             "detail", "Unknown error"))
@@ -83,7 +82,6 @@ def start_quiz(user_id, token):
 
         new_response = submit_answer(
             quiz_id, user_id, new_response["question"]["id"], answer)
-        print(f'{new_response = }')
 
     print("Quiz completed!")
 
