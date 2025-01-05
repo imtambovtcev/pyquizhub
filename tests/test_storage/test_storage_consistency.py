@@ -73,3 +73,20 @@ def test_storage_consistency_tokens(file_storage: FileStorageManager, sql_storag
     sql_tokens = sql_storage.get_tokens()
 
     assert file_tokens == sql_tokens
+
+
+def test_storage_consistency_participated_users(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
+    """Test consistency of participated users between file and SQL storage."""
+    results = {
+        "scores": {"math": 10},
+        "answers": {"1": "A"}
+    }
+    file_storage.add_results("user1", "quiz_001", results)
+    file_storage.add_results("user2", "quiz_001", results)
+    sql_storage.add_results("user1", "quiz_001", results)
+    sql_storage.add_results("user2", "quiz_001", results)
+
+    file_users = file_storage.get_participated_users("quiz_001")
+    sql_users = sql_storage.get_participated_users("quiz_001")
+
+    assert set(file_users) == set(sql_users)

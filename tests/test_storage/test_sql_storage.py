@@ -56,3 +56,15 @@ def test_add_and_get_tokens(sql_storage: SQLStorageManager):
     sql_storage.add_tokens(tokens)
     loaded_tokens = sql_storage.get_tokens()
     assert loaded_tokens == tokens
+
+
+def test_get_participated_users(sql_storage: SQLStorageManager):
+    """Test getting participated users."""
+    results = {
+        "scores": {"math": 10},
+        "answers": {"1": "A"}
+    }
+    sql_storage.add_results("user1", "quiz_001", results)
+    sql_storage.add_results("user2", "quiz_001", results)
+    user_ids = sql_storage.get_participated_users("quiz_001")
+    assert set(user_ids) == {"user1", "user2"}

@@ -134,6 +134,13 @@ class SQLStorageManager(StorageManager):
                 ).values(quiz_id=token["quiz_id"], type=token["type"])
                 self._execute(query)
 
+    def get_participated_users(self, quiz_id: str) -> List[str]:
+        query = select(self.results_table.c.user_id).where(
+            self.results_table.c.quiz_id == quiz_id
+        )
+        result = self._execute(query)
+        return [row._mapping["user_id"] for row in result]
+
     def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
         query = select(self.users_table.c.permissions).where(
             self.users_table.c.id == user_id)

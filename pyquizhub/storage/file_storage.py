@@ -121,3 +121,15 @@ class FileStorageManager(StorageManager):
         if user and "create" in user.get("permissions", []):
             return True
         return False
+
+    def get_participated_users(self, quiz_id: str) -> List[str]:
+        participated_users = []
+        results_dir = os.path.join(self.base_dir, "results")
+        for user_id in os.listdir(results_dir):
+            user_results_dir = os.path.join(results_dir, user_id)
+            if os.path.isdir(user_results_dir):
+                result_file = os.path.join(
+                    user_results_dir, f"{quiz_id}_results.json")
+                if os.path.exists(result_file):
+                    participated_users.append(user_id)
+        return participated_users

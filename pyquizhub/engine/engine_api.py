@@ -77,6 +77,10 @@ class CreateQuizRequest(BaseModel):
     creator_id: str
 
 
+class ParticipatedUsersResponse(BaseModel):
+    user_ids: List[str]
+
+
 # In-memory cache for single-use tokens
 single_use_tokens = set()
 
@@ -88,9 +92,41 @@ def read_root():
     return {"message": "Welcome to the Quiz Engine API"}
 
 
-@app.post("/create_quiz", response_model=QuizResponse)
+# Admin commands
+
+@app.post("/admin/create_quiz", response_model=QuizResponse)
+def admin_create_quiz(request: CreateQuizRequest):
+    """Admin: Create a new quiz."""
+    quiz_id = f"quiz_{str(uuid.uuid4())[:8]}"
+    creator_id = request.creator_id
+
+    # Validate quiz
+    validation_result = QuizJSONValidator.validate(request.quiz.dict())
+    if validation_result["errors"]:
+        raise HTTPException(
+            status_code=400, detail=validation_result["errors"])
+
+    quiz_data = request.quiz.dict()
+    quiz_data["creator_id"] = creator_id
+    storage_manager.add_quiz(quiz_id, quiz_data, creator_id)
+    return {"quiz_id": quiz_id, "title": request.quiz.metadata.title}
+
+
+@app.get("/admin/quiz/{quiz_id}")
+def admin_get_quiz(quiz_id: str):
+    """Admin: Retrieve a quiz by its ID."""
+    try:
+        quiz = storage_manager.get_quiz(quiz_id)
+        return quiz
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+
+
+# Creator commands
+
+@app.post("/creator/create_quiz", response_model=QuizResponse)
 def create_quiz(request: CreateQuizRequest):
-    """Create a new quiz."""
+    """Creator: Create a new quiz."""
     quiz_id = f"quiz_{str(uuid.uuid4())[:8]}"
     creator_id = request.creator_id
 
@@ -107,23 +143,13 @@ def create_quiz(request: CreateQuizRequest):
 
     quiz_data = request.quiz.dict()
     quiz_data["creator_id"] = creator_id
-    storage_manager.add_quiz(quiz_id, quiz_data)
+    storage_manager.add_quiz(quiz_id, quiz_data, creator_id)
     return {"quiz_id": quiz_id, "title": request.quiz.metadata.title}
 
 
-@app.get("/quiz/{quiz_id}")
-def get_quiz(quiz_id: str):
-    """Retrieve a quiz by its ID."""
-    try:
-        quiz = storage_manager.get_quiz(quiz_id)
-        return quiz
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Quiz not found")
-
-
-@app.post("/generate_token", response_model=TokenResponse)
+@app.post("/creator/generate_token", response_model=TokenResponse)
 def generate_token(request: TokenRequest):
-    """Generate a token for accessing a quiz."""
+    """Creator: Generate a token for accessing a quiz."""
     quiz_id = request.quiz_id
     try:
         storage_manager.get_quiz(quiz_id)
@@ -144,9 +170,27 @@ def generate_token(request: TokenRequest):
     return {"token": token}
 
 
+@app.get("/creator/results/{quiz_id}/{user_id}", response_model=ResultResponse)
+def get_results(quiz_id: str, user_id: str):
+    """Creator: Get the results for a user."""
+    results = storage_manager.get_results(user_id, quiz_id)
+    if not results:
+        raise HTTPException(status_code=404, detail="Results not found")
+    return results
+
+
+@app.get("/creator/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
+def get_participated_users(quiz_id: str):
+    """Creator: Get all users who participated in a quiz."""
+    user_ids = storage_manager.get_participated_users(quiz_id)
+    return {"user_ids": user_ids}
+
+
+# User commands
+
 @app.post("/start_quiz")
 def start_quiz(token: str, user_id: str):
-    """Start a quiz using a token."""
+    """User: Start a quiz using a token."""
     tokens = storage_manager.get_tokens()
     token_data = next((t for t in tokens if t["token"] == token), None)
 
@@ -163,7 +207,7 @@ def start_quiz(token: str, user_id: str):
 
 @app.post("/submit_answer/{quiz_id}", response_model=ResultResponse)
 def submit_answer(quiz_id: str, request: AnswerRequest):
-    """Submit an answer for a quiz question."""
+    """User: Submit an answer for a quiz question."""
     user_id = request.user_id
     user_results = storage_manager.get_results(user_id, quiz_id) or {
         "scores": {}, "answers": {}}
@@ -185,31 +229,3 @@ def submit_answer(quiz_id: str, request: AnswerRequest):
 
     storage_manager.add_results(user_id, quiz_id, user_results)
     return user_results
-
-
-@app.get("/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def get_results(quiz_id: str, user_id: str):
-    """Get the results for a user."""
-    results = storage_manager.get_results(user_id, quiz_id)
-    if not results:
-        raise HTTPException(status_code=404, detail="Results not found")
-    return results
-
-
-@app.post("/add_quiz", response_model=QuizResponse)
-def add_quiz(quiz: Quiz):
-    """Add an existing quiz to the storage."""
-    quiz_id = generate_quiz_token()
-    # Validate quiz
-    validation_result = QuizJSONValidator.validate(quiz.dict())
-    if validation_result["errors"]:
-        raise HTTPException(
-            status_code=400, detail=validation_result["errors"])
-
-    try:
-        storage_manager.get_quiz(quiz_id)
-        raise HTTPException(
-            status_code=400, detail="Quiz with this ID already exists")
-    except FileNotFoundError:
-        storage_manager.add_quiz(quiz_id, quiz.dict())
-        return {"quiz_id": quiz_id, "title": quiz.metadata.title}

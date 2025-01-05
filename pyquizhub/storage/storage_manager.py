@@ -30,3 +30,6 @@ class StorageManager:
 
     def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
         raise NotImplementedError
+
+    def get_participated_users(self, quiz_id: str) -> List[str]:
+        raise NotImplementedError
