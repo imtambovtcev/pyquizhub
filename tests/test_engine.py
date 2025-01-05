@@ -1,6 +1,7 @@
 import pytest
 from pyquizhub.engine.engine import QuizEngine
 import json
+import uuid
 
 # Load test quiz data
 
@@ -17,24 +18,25 @@ def test_complex_quiz_flow():
 
     # Start the quiz for a user
     user_id = "user2"
-    engine.start_quiz(user_id)
+    session_id = str(uuid.uuid4())
+    engine.start_quiz(session_id)
 
     # Check initial question
-    assert engine.get_current_question(user_id)["id"] == 1
+    assert engine.get_current_question(session_id)["id"] == 1
 
     # Check initial scores
-    assert engine.sessions[user_id]["scores"]["fruits"] == 0
-    assert engine.sessions[user_id]["scores"]["apples"] == 0
-    assert engine.sessions[user_id]["scores"]["pears"] == 0
+    assert engine.sessions[session_id]["scores"]["fruits"] == 0
+    assert engine.sessions[session_id]["scores"]["apples"] == 0
+    assert engine.sessions[session_id]["scores"]["pears"] == 0
 
     # Answer the first question
-    result = engine.answer_question(user_id, "yes")
-    assert engine.sessions[user_id]["scores"]["fruits"] == 1
-    assert engine.sessions[user_id]["scores"]["apples"] == 2
-    assert engine.sessions[user_id]["scores"]["pears"] == 0
+    result = engine.answer_question(session_id, "yes")
+    assert engine.sessions[session_id]["scores"]["fruits"] == 1
+    assert engine.sessions[session_id]["scores"]["apples"] == 2
+    assert engine.sessions[session_id]["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    result = engine.answer_question(user_id, "yes")
+    result = engine.answer_question(session_id, "yes")
     assert result["id"] is None
     assert result["data"]["type"] == "final_message"
 
@@ -46,30 +48,31 @@ def test_complex_quiz_loop_flow():
 
     # Start the quiz for a user
     user_id = "user2"
-    engine.start_quiz(user_id)
+    session_id = str(uuid.uuid4())
+    engine.start_quiz(session_id)
 
     # Check initial question
-    assert engine.get_current_question(user_id)["id"] == 1
+    assert engine.get_current_question(session_id)["id"] == 1
 
     # Check initial scores
-    assert engine.sessions[user_id]["scores"]["fruits"] == 0
-    assert engine.sessions[user_id]["scores"]["apples"] == 0
-    assert engine.sessions[user_id]["scores"]["pears"] == 0
+    assert engine.sessions[session_id]["scores"]["fruits"] == 0
+    assert engine.sessions[session_id]["scores"]["apples"] == 0
+    assert engine.sessions[session_id]["scores"]["pears"] == 0
 
     # Answer the first question
-    result = engine.answer_question(user_id, "no")
-    assert engine.sessions[user_id]["scores"]["fruits"] == 0
-    assert engine.sessions[user_id]["scores"]["apples"] == -1
-    assert engine.sessions[user_id]["scores"]["pears"] == 0
+    result = engine.answer_question(session_id, "no")
+    assert engine.sessions[session_id]["scores"]["fruits"] == 0
+    assert engine.sessions[session_id]["scores"]["apples"] == -1
+    assert engine.sessions[session_id]["scores"]["pears"] == 0
 
     # Answer the first question again
-    result = engine.answer_question(user_id, "yes")
-    assert engine.sessions[user_id]["scores"]["fruits"] == 1
-    assert engine.sessions[user_id]["scores"]["apples"] == 1
-    assert engine.sessions[user_id]["scores"]["pears"] == 0
+    result = engine.answer_question(session_id, "yes")
+    assert engine.sessions[session_id]["scores"]["fruits"] == 1
+    assert engine.sessions[session_id]["scores"]["apples"] == 1
+    assert engine.sessions[session_id]["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    result = engine.answer_question(user_id, "yes")
+    result = engine.answer_question(session_id, "yes")
     assert result["id"] is None
     assert result["data"]["type"] == "final_message"
 

@@ -1,5 +1,6 @@
 import pytest
 from pyquizhub.storage.file_storage import FileStorageManager
+import uuid
 
 
 @pytest.fixture
@@ -35,8 +36,8 @@ def test_add_and_get_quiz(file_storage: FileStorageManager):
         ]
     }
     creator_id = "user1"
-    file_storage.add_quiz("quiz_001", quiz_data, creator_id)
-    loaded_quiz = file_storage.get_quiz("quiz_001")
+    file_storage.add_quiz("quiz-001", quiz_data, creator_id)
+    loaded_quiz = file_storage.get_quiz("quiz-001")
     assert loaded_quiz == quiz_data
 
 
@@ -46,11 +47,13 @@ def test_add_and_get_results(file_storage: FileStorageManager):
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
-    file_storage.add_results("user1", "quiz_001", results)
-    loaded_results = file_storage.get_results("user1", "quiz_001")
+    session_id = str(uuid.uuid4())
+    file_storage.add_results("user1", "quiz-001", session_id, results)
+    loaded_results = file_storage.get_results("user1", "quiz-001", session_id)
     expected_results = {
         "user_id": "user1",
-        "quiz_id": "quiz_001",
+        "quiz_id": "quiz-001",
+        "session_id": session_id,
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
@@ -59,7 +62,7 @@ def test_add_and_get_results(file_storage: FileStorageManager):
 
 def test_add_and_get_tokens(file_storage: FileStorageManager):
     """Test adding and getting tokens."""
-    tokens = [{"token": "abc123", "quiz_id": "quiz_001", "type": "single-use"}]
+    tokens = [{"token": "abc123", "quiz_id": "quiz-001", "type": "single-use"}]
     file_storage.add_tokens(tokens)
     loaded_tokens = file_storage.get_tokens()
     assert loaded_tokens == tokens
@@ -71,7 +74,8 @@ def test_get_participated_users(file_storage: FileStorageManager):
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
-    file_storage.add_results("user1", "quiz_001", results)
-    file_storage.add_results("user2", "quiz_001", results)
-    user_ids = file_storage.get_participated_users("quiz_001")
+    session_id = "session-001"
+    file_storage.add_results("user1", "quiz-001", session_id, results)
+    file_storage.add_results("user2", "quiz-001", session_id, results)
+    user_ids = file_storage.get_participated_users("quiz-001")
     assert set(user_ids) == {"user1", "user2"}

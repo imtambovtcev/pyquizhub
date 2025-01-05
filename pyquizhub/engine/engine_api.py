@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from pyquizhub.storage.file_storage import FileStorageManager
 from pyquizhub.storage.sql_storage import SQLStorageManager
 from pyquizhub.storage.storage_manager import StorageManager
@@ -35,6 +37,23 @@ quiz_engines: dict[str:QuizEngine] = {}
 
 app = FastAPI()
 
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_exception_handler(request: Request, exc: ResponseValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Response validation error",
+                 "errors": exc.errors()},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Request validation error", "errors": exc.errors()},
+    )
+
 # Pydantic models
 
 
@@ -57,9 +76,22 @@ class TokenRequest(BaseModel):
     type: str  # "permanent" or "single-use"
 
 
+class QuizData(BaseModel):
+    title: str
+    questions: List[Dict[str, Any]]
+
+
 class QuizResponse(BaseModel):
     quiz_id: str
     title: str
+    questions: List[Dict[str, Any]]
+
+
+class QuizDetailResponse(BaseModel):
+    quiz_id: str
+    title: str
+    creator_id: str
+    data: QuizData
 
 
 class TokenResponse(BaseModel):
@@ -68,6 +100,7 @@ class TokenResponse(BaseModel):
 
 class AnswerRequest(BaseModel):
     user_id: str
+    session_id: str
     answer: Dict[str, str]
 
 
@@ -78,6 +111,8 @@ class ResultResponse(BaseModel):
 
 class NextQuestionResponse(BaseModel):
     quiz_id: str
+    user_id: str
+    session_id: str
     title: str
     question: Optional[Dict] = None
 
@@ -91,9 +126,9 @@ class ParticipatedUsersResponse(BaseModel):
     user_ids: List[str]
 
 
-def _get_results(quiz_id: str, user_id: str):
-    """Creator: Get the results for a user."""
-    results = storage_manager.get_results(user_id, quiz_id)
+def _get_results(quiz_id: str, user_id: str, session_id: str):
+    """Creator: Get the results for a user session."""
+    results = storage_manager.get_results(user_id, quiz_id, session_id)
     if not results:
         raise HTTPException(status_code=404, detail="Results not found")
     return results
@@ -132,32 +167,37 @@ def admin_create_quiz(request: CreateQuizRequest):
     return {"quiz_id": quiz_id, "title": request.quiz.metadata.title}
 
 
-@app.get("/admin/quiz/{quiz_id}")
+@app.get("/admin/quiz/{quiz_id}", response_model=QuizDetailResponse)
 def admin_get_quiz(quiz_id: str):
     """Admin: Retrieve a quiz by its ID."""
     try:
         quiz = storage_manager.get_quiz(quiz_id)
-        return quiz
+        return {
+            "quiz_id": quiz_id,
+            "title": quiz["metadata"]["title"],
+            "creator_id": quiz["creator_id"],
+            "data": quiz["data"]
+        }
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
 
-@app.get("/admin/quizzes")
+@app.get("/admin/quizzes", response_model=Dict[str, QuizDetailResponse])
 def admin_get_all_quizzes():
     """Admin: Retrieve all quizzes."""
     return storage_manager.get_all_quizzes()
 
 
-@app.get("/admin/tokens")
+@app.get("/admin/tokens", response_model=Dict[str, List[TokenResponse]])
 def admin_get_all_tokens():
     """Admin: Retrieve all tokens."""
     return storage_manager.get_all_tokens()
 
 
 @app.get("/admin/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def get_results(quiz_id: str, user_id: str):
+def get_results(quiz_id: str, user_id: str, session_id: str):
     """Admin: Get the results for a user."""
-    return _get_results(quiz_id, user_id)
+    return _get_results(quiz_id, user_id, session_id)
 
 
 @app.get("/admin/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
@@ -209,9 +249,9 @@ def generate_token(request: TokenRequest):
 
 
 @app.get("/creator/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def get_results(quiz_id: str, user_id: str):
+def get_results(quiz_id: str, user_id: str, session_id: str):
     """Creator: Get the results for a user."""
-    return _get_results(quiz_id, user_id)
+    return _get_results(quiz_id, user_id, session_id)
 
 
 @app.get("/creator/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
@@ -239,10 +279,12 @@ def start_quiz(token: str, user_id: str):
         quiz_engines[quiz_id] = QuizEngine(quiz)
 
     quiz_engine: QuizEngine = quiz_engines[quiz_id]
-
-    question = quiz_engine.start_quiz(user_id)
+    session_id = str(uuid.uuid4())
+    question = quiz_engine.start_quiz(session_id)
     return {
         "quiz_id": quiz_id,
+        "user_id": user_id,
+        "session_id": session_id,
         "title": quiz["metadata"]["title"],
         "question": question
     }
@@ -252,6 +294,7 @@ def start_quiz(token: str, user_id: str):
 def submit_answer(quiz_id: str, request: AnswerRequest):
     """User: Submit an answer for a quiz question."""
     user_id = request.user_id
+    session_id = request.session_id
     answer = request.answer['answer']
 
     if quiz_id not in quiz_engines:
@@ -259,15 +302,17 @@ def submit_answer(quiz_id: str, request: AnswerRequest):
 
     quiz_engine: QuizEngine = quiz_engines[quiz_id]
 
-    next_question = quiz_engine.answer_question(user_id, answer)
+    next_question = quiz_engine.answer_question(session_id, answer)
 
     if next_question["id"] is None:
         # Quiz is complete
         storage_manager.add_results(
-            user_id, quiz_id, quiz_engine.get_results(user_id))
+            user_id, quiz_id, session_id, quiz_engine.get_results(session_id))
 
     return {
         "quiz_id": quiz_id,
+        "user_id": user_id,
+        "session_id": session_id,
         "title": quiz_engine.quiz["metadata"]["title"],
         "question": next_question
     }

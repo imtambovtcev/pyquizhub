@@ -48,11 +48,11 @@ def test_storage_consistency_quiz(file_storage: FileStorageManager, sql_storage:
         ]
     }
     creator_id = "user1"
-    file_storage.add_quiz("quiz_001", quiz_data, creator_id)
-    sql_storage.add_quiz("quiz_001", quiz_data, creator_id)
+    file_storage.add_quiz("quiz-001", quiz_data, creator_id)
+    sql_storage.add_quiz("quiz-001", quiz_data, creator_id)
 
-    file_quiz = file_storage.get_quiz("quiz_001")
-    sql_quiz = sql_storage.get_quiz("quiz_001")
+    file_quiz = file_storage.get_quiz("quiz-001")
+    sql_quiz = sql_storage.get_quiz("quiz-001")
 
     assert file_quiz == sql_quiz
 
@@ -63,18 +63,19 @@ def test_storage_consistency_results(file_storage: FileStorageManager, sql_stora
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
-    file_storage.add_results("user1", "quiz_001", results)
-    sql_storage.add_results("user1", "quiz_001", results)
+    session_id = "session-001"
+    file_storage.add_results("user1", "quiz-001", session_id, results)
+    sql_storage.add_results("user1", "quiz-001", session_id, results)
 
-    file_results = file_storage.get_results("user1", "quiz_001")
-    sql_results = sql_storage.get_results("user1", "quiz_001")
+    file_results = file_storage.get_results("user1", "quiz-001", session_id)
+    sql_results = sql_storage.get_results("user1", "quiz-001", session_id)
 
     assert file_results == sql_results
 
 
 def test_storage_consistency_tokens(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
     """Test consistency of tokens between file and SQL storage."""
-    tokens = [{"token": "abc123", "quiz_id": "quiz_001", "type": "single-use"}]
+    tokens = [{"token": "abc123", "quiz_id": "quiz-001", "type": "single-use"}]
     file_storage.add_tokens(tokens)
     sql_storage.add_tokens(tokens)
 
@@ -90,12 +91,13 @@ def test_storage_consistency_participated_users(file_storage: FileStorageManager
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
-    file_storage.add_results("user1", "quiz_001", results)
-    file_storage.add_results("user2", "quiz_001", results)
-    sql_storage.add_results("user1", "quiz_001", results)
-    sql_storage.add_results("user2", "quiz_001", results)
+    session_id = "session-001"
+    file_storage.add_results("user1", "quiz-001", session_id, results)
+    file_storage.add_results("user2", "quiz-001", session_id, results)
+    sql_storage.add_results("user1", "quiz-001", session_id, results)
+    sql_storage.add_results("user2", "quiz-001", session_id, results)
 
-    file_users = file_storage.get_participated_users("quiz_001")
-    sql_users = sql_storage.get_participated_users("quiz_001")
+    file_users = file_storage.get_participated_users("quiz-001")
+    sql_users = sql_storage.get_participated_users("quiz-001")
 
     assert set(file_users) == set(sql_users)

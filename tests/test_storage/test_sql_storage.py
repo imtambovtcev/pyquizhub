@@ -28,8 +28,8 @@ def test_add_and_get_quiz(sql_storage: SQLStorageManager):
         "questions": [{"id": 1, "text": "Q1"}]
     }
     creator_id = "user1"
-    sql_storage.add_quiz("quiz_001", quiz_data, creator_id)
-    loaded_quiz = sql_storage.get_quiz("quiz_001")
+    sql_storage.add_quiz("quiz-001", quiz_data, creator_id)
+    loaded_quiz = sql_storage.get_quiz("quiz-001")
     assert loaded_quiz == quiz_data
 
 
@@ -39,11 +39,14 @@ def test_add_and_get_results(sql_storage: SQLStorageManager):
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
-    sql_storage.add_results("user1", "quiz_001", results)
-    loaded_results = sql_storage.get_results("user1", "quiz_001")
+    quiz_id = "quiz-001"
+    session_id = "session-001"
+    sql_storage.add_results("user1", "quiz-001", session_id, results)
+    loaded_results = sql_storage.get_results("user1", quiz_id, session_id)
     expected_results = {
         "user_id": "user1",
-        "quiz_id": "quiz_001",
+        "quiz_id": quiz_id,
+        "session_id": session_id,
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
@@ -52,7 +55,7 @@ def test_add_and_get_results(sql_storage: SQLStorageManager):
 
 def test_add_and_get_tokens(sql_storage: SQLStorageManager):
     """Test adding and getting tokens."""
-    tokens = [{"token": "abc123", "quiz_id": "quiz_001", "type": "single-use"}]
+    tokens = [{"token": "abc123", "quiz_id": "quiz-001", "type": "single-use"}]
     sql_storage.add_tokens(tokens)
     loaded_tokens = sql_storage.get_tokens()
     assert loaded_tokens == tokens
@@ -64,7 +67,8 @@ def test_get_participated_users(sql_storage: SQLStorageManager):
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
-    sql_storage.add_results("user1", "quiz_001", results)
-    sql_storage.add_results("user2", "quiz_001", results)
-    user_ids = sql_storage.get_participated_users("quiz_001")
+    session_id = "session-001"
+    sql_storage.add_results("user1", "quiz-001", session_id, results)
+    sql_storage.add_results("user2", "quiz-001", session_id, results)
+    user_ids = sql_storage.get_participated_users("quiz-001")
     assert set(user_ids) == {"user1", "user2"}

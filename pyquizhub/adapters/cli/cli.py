@@ -3,6 +3,7 @@ import requests
 import sys
 import yaml
 import json
+import uuid
 
 # Load configuration
 CONFIG_PATH = "pyquizhub/config/config.yaml"
@@ -59,12 +60,21 @@ def start_quiz(user_id, token):
         f"{BASE_URL}/start_quiz?token={token}&user_id={user_id}")
     if response.status_code == 200:
         quiz_id = response.json().get("quiz_id")
-        if not quiz_id:
+        session_id = response.json().get("session_id")
+
+        print(f'{quiz_id=}, {session_id=}')
+
+        if not quiz_id or not session_id:
             print("Failed to start quiz:", response.json().get(
                 "detail", "Unknown error"))
             return
         initial_response = response.json()
-        print(f'{initial_response = }')
+
+        if initial_response is None:
+            print("Failed to start quiz:", response.json().get(
+                "detail", "Unknown error"))
+            return
+
         if "warning" in initial_response:
             print("Warning:", initial_response["warning"])
         else:
@@ -73,28 +83,40 @@ def start_quiz(user_id, token):
     else:
         print("Failed to start quiz:", response.json().get(
             "detail", "Unknown error"))
+        print(response.json().get("errors", ""))
+        return
 
     new_response = submit_answer(
-        quiz_id, user_id, initial_response["question"]["id"], answer)
+        quiz_id, user_id, session_id, initial_response["question"]["id"], answer)
+
+    if new_response is None:
+        print("Failed to submit answer.")
+        return
 
     while new_response["question"]['id'] is not None:
         answer = handle_question(new_response["question"])
 
         new_response = submit_answer(
-            quiz_id, user_id, new_response["question"]["id"], answer)
+            quiz_id, user_id, session_id, new_response["question"]["id"], answer)
+
+        if new_response is None:
+            print("Failed to submit answer.")
+            return
 
     print("Quiz completed!")
 
 
-def submit_answer(quiz_id, user_id, question_id, answer):
+def submit_answer(quiz_id, user_id, session_id, question_id, answer):
     """Submit an answer for a quiz question."""
     response = requests.post(
         f"{BASE_URL}/submit_answer/{quiz_id}",
-        json={"user_id": user_id, "question_id": question_id, "answer": answer}
+        json={"user_id": user_id, "session_id": session_id,
+              "question_id": question_id, "answer": answer}
     )
     if response.status_code != 200:
         print("Failed to submit answer:",
               response.json().get("detail", "Unknown error"))
+        print(response.json().get("errors", ""))
 
         return None
 
@@ -105,7 +127,9 @@ def view_results():
     """View results for a quiz."""
     quiz_id = input("Enter the quiz ID: ").strip()
     user_id = input("Enter your user ID: ").strip()
-    response = requests.get(f"{BASE_URL}/results/{quiz_id}/{user_id}")
+    session_id = input("Enter your session ID: ").strip()
+    response = requests.get(
+        f"{BASE_URL}/results/{quiz_id}/{user_id}/{session_id}")
     if response.status_code == 200:
         data = response.json()
         print("Your results:")
@@ -114,6 +138,7 @@ def view_results():
     else:
         print("Failed to fetch results:",
               response.json().get("detail", "Unknown error"))
+        print(response.json().get("errors", ""))
 
 
 def generate_token(quiz_id, token_type):
@@ -126,6 +151,7 @@ def generate_token(quiz_id, token_type):
     else:
         print("Failed to generate token:",
               response.json().get("detail", "Unknown error"))
+        print(response.json().get("errors", ""))
 
 
 def main():

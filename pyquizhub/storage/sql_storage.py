@@ -25,6 +25,7 @@ class SQLStorageManager(StorageManager):
             "results", self.metadata,
             Column("user_id", String, primary_key=True),
             Column("quiz_id", String, primary_key=True),
+            Column("session_id", String, primary_key=True),
             Column("scores", JSON),
             Column("answers", JSON)
         )
@@ -80,19 +81,21 @@ class SQLStorageManager(StorageManager):
             ).values(creator_id=creator_id, data=quiz_data)
             self._execute(query)
 
-    def get_results(self, user_id: str, quiz_id: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
         """
-        Retrieve the results of a quiz for a specific user.
+        Retrieve the results of a quiz for a specific user session.
 
         Args:
             user_id (str): The ID of the user.
             quiz_id (str): The ID of the quiz.
+            session_id (str): The ID of the session.
 
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing the results in the format:
                 {
                     'user_id': <user_id>,
                     'quiz_id': <quiz_id>,
+                    'session_id': <session_id>,
                     'scores': <scores_dict>,
                     'answers': <answers_dict>
                 }
@@ -100,21 +103,24 @@ class SQLStorageManager(StorageManager):
         """
         query = select(self.results_table).where(
             self.results_table.c.user_id == user_id,
-            self.results_table.c.quiz_id == quiz_id
+            self.results_table.c.quiz_id == quiz_id,
+            self.results_table.c.session_id == session_id
         )
         result = self._execute(query).fetchone()
         return dict(result._mapping) if result else None
 
-    def add_results(self, user_id: str, quiz_id: str, results: Dict[str, Any]) -> None:
+    def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
         query = insert(self.results_table).values(
-            user_id=user_id, quiz_id=quiz_id, scores=results["scores"], answers=results["answers"]
+            user_id=user_id, quiz_id=quiz_id, session_id=session_id, scores=results[
+                "scores"], answers=results["answers"]
         )
         try:
             self._execute(query)
         except IntegrityError:
             query = update(self.results_table).where(
                 self.results_table.c.user_id == user_id,
-                self.results_table.c.quiz_id == quiz_id
+                self.results_table.c.quiz_id == quiz_id,
+                self.results_table.c.session_id == session_id
             ).values(scores=results["scores"], answers=results["answers"])
             self._execute(query)
 
