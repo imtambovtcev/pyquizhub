@@ -33,3 +33,18 @@ class StorageManager:
 
     def get_participated_users(self, quiz_id: str) -> List[str]:
         raise NotImplementedError
+
+    def get_quiz_id_by_token(self, token: str) -> Optional[str]:
+        raise NotImplementedError
+
+    def remove_token(self, token: str) -> None:
+        raise NotImplementedError
+
+    def get_all_quizzes(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get_all_tokens(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get_token_type(self, token: str) -> Optional[str]:
+        raise NotImplementedError

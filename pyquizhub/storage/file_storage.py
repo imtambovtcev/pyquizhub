@@ -121,6 +121,10 @@ class FileStorageManager(StorageManager):
         self.tokens.extend(tokens)
         self._save("tokens.json", self.tokens)
 
+    def remove_token(self, token: str) -> None:
+        self.tokens = [t for t in self.tokens if t["token"] != token]
+        self._save("tokens.json", self.tokens)
+
     def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
         user = self.users.get(user_id)
         if user and "create" in user.get("permissions", []):
@@ -138,3 +142,33 @@ class FileStorageManager(StorageManager):
                 if os.path.exists(result_file):
                     participated_users.append(user_id)
         return participated_users
+
+    def get_quiz_id_by_token(self, token: str) -> Optional[str]:
+        for token_entry in self.tokens:
+            if token_entry["token"] == token:
+                return token_entry["quiz_id"]
+        return None
+
+    def get_token_type(self, token: str) -> Optional[str]:
+        for token_entry in self.tokens:
+            if token_entry["token"] == token:
+                return token_entry["type"]
+        return None
+
+    def get_all_quizzes(self) -> Dict[str, Dict[str, Any]]:
+        quizzes_dir = os.path.join(self.base_dir, "quizzes")
+        quizzes = {}
+        for quiz_file in os.listdir(quizzes_dir):
+            if quiz_file.endswith(".json"):
+                quiz_id = os.path.splitext(quiz_file)[0]
+                quizzes[quiz_id] = self.get_quiz(quiz_id)
+        return quizzes
+
+    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
+        tokens_by_quiz = {}
+        for token_entry in self.tokens:
+            quiz_id = token_entry["quiz_id"]
+            if quiz_id not in tokens_by_quiz:
+                tokens_by_quiz[quiz_id] = []
+            tokens_by_quiz[quiz_id].append(token_entry)
+        return tokens_by_quiz

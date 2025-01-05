@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, MetaData, Table, Column, String, JSON, select, insert, update
+from sqlalchemy import create_engine, MetaData, Table, Column, String, JSON, select, insert, update, delete
 from sqlalchemy.exc import IntegrityError
 from typing import Any, Dict, List, Optional
 from .storage_manager import StorageManager
@@ -148,3 +148,37 @@ class SQLStorageManager(StorageManager):
         if result and "create" in result._mapping["permissions"]:
             return True
         return False
+
+    def get_quiz_id_by_token(self, token: str) -> Optional[str]:
+        query = select(self.tokens_table.c.quiz_id).where(
+            self.tokens_table.c.token == token)
+        result = self._execute(query).fetchone()
+        return result._mapping["quiz_id"] if result else None
+
+    def remove_token(self, token: str) -> None:
+        query = delete(self.tokens_table).where(
+            self.tokens_table.c.token == token)
+        self._execute(query)
+
+    def get_all_quizzes(self) -> Dict[str, Dict[str, Any]]:
+        query = select(self.quizzes_table)
+        result = self._execute(query)
+        return {row._mapping["id"]: dict(row._mapping) for row in result}
+
+    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
+        query = select(self.tokens_table)
+        result = self._execute(query)
+        tokens_by_quiz = {}
+        for row in result:
+            quiz_id = row._mapping["quiz_id"]
+            if (quiz_id not in tokens_by_quiz):
+                tokens_by_quiz[quiz_id] = []
+            tokens_by_quiz[quiz_id].append(dict(row._mapping))
+        return tokens_by_quiz
+
+    def get_token_type(self, token: str) -> Optional[str]:
+        query = select(self.tokens_table.c.type).where(
+            self.tokens_table.c.token == token
+        )
+        result = self._execute(query).fetchone()
+        return result._mapping["type"] if result else None

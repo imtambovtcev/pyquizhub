@@ -8,6 +8,7 @@ from pyquizhub.engine.json_validator import QuizJSONValidator
 import uuid
 import yaml
 from pyquizhub.utils import generate_token as generate_quiz_token
+from pyquizhub.engine.engine import QuizEngine
 
 # Load configuration
 CONFIG_PATH = "pyquizhub/config/config.yaml"
@@ -27,7 +28,10 @@ def get_storage_manager() -> StorageManager:
         raise ValueError(f"Unsupported storage type: {storage_type}")
 
 
-storage_manager = get_storage_manager()
+storage_manager: StorageManager = get_storage_manager()
+
+# Pool of quiz engines for active quizzes
+quiz_engines: dict[str:QuizEngine] = {}
 
 app = FastAPI()
 
@@ -81,9 +85,6 @@ class ParticipatedUsersResponse(BaseModel):
     user_ids: List[str]
 
 
-# In-memory cache for single-use tokens
-single_use_tokens = set()
-
 # Routes
 
 
@@ -122,7 +123,19 @@ def admin_get_quiz(quiz_id: str):
         raise HTTPException(status_code=404, detail="Quiz not found")
 
 
+@app.get("/admin/quizzes")
+def admin_get_all_quizzes():
+    """Admin: Retrieve all quizzes."""
+    return storage_manager.get_all_quizzes()
+
+
+@app.get("/admin/tokens")
+def admin_get_all_tokens():
+    """Admin: Retrieve all tokens."""
+    return storage_manager.get_all_tokens()
+
 # Creator commands
+
 
 @app.post("/creator/create_quiz", response_model=QuizResponse)
 def create_quiz(request: CreateQuizRequest):
@@ -157,15 +170,8 @@ def generate_token(request: TokenRequest):
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     token = str(uuid.uuid4())[:8].upper()
-    if request.type == "single-use":
-        single_use_tokens.add(token)
-    elif request.type == "permanent":
-        tokens = storage_manager.get_tokens()
-        tokens.append(
-            {"token": token, "quiz_id": quiz_id, "type": "permanent"})
-        storage_manager.add_tokens(tokens)
-    else:
-        raise HTTPException(status_code=400, detail="Invalid token type")
+    token_data = {"token": token, "quiz_id": quiz_id, "type": request.type}
+    storage_manager.add_tokens([token_data])
 
     return {"token": token}
 
@@ -191,41 +197,42 @@ def get_participated_users(quiz_id: str):
 @app.post("/start_quiz")
 def start_quiz(token: str, user_id: str):
     """User: Start a quiz using a token."""
-    tokens = storage_manager.get_tokens()
-    token_data = next((t for t in tokens if t["token"] == token), None)
+    quiz_id = storage_manager.get_quiz_id_by_token(token)
 
-    if not token_data and token not in single_use_tokens:
+    if not quiz_id:
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 
-    if token in single_use_tokens:
-        single_use_tokens.remove(token)
+    token_type = storage_manager.get_token_type(token)
+    if token_type == "single-use":
+        storage_manager.remove_token(token)
 
-    quiz_id = token_data["quiz_id"] if token_data else None
     quiz = storage_manager.get_quiz(quiz_id)
-    return {"quiz_id": quiz_id, "title": quiz["metadata"]["title"], "questions": quiz["questions"]}
+    if quiz_id not in quiz_engines:
+        quiz_engines[quiz_id] = QuizEngine(quiz)
+
+    question = quiz_engines[quiz_id].start_quiz(user_id)
+    return {
+        "quiz_id": quiz_id,
+        "title": quiz["metadata"]["title"],
+        "question": question
+    }
 
 
 @app.post("/submit_answer/{quiz_id}", response_model=ResultResponse)
 def submit_answer(quiz_id: str, request: AnswerRequest):
     """User: Submit an answer for a quiz question."""
     user_id = request.user_id
-    user_results = storage_manager.get_results(user_id, quiz_id) or {
-        "scores": {}, "answers": {}}
+    answer = request.answer
 
-    # Update answers
-    user_results["answers"].update(request.answer)
+    if quiz_id not in quiz_engines:
+        raise HTTPException(status_code=404, detail="Quiz not found")
 
-    # Update scores based on the submitted answer
-    quiz = storage_manager.get_quiz(quiz_id)
-    for question in quiz["questions"]:
-        if question["id"] in request.answer:
-            answer = request.answer[question["id"]]
-            for update in question.get("score_updates", []):
-                condition = update["condition"]
-                if eval(condition, {}, {"answer": answer, **user_results["scores"]}):
-                    for score, value in update["update"].items():
-                        user_results["scores"][score] = eval(
-                            value, {}, user_results["scores"])
+    next_question = quiz_engines[quiz_id].answer_question(user_id, answer)
+    if next_question is None:
+        results = quiz_engines[quiz_id].end_quiz(user_id)
+        storage_manager.add_results(user_id, quiz_id, results)
+        return results
 
-    storage_manager.add_results(user_id, quiz_id, user_results)
-    return user_results
+    return {
+        "question": next_question
+    }
