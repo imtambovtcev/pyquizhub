@@ -2,11 +2,15 @@ import os
 import json
 from typing import Any, Dict, List, Optional
 from .storage_manager import StorageManager
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 class FileStorageManager(StorageManager):
     def __init__(self, base_dir: str):
         self.base_dir = base_dir
+
+        logging.info(f"Using file storage at {base_dir}")
         os.makedirs(self.base_dir, exist_ok=True)
         os.makedirs(os.path.join(self.base_dir, "quizzes"), exist_ok=True)
         os.makedirs(os.path.join(self.base_dir, "results"), exist_ok=True)
@@ -25,7 +29,8 @@ class FileStorageManager(StorageManager):
         for quiz_file in os.listdir(quizzes_dir):
             if quiz_file.endswith(".json"):
                 quiz_id = os.path.splitext(quiz_file)[0]
-                self.quizzes[quiz_id] = self.load_quiz(quiz_id)
+                logging.info(f"Loading quiz {quiz_id}")
+                self.quizzes[quiz_id] = self.get_quiz(quiz_id)
         self.results = {}
         results_dir = os.path.join(self.base_dir, "results")
         for user_id in os.listdir(results_dir):
@@ -63,8 +68,8 @@ class FileStorageManager(StorageManager):
         self._save("users.json", self.users)
 
     def get_quiz(self, quiz_id: str) -> Dict[str, Any]:
-        filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
-        if not os.path.exists(filepath):
+        filepath = os.path.join("quizzes", f"{quiz_id}.json")
+        if not os.path.exists(os.path.join(self.base_dir, filepath)):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return self._read_json(filepath)
 
