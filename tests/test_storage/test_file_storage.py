@@ -1,6 +1,7 @@
 import pytest
 from pyquizhub.storage.file_storage import FileStorageManager
 import uuid
+from datetime import datetime
 
 
 @pytest.fixture
@@ -45,7 +46,8 @@ def test_add_and_get_results(file_storage: FileStorageManager):
     """Test adding and getting user results."""
     results = {
         "scores": {"math": 10},
-        "answers": {"1": "A"}
+        "answers": {"1": "A"},
+        "timestamp": datetime.now().isoformat()
     }
     session_id = str(uuid.uuid4())
     file_storage.add_results("user1", "quiz-001", session_id, results)
@@ -55,8 +57,9 @@ def test_add_and_get_results(file_storage: FileStorageManager):
         "quiz_id": "quiz-001",
         "session_id": session_id,
         "scores": {"math": 10},
-        "answers": {"1": "A"}
+        "answers": {"1": "A"},
     }
+    loaded_results.pop("timestamp")
     assert loaded_results == expected_results
 
 

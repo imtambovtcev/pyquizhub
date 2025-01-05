@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, MetaData, Table, Column, String, JSON, select, insert, update, delete
 from sqlalchemy.exc import IntegrityError
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 from .storage_manager import StorageManager
 
 
@@ -27,7 +28,8 @@ class SQLStorageManager(StorageManager):
             Column("quiz_id", String, primary_key=True),
             Column("session_id", String, primary_key=True),
             Column("scores", JSON),
-            Column("answers", JSON)
+            Column("answers", JSON),
+            Column("timestamp", String)
         )
         self.tokens_table = Table(
             "tokens", self.metadata,
@@ -110,9 +112,10 @@ class SQLStorageManager(StorageManager):
         return dict(result._mapping) if result else None
 
     def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
+        results["timestamp"] = datetime.now().isoformat()
         query = insert(self.results_table).values(
             user_id=user_id, quiz_id=quiz_id, session_id=session_id, scores=results[
-                "scores"], answers=results["answers"]
+                "scores"], answers=results["answers"], timestamp=results["timestamp"]
         )
         try:
             self._execute(query)
@@ -121,7 +124,7 @@ class SQLStorageManager(StorageManager):
                 self.results_table.c.user_id == user_id,
                 self.results_table.c.quiz_id == quiz_id,
                 self.results_table.c.session_id == session_id
-            ).values(scores=results["scores"], answers=results["answers"])
+            ).values(scores=results["scores"], answers=results["answers"], timestamp=results["timestamp"])
             self._execute(query)
 
     def get_tokens(self) -> List[Dict[str, Any]]:

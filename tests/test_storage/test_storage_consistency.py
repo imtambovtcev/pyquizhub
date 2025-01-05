@@ -2,6 +2,7 @@ import pytest
 from pyquizhub.storage.file_storage import FileStorageManager
 from pyquizhub.storage.sql_storage import SQLStorageManager
 import os
+from datetime import datetime
 
 
 @pytest.fixture
@@ -61,7 +62,8 @@ def test_storage_consistency_results(file_storage: FileStorageManager, sql_stora
     """Test consistency of user results between file and SQL storage."""
     results = {
         "scores": {"math": 10},
-        "answers": {"1": "A"}
+        "answers": {"1": "A"},
+        "timestamp": datetime.now().isoformat()
     }
     session_id = "session-001"
     file_storage.add_results("user1", "quiz-001", session_id, results)

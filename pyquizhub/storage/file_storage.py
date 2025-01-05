@@ -3,6 +3,7 @@ import json
 from typing import Any, Dict, List, Optional
 from .storage_manager import StorageManager
 import logging
+from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
 
@@ -100,7 +101,8 @@ class FileStorageManager(StorageManager):
                     'quiz_id': <quiz_id>,
                     'session_id': <session_id>,
                     'scores': <scores_dict>,
-                    'answers': <answers_dict>
+                    'answers': <answers_dict>,
+                    'timestamp': <timestamp>
                 }
                 or None if the results do not exist.
         """
@@ -111,11 +113,13 @@ class FileStorageManager(StorageManager):
                 'quiz_id': quiz_id,
                 'session_id': session_id,
                 'scores': result.get('scores', {}),
-                'answers': result.get('answers', {})
+                'answers': result.get('answers', {}),
+                'timestamp': result.get('timestamp')
             }
         return None
 
     def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
+        results["timestamp"] = datetime.now().isoformat()
         if user_id not in self.results:
             self.results[user_id] = {}
         if quiz_id not in self.results[user_id]:

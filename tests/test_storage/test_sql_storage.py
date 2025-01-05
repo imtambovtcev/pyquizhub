@@ -50,6 +50,7 @@ def test_add_and_get_results(sql_storage: SQLStorageManager):
         "scores": {"math": 10},
         "answers": {"1": "A"}
     }
+    loaded_results.pop("timestamp")
     assert loaded_results == expected_results
 
 

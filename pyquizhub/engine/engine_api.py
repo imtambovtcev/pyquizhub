@@ -11,6 +11,7 @@ import uuid
 import yaml
 from pyquizhub.utils import generate_token as generate_quiz_token
 from pyquizhub.engine.engine import QuizEngine
+from datetime import datetime
 
 # Load configuration
 CONFIG_PATH = "pyquizhub/config/config.yaml"
@@ -306,8 +307,9 @@ def submit_answer(quiz_id: str, request: AnswerRequest):
 
     if next_question["id"] is None:
         # Quiz is complete
-        storage_manager.add_results(
-            user_id, quiz_id, session_id, quiz_engine.get_results(session_id))
+        results = quiz_engine.get_results(session_id)
+        results["timestamp"] = datetime.now().isoformat()
+        storage_manager.add_results(user_id, quiz_id, session_id, results)
 
     return {
         "quiz_id": quiz_id,
