@@ -13,15 +13,26 @@ from pyquizhub.utils import generate_quiz_token, generate_quiz_id
 from pyquizhub.core.engine.engine import QuizEngine
 from datetime import datetime
 
-# Load configuration
-CONFIG_PATH = "pyquizhub/config/config.yaml"
-with open(CONFIG_PATH, "r") as f:
-    config = yaml.safe_load(f)
+app = FastAPI()
 
-# Initialize storage manager
+# Dependency: Load configuration dynamically
 
 
-def get_storage_manager() -> StorageManager:
+def load_config(config_path: str = "pyquizhub/config/config.yaml") -> Dict:
+    """Load configuration from the specified path."""
+    try:
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        raise RuntimeError(f"Configuration file not found at {config_path}")
+    except Exception as e:
+        raise RuntimeError(f"Error loading configuration: {e}")
+
+# Dependency: Initialize storage manager
+
+
+def get_storage_manager(config: Dict = Depends(load_config)) -> StorageManager:
+    """Initialize the storage manager based on the configuration."""
     storage_type = config["storage"]["type"]
     if storage_type == "file":
         return FileStorageManager(config["storage"]["file"]["base_dir"])
@@ -31,12 +42,8 @@ def get_storage_manager() -> StorageManager:
         raise ValueError(f"Unsupported storage type: {storage_type}")
 
 
-storage_manager: StorageManager = get_storage_manager()
-
 # Pool of quiz engines for active quizzes
-quiz_engines: dict[str:QuizEngine] = {}
-
-app = FastAPI()
+quiz_engines: Dict[str, QuizEngine] = {}
 
 
 @app.exception_handler(ResponseValidationError)
@@ -125,37 +132,35 @@ class CreateQuizRequest(BaseModel):
 class ParticipatedUsersResponse(BaseModel):
     user_ids: List[str]
 
+# Helper functions
 
-def _get_results(quiz_id: str, user_id: str, session_id: str):
-    """Creator: Get the results for a user session."""
+
+def _get_results(storage_manager: StorageManager, quiz_id: str, user_id: str, session_id: str):
     results = storage_manager.get_results(user_id, quiz_id, session_id)
     if not results:
         raise HTTPException(status_code=404, detail="Results not found")
     return results
 
 
-def _get_participated_users(quiz_id: str):
-    """Creator: Get all users who participated in a quiz."""
+def _get_participated_users(storage_manager: StorageManager, quiz_id: str):
     user_ids = storage_manager.get_participated_users(quiz_id)
     return {"user_ids": user_ids}
 
 
-def _create_quiz(quiz: Quiz, creator_id: str) -> QuizCreationResponse:
-    # Validate quiz
+def _create_quiz(storage_manager: StorageManager, quiz: Quiz, creator_id: str) -> QuizCreationResponse:
     validation_result = QuizJSONValidator.validate(quiz.dict())
     if validation_result["errors"]:
         raise HTTPException(
             status_code=400, detail=validation_result["errors"])
 
     quiz_id = generate_quiz_id(quiz.metadata.title)
-
     quiz_data = quiz.dict()
     quiz_data["creator_id"] = creator_id
     storage_manager.add_quiz(quiz_id, quiz_data, creator_id)
     return QuizCreationResponse(quiz_id=quiz_id, title=quiz.metadata.title)
 
 
-def _generate_token(quiz_id: str, token_type: str) -> TokenResponse:
+def _generate_token(storage_manager: StorageManager, quiz_id: str, token_type: str) -> TokenResponse:
     token = generate_quiz_token()
     token_data = {"token": token, "quiz_id": quiz_id, "type": token_type}
     storage_manager.add_tokens([token_data])
@@ -169,23 +174,18 @@ def read_root():
     return {"message": "Welcome to the Quiz Engine API"}
 
 
-# Admin commands
-
 @app.post("/admin/create_quiz", response_model=QuizCreationResponse)
-def admin_create_quiz(request: CreateQuizRequest):
-    """Admin: Create a new quiz."""
-    return _create_quiz(request.quiz, request.creator_id)
+def admin_create_quiz(request: CreateQuizRequest, storage_manager: StorageManager = Depends(get_storage_manager)):
+    return _create_quiz(storage_manager, request.quiz, request.creator_id)
 
 
 @app.post("/admin/generate_token", response_model=TokenResponse)
-def admin_generate_token(request: TokenRequest):
-    """Admin: Generate a token for accessing a quiz."""
-    return _generate_token(request.quiz_id, request.type)
+def admin_generate_token(request: TokenRequest, storage_manager: StorageManager = Depends(get_storage_manager)):
+    return _generate_token(storage_manager, request.quiz_id, request.type)
 
 
 @app.get("/admin/quiz/{quiz_id}", response_model=QuizDetailResponse)
-def admin_get_quiz(quiz_id: str):
-    """Admin: Retrieve a quiz by its ID."""
+def admin_get_quiz(quiz_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
     try:
         quiz = storage_manager.get_quiz(quiz_id)
         return {
@@ -198,71 +198,19 @@ def admin_get_quiz(quiz_id: str):
         raise HTTPException(status_code=404, detail="Quiz not found")
 
 
-@app.get("/admin/quizzes", response_model=Dict[str, QuizDetailResponse])
-def admin_get_all_quizzes():
-    """Admin: Retrieve all quizzes."""
-    return storage_manager.get_all_quizzes()
-
-
-@app.get("/admin/tokens", response_model=Dict[str, List[TokenResponse]])
-def admin_get_all_tokens():
-    """Admin: Retrieve all tokens."""
-    return storage_manager.get_all_tokens()
-
-
 @app.get("/admin/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def get_results(quiz_id: str, user_id: str, session_id: str):
-    """Admin: Get the results for a user."""
-    return _get_results(quiz_id, user_id, session_id)
+def get_results(quiz_id: str, user_id: str, session_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
+    return _get_results(storage_manager, quiz_id, user_id, session_id)
 
 
 @app.get("/admin/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
-def get_participated_users(quiz_id: str):
-    """Admin: Get all users who participated in a quiz."""
-    return _get_participated_users(quiz_id)
+def get_participated_users(quiz_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
+    return _get_participated_users(storage_manager, quiz_id)
 
-
-# Creator commands
-
-
-@app.post("/creator/create_quiz", response_model=QuizCreationResponse)
-def create_quiz(request: CreateQuizRequest):
-    """Creator: Create a new quiz."""
-    creator_id = request.creator_id
-
-    # Check if user has permission to create quizzes
-    if not storage_manager.user_has_permission_for_quiz_creation(creator_id):
-        raise HTTPException(
-            status_code=403, detail="User does not have permission to create quizzes")
-
-    return _create_quiz(request.quiz, creator_id)
-
-
-@app.post("/creator/generate_token", response_model=TokenResponse)
-def generate_token(request: TokenRequest):
-    """Creator: Generate a token for accessing a quiz."""
-    return _generate_token(request.quiz_id, request.type)
-
-
-@app.get("/creator/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def get_results(quiz_id: str, user_id: str, session_id: str):
-    """Creator: Get the results for a user."""
-    return _get_results(quiz_id, user_id, session_id)
-
-
-@app.get("/creator/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
-def get_participated_users(quiz_id: str):
-    """Creator: Get all users who participated in a quiz."""
-    return _get_participated_users(quiz_id)
-
-
-# User commands
 
 @app.post("/start_quiz", response_model=NextQuestionResponse)
-def start_quiz(token: str, user_id: str):
-    """User: Start a quiz using a token."""
+def start_quiz(token: str, user_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
     quiz_id = storage_manager.get_quiz_id_by_token(token)
-
     if not quiz_id:
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 
@@ -287,21 +235,18 @@ def start_quiz(token: str, user_id: str):
 
 
 @app.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse)
-def submit_answer(quiz_id: str, request: AnswerRequest):
-    """User: Submit an answer for a quiz question."""
+def submit_answer(quiz_id: str, request: AnswerRequest, storage_manager: StorageManager = Depends(get_storage_manager)):
     user_id = request.user_id
     session_id = request.session_id
-    answer = request.answer['answer']
+    answer = request.answer["answer"]
 
     if quiz_id not in quiz_engines:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     quiz_engine: QuizEngine = quiz_engines[quiz_id]
-
     next_question = quiz_engine.answer_question(session_id, answer)
 
     if next_question["id"] is None:
-        # Quiz is complete
         results = quiz_engine.get_results(session_id)
         results["timestamp"] = datetime.now().isoformat()
         storage_manager.add_results(user_id, quiz_id, session_id, results)

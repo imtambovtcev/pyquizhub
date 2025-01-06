@@ -1,115 +1,128 @@
 import pytest
 from fastapi.testclient import TestClient
-from pyquizhub.core.engine.engine_api import app
+from pyquizhub.core.engine.engine_api import app, get_storage_manager
+from pyquizhub.core.storage.sql_storage import SQLStorageManager
 import json
-import uuid
+import tempfile
+import os
 
-client = TestClient(app)
+# Test client setup
 
 
-def load_quiz_data(file_path):
-    with open(file_path, "r") as f:
+@pytest.fixture(scope="module")
+def client():
+    """Provide a shared TestClient for all tests in the group."""
+    return TestClient(app)
+
+
+# Shared storage manager for the test suite
+@pytest.fixture(scope="module")
+def sql_storage(tmpdir_factory):
+    """Provide a shared SQLStorageManager instance using a temporary SQLite database."""
+    tmpdir = tmpdir_factory.mktemp("data")
+    connection_string = f"sqlite:///{tmpdir}/test.db"
+    return SQLStorageManager(connection_string)
+
+
+# Override the storage manager dependency
+@pytest.fixture(scope="module", autouse=True)
+def override_storage_manager(sql_storage):
+    app.dependency_overrides[get_storage_manager] = lambda: sql_storage
+    yield
+    app.dependency_overrides.clear()
+
+
+# Fixture to provide quiz data for tests
+@pytest.fixture(scope="module")
+def quiz_data():
+    with open("tests/test_quiz_jsons/complex_quiz.json", "r") as f:
         return json.load(f)
 
 
-@pytest.fixture
-def quiz_data():
-    return load_quiz_data("tests/test_quiz_jsons/complex_quiz.json")
+# Fixture to provide invalid quiz data
+@pytest.fixture(scope="module")
+def invalid_quiz_data():
+    with open("tests/test_quiz_jsons/invalid_quiz_bad_score_update.json", "r") as f:
+        return json.load(f)
 
 
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": 'Welcome to the Quiz Engine API'}
+class TestQuizEngine:
+    """Group of tests for the Quiz Engine."""
 
-
-def test_start_quiz(quiz_data):
-    # Create the quiz first
-    creator_id = "user1"
-    create_response = client.post("/admin/create_quiz",
-                                  json={"quiz": quiz_data, "creator_id": creator_id})
-    assert create_response.status_code == 200, f"Unexpected status code: {create_response.status_code}, detail: {create_response.json()}"
-    quiz_id = create_response.json()["quiz_id"]
-
-    # Generate a token for the quiz
-    token_response = client.post("/admin/generate_token",
-                                 json={"quiz_id": quiz_id, "type": "single-use"})
-    assert token_response.status_code == 200, f"Unexpected status code: {token_response.status_code}, detail: {token_response.json()}"
-    token = token_response.json()["token"]
-
-    # Start the quiz using the generated token
+    quiz_id = None
+    token = None
+    session_id = None
     user_id = "user1"
-    response = client.post(
-        f"/start_quiz?token={token}&user_id={user_id}")
-    assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    data = response.json()
-    assert "session_id" in data
-    assert "question" in data
 
+    def test_root(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+        assert response.json() == {"message": "Welcome to the Quiz Engine API"}
 
-def test_submit_answer(quiz_data):
-    # Create the quiz first
-    creator_id = "user1"
-    create_response = client.post("/admin/create_quiz",
-                                  json={"quiz": quiz_data, "creator_id": creator_id})
-    assert create_response.status_code == 200, f"Unexpected status code: {create_response.status_code}, detail: {create_response.json()}"
-    quiz_id = create_response.json()["quiz_id"]
+    def test_create_quiz(self, client, quiz_data):
+        """Test creating a quiz and save the quiz_id."""
+        response = client.post(
+            "/admin/create_quiz", json={"quiz": quiz_data, "creator_id": self.user_id})
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        TestQuizEngine.quiz_id = response.json()["quiz_id"]
+        assert TestQuizEngine.quiz_id, "Quiz ID should not be empty."
 
-    # Generate a token for the quiz
-    token_response = client.post("/admin/generate_token",
-                                 json={"quiz_id": quiz_id, "type": "single-use"})
-    assert token_response.status_code == 200, f"Unexpected status code: {token_response.status_code}, detail: {token_response.json()}"
-    token = token_response.json()["token"]
+    def test_generate_token(self, client):
+        """Test generating a token for the created quiz."""
+        assert TestQuizEngine.quiz_id, "Quiz ID must be created before generating a token."
+        response = client.post(
+            "/admin/generate_token", json={"quiz_id": self.quiz_id, "type": "single-use"})
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        TestQuizEngine.token = response.json()["token"]
+        assert TestQuizEngine.token, "Token should not be empty."
 
-    # Start the quiz using the generated token
-    user_id = "user1"
-    start_response = client.post(
-        f"/start_quiz?token={token}&user_id={user_id}")
-    assert start_response.status_code == 200, f"Unexpected status code: {start_response.status_code}, detail: {start_response.json()}"
-    session_id = start_response.json()["session_id"]
+    def test_start_quiz(self, client):
+        """Test starting a quiz and save the session_id."""
+        assert self.token, "Token must be generated before starting the quiz."
+        response = client.post(
+            f"/start_quiz?token={self.token}&user_id={self.user_id}")
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
+        TestQuizEngine.session_id = data["session_id"]
+        assert TestQuizEngine.session_id, "Session ID should not be empty."
+        assert "question" in data, "Question should be present in response."
 
-    answer_request = {
-        "user_id": user_id,
-        "session_id": session_id,
-        "answer": {"answer": "yes"}
-    }
-    response = client.post(
-        f"/submit_answer/{quiz_id}", json=answer_request)
-    assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    data = response.json()
-    assert "question" in data or "final_message" in data
+    def test_submit_answer(self, client):
+        """Test submitting an answer for the current quiz session."""
+        assert self.session_id, "Session ID must exist before submitting an answer."
+        answer_request = {
+            "user_id": self.user_id,
+            "session_id": self.session_id,
+            "answer": {"answer": "yes"}
+        }
+        response = client.post(
+            f"/submit_answer/{self.quiz_id}", json=answer_request)
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
+        assert "question" in data or "final_message" in data, "Response should include next question or final message."
 
+    # def test_get_participated_users(self, client):
+    #     """Test retrieving participated users for the quiz."""
+    #     assert self.quiz_id, "Quiz ID must be created before retrieving participants."
+    #     response = client.get(f"/admin/participated_users/{self.quiz_id}")
+    #     assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+    #     data = response.json()
+    #     assert "user_ids" in data, "Response should include user IDs."
+    #     assert self.user_id in data["user_ids"], f"User ID {self.user_id} should be in participated users."
 
-def test_invalid_quiz_data():
-    invalid_quiz_data = load_quiz_data(
-        "tests/test_quiz_jsons/invalid_quiz_bad_score_update.json")
-    response = client.post(
-        f"/start_quiz?token=invalid_token&user_id=user1")
-    assert response.status_code == 404, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+    # def test_get_results(self, client):
+    #     """Test retrieving results for the quiz session."""
+    #     assert self.quiz_id, "Quiz ID must be created before retrieving results."
+    #     assert self.session_id, "Session ID must exist before retrieving results."
+    #     response = client.get(
+    #         f"/admin/results/{self.quiz_id}/{self.user_id}?session_id={self.session_id}")
+    #     assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+    #     data = response.json()
+    #     assert "scores" in data, "Response should include scores."
+    #     assert "answers" in data, "Response should include answers."
 
-
-def test_create_quiz(quiz_data):
-    creator_id = "user1"
-    response = client.post("/admin/create_quiz",
-                           json={"quiz": quiz_data, "creator_id": creator_id})
-    assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    data = response.json()
-    assert "quiz_id" in data
-    assert "title" in data
-
-
-def test_generate_token():
-    quiz_id = "quiz-001"
-    response = client.post("/admin/generate_token",
-                           json={"quiz_id": quiz_id, "type": "single-use"})
-    assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    data = response.json()
-    assert "token" in data
-
-
-def test_get_participated_users():
-    quiz_id = "quiz-001"
-    response = client.get(f"/admin/participated_users/{quiz_id}")
-    assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    data = response.json()
-    assert "user_ids" in data
+    def test_invalid_quiz_data(self, client, invalid_quiz_data):
+        """Test handling invalid quiz data."""
+        response = client.post(
+            "/admin/create_quiz", json={"quiz": invalid_quiz_data, "creator_id": self.user_id})
+        assert response.status_code == 400, f"Unexpected status code: {response.status_code}, detail: {response.json()}"

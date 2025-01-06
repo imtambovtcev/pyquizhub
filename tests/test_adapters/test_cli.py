@@ -1,6 +1,5 @@
-
 from click.testing import CliRunner
-from pyquizhub.adapters.cli.cli import cli  # Import the Click CLI group
+from pyquizhub.adapters.cli.cli import cli
 
 
 def extract_value(output, prefix):
@@ -11,11 +10,12 @@ def extract_value(output, prefix):
     return None
 
 
-def test_add_quiz():
+def test_add_quiz(adapter_api):
     """Test adding a quiz and extracting the quiz ID."""
     runner = CliRunner()
     result = runner.invoke(
-        cli, ['add', '--file', 'tests/test_quiz_jsons/complex_quiz.json'])
+        cli, ['add', '--file', 'tests/test_quiz_jsons/complex_quiz.json']
+    )
 
     assert result.exit_code == 0
     assert "Quiz added successfully." in result.output
@@ -25,12 +25,13 @@ def test_add_quiz():
     return quiz_id
 
 
-def test_generate_token():
+def test_generate_token(adapter_api):
     """Test generating a token for a quiz and extracting the token."""
-    quiz_id = test_add_quiz()
+    quiz_id = test_add_quiz(adapter_api)  # Reuse the prior test’s logic
     runner = CliRunner()
     result = runner.invoke(
-        cli, ['token', '--quiz-id', quiz_id, '--token-type', 'permanent'])
+        cli, ['token', '--quiz-id', quiz_id, '--token-type', 'permanent']
+    )
 
     assert result.exit_code == 0
     assert "Token generated successfully: " in result.output
@@ -40,10 +41,10 @@ def test_generate_token():
     return token
 
 
-def test_start_quiz():
+def test_start_quiz(adapter_api):
     """Test starting a quiz and verifying the flow."""
-    quiz_id = test_add_quiz()
-    token = test_generate_token()
+    quiz_id = test_add_quiz(adapter_api)
+    token = test_generate_token(adapter_api)
     runner = CliRunner()
 
     # Simulate user inputs for the questions
@@ -53,16 +54,12 @@ def test_start_quiz():
 
     assert result.exit_code == 0
     assert "Starting quiz: Complex Quiz" in result.output
-
-    # Check the first question
     assert "Question 1: Do you like apples?" in result.output
-
-    # Check completion message
     assert "Quiz completed!" in result.output
 
 
-def test_cli_flow():
+def test_cli_flow(adapter_api):
     """End-to-end test of the CLI workflow."""
-    quiz_id = test_add_quiz()
-    token = test_generate_token()
-    test_start_quiz()
+    quiz_id = test_add_quiz(adapter_api)
+    token = test_generate_token(adapter_api)
+    test_start_quiz(adapter_api)
