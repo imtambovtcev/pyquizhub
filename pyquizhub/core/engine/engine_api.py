@@ -3,14 +3,14 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
-from pyquizhub.storage.file_storage import FileStorageManager
-from pyquizhub.storage.sql_storage import SQLStorageManager
-from pyquizhub.storage.storage_manager import StorageManager
-from pyquizhub.engine.json_validator import QuizJSONValidator
+from pyquizhub.core.storage.file_storage import FileStorageManager
+from pyquizhub.core.storage.sql_storage import SQLStorageManager
+from pyquizhub.core.storage.storage_manager import StorageManager
+from pyquizhub.core.engine.json_validator import QuizJSONValidator
 import uuid
 import yaml
 from pyquizhub.utils import generate_quiz_token, generate_quiz_id
-from pyquizhub.engine.engine import QuizEngine
+from pyquizhub.core.engine.engine import QuizEngine
 from datetime import datetime
 
 # Load configuration

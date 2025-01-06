@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import create_engine
-from pyquizhub.storage.sql_storage import SQLStorageManager
+from pyquizhub.core.storage.sql_storage import SQLStorageManager
 
 
 @pytest.fixture

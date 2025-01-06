@@ -1,6 +1,6 @@
 import pytest
-from pyquizhub.storage.file_storage import FileStorageManager
-from pyquizhub.storage.sql_storage import SQLStorageManager
+from pyquizhub.core.storage.file_storage import FileStorageManager
+from pyquizhub.core.storage.sql_storage import SQLStorageManager
 import os
 from datetime import datetime
 

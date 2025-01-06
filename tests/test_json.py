@@ -1,5 +1,5 @@
 import pytest
-from pyquizhub.engine.json_validator import QuizJSONValidator
+from pyquizhub.core.engine.json_validator import QuizJSONValidator
 import json
 
 # Helper function to load quiz data

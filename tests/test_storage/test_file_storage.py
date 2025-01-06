@@ -1,5 +1,5 @@
 import pytest
-from pyquizhub.storage.file_storage import FileStorageManager
+from pyquizhub.core.storage.file_storage import FileStorageManager
 import uuid
 from datetime import datetime
 

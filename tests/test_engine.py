@@ -1,5 +1,5 @@
 import pytest
-from pyquizhub.engine.engine import QuizEngine
+from pyquizhub.core.engine.engine import QuizEngine
 import json
 import uuid
 
