@@ -9,7 +9,7 @@ from pyquizhub.storage.storage_manager import StorageManager
 from pyquizhub.engine.json_validator import QuizJSONValidator
 import uuid
 import yaml
-from pyquizhub.utils import generate_token as generate_quiz_token
+from pyquizhub.utils import generate_quiz_token, generate_quiz_id
 from pyquizhub.engine.engine import QuizEngine
 from datetime import datetime
 
@@ -67,7 +67,7 @@ class Metadata(BaseModel):
 
 class Quiz(BaseModel):
     metadata: Metadata
-    scores: Dict[str, int]
+    scores: Dict[str, float]
     questions: List[Dict]
     transitions: Dict[str, List[Dict]]
 
@@ -82,10 +82,9 @@ class QuizData(BaseModel):
     questions: List[Dict[str, Any]]
 
 
-class QuizResponse(BaseModel):
+class QuizCreationResponse(BaseModel):
     quiz_id: str
     title: str
-    questions: List[Dict[str, Any]]
 
 
 class QuizDetailResponse(BaseModel):
@@ -140,6 +139,28 @@ def _get_participated_users(quiz_id: str):
     user_ids = storage_manager.get_participated_users(quiz_id)
     return {"user_ids": user_ids}
 
+
+def _create_quiz(quiz: Quiz, creator_id: str) -> QuizCreationResponse:
+    # Validate quiz
+    validation_result = QuizJSONValidator.validate(quiz.dict())
+    if validation_result["errors"]:
+        raise HTTPException(
+            status_code=400, detail=validation_result["errors"])
+
+    quiz_id = generate_quiz_id(quiz.metadata.title)
+
+    quiz_data = quiz.dict()
+    quiz_data["creator_id"] = creator_id
+    storage_manager.add_quiz(quiz_id, quiz_data, creator_id)
+    return QuizCreationResponse(quiz_id=quiz_id, title=quiz.metadata.title)
+
+
+def _generate_token(quiz_id: str, token_type: str) -> TokenResponse:
+    token = generate_quiz_token()
+    token_data = {"token": token, "quiz_id": quiz_id, "type": token_type}
+    storage_manager.add_tokens([token_data])
+    return TokenResponse(token=token)
+
 # Routes
 
 
@@ -150,22 +171,16 @@ def read_root():
 
 # Admin commands
 
-@app.post("/admin/create_quiz", response_model=QuizResponse)
+@app.post("/admin/create_quiz", response_model=QuizCreationResponse)
 def admin_create_quiz(request: CreateQuizRequest):
     """Admin: Create a new quiz."""
-    quiz_id = f"quiz_{str(uuid.uuid4())[:8]}"
-    creator_id = request.creator_id
+    return _create_quiz(request.quiz, request.creator_id)
 
-    # Validate quiz
-    validation_result = QuizJSONValidator.validate(request.quiz.dict())
-    if validation_result["errors"]:
-        raise HTTPException(
-            status_code=400, detail=validation_result["errors"])
 
-    quiz_data = request.quiz.dict()
-    quiz_data["creator_id"] = creator_id
-    storage_manager.add_quiz(quiz_id, quiz_data, creator_id)
-    return {"quiz_id": quiz_id, "title": request.quiz.metadata.title}
+@app.post("/admin/generate_token", response_model=TokenResponse)
+def admin_generate_token(request: TokenRequest):
+    """Admin: Generate a token for accessing a quiz."""
+    return _generate_token(request.quiz_id, request.type)
 
 
 @app.get("/admin/quiz/{quiz_id}", response_model=QuizDetailResponse)
@@ -210,10 +225,9 @@ def get_participated_users(quiz_id: str):
 # Creator commands
 
 
-@app.post("/creator/create_quiz", response_model=QuizResponse)
+@app.post("/creator/create_quiz", response_model=QuizCreationResponse)
 def create_quiz(request: CreateQuizRequest):
     """Creator: Create a new quiz."""
-    quiz_id = f"quiz_{str(uuid.uuid4())[:8]}"
     creator_id = request.creator_id
 
     # Check if user has permission to create quizzes
@@ -221,32 +235,13 @@ def create_quiz(request: CreateQuizRequest):
         raise HTTPException(
             status_code=403, detail="User does not have permission to create quizzes")
 
-    # Validate quiz
-    validation_result = QuizJSONValidator.validate(request.quiz.dict())
-    if validation_result["errors"]:
-        raise HTTPException(
-            status_code=400, detail=validation_result["errors"])
-
-    quiz_data = request.quiz.dict()
-    quiz_data["creator_id"] = creator_id
-    storage_manager.add_quiz(quiz_id, quiz_data, creator_id)
-    return {"quiz_id": quiz_id, "title": request.quiz.metadata.title}
+    return _create_quiz(request.quiz, creator_id)
 
 
 @app.post("/creator/generate_token", response_model=TokenResponse)
 def generate_token(request: TokenRequest):
     """Creator: Generate a token for accessing a quiz."""
-    quiz_id = request.quiz_id
-    try:
-        storage_manager.get_quiz(quiz_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Quiz not found")
-
-    token = str(uuid.uuid4())[:8].upper()
-    token_data = {"token": token, "quiz_id": quiz_id, "type": request.type}
-    storage_manager.add_tokens([token_data])
-
-    return {"token": token}
+    return _generate_token(request.quiz_id, request.type)
 
 
 @app.get("/creator/results/{quiz_id}/{user_id}", response_model=ResultResponse)

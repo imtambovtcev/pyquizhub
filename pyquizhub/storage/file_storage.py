@@ -82,7 +82,7 @@ class FileStorageManager(StorageManager):
 
     def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any], creator_id: str) -> None:
         quiz_data["creator_id"] = creator_id
-        filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
+        filepath = f"quizzes/{quiz_id}.json"
         self._write_json(filepath, quiz_data)
 
     def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
