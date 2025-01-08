@@ -74,6 +74,13 @@ def test_storage_consistency_results(file_storage: FileStorageManager, sql_stora
 
     assert file_results == sql_results
 
+    file_sessions = file_storage.get_session_ids_by_user_and_quiz(
+        "user1", "quiz-001")
+    sql_sessions = sql_storage.get_session_ids_by_user_and_quiz(
+        "user1", "quiz-001")
+
+    assert set(file_sessions) == set(sql_sessions)
+
 
 def test_storage_consistency_tokens(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
     """Test consistency of tokens between file and SQL storage."""

@@ -143,6 +143,35 @@ class SQLStorageManager(StorageManager):
                 ).values(quiz_id=token["quiz_id"], type=token["type"])
                 self._execute(query)
 
+    def remove_token(self, token: str) -> None:
+        query = delete(self.tokens_table).where(
+            self.tokens_table.c.token == token)
+        self._execute(query)
+
+    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
+        query = select(self.tokens_table)
+        result = self._execute(query)
+        tokens_by_quiz = {}
+        for row in result:
+            quiz_id = row._mapping["quiz_id"]
+            if quiz_id not in tokens_by_quiz:
+                tokens_by_quiz[quiz_id] = []
+            tokens_by_quiz[quiz_id].append(dict(row._mapping))
+        return tokens_by_quiz
+
+    def get_tokens_by_quiz(self, quiz_id: str) -> List[Dict[str, Any]]:
+        query = select(self.tokens_table).where(
+            self.tokens_table.c.quiz_id == quiz_id)
+        result = self._execute(query)
+        return [dict(row._mapping) for row in result]
+
+    def get_token_type(self, token: str) -> Optional[str]:
+        query = select(self.tokens_table.c.type).where(
+            self.tokens_table.c.token == token
+        )
+        result = self._execute(query).fetchone()
+        return result._mapping["type"] if result else None
+
     def get_participated_users(self, quiz_id: str) -> List[str]:
         query = select(self.results_table.c.user_id).where(
             self.results_table.c.quiz_id == quiz_id
@@ -164,30 +193,107 @@ class SQLStorageManager(StorageManager):
         result = self._execute(query).fetchone()
         return result._mapping["quiz_id"] if result else None
 
-    def remove_token(self, token: str) -> None:
-        query = delete(self.tokens_table).where(
-            self.tokens_table.c.token == token)
-        self._execute(query)
-
     def get_all_quizzes(self) -> Dict[str, Dict[str, Any]]:
         query = select(self.quizzes_table)
         result = self._execute(query)
         return {row._mapping["id"]: dict(row._mapping) for row in result}
 
-    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
-        query = select(self.tokens_table)
+    def get_all_results(self) -> Dict[str, Dict[str, Any]]:
+        query = select(self.results_table)
         result = self._execute(query)
-        tokens_by_quiz = {}
+        results_by_user = {}
+        for row in result:
+            user_id = row._mapping["user_id"]
+            if user_id not in results_by_user:
+                results_by_user[user_id] = {}
+            quiz_id = row._mapping["quiz_id"]
+            if quiz_id not in results_by_user[user_id]:
+                results_by_user[user_id][quiz_id] = {}
+            session_id = row._mapping["session_id"]
+            results_by_user[user_id][quiz_id][session_id] = dict(row._mapping)
+        return results_by_user
+
+    def get_results_by_quiz(self, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+        query = select(self.results_table).where(
+            self.results_table.c.quiz_id == quiz_id
+        )
+        result = self._execute(query)
+        results_by_user = {}
+        for row in result:
+            user_id = row._mapping["user_id"]
+            if user_id not in results_by_user:
+                results_by_user[user_id] = {}
+            session_id = row._mapping["session_id"]
+            results_by_user[user_id][session_id] = dict(row._mapping)
+        return results_by_user
+
+    def get_results_by_user(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+        query = select(self.results_table).where(
+            self.results_table.c.user_id == user_id
+        )
+        result = self._execute(query)
+        results_by_quiz = {}
         for row in result:
             quiz_id = row._mapping["quiz_id"]
-            if (quiz_id not in tokens_by_quiz):
-                tokens_by_quiz[quiz_id] = []
-            tokens_by_quiz[quiz_id].append(dict(row._mapping))
-        return tokens_by_quiz
+            if quiz_id not in results_by_quiz:
+                results_by_quiz[quiz_id] = {}
+            session_id = row._mapping["session_id"]
+            results_by_quiz[quiz_id][session_id] = dict(row._mapping)
+        return results_by_quiz
 
-    def get_token_type(self, token: str) -> Optional[str]:
-        query = select(self.tokens_table.c.type).where(
-            self.tokens_table.c.token == token
+    def get_results_by_user_and_quiz(self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+        query = select(self.results_table).where(
+            self.results_table.c.user_id == user_id,
+            self.results_table.c.quiz_id == quiz_id
         )
-        result = self._execute(query).fetchone()
-        return result._mapping["type"] if result else None
+        result = self._execute(query)
+        return {row._mapping["session_id"]: dict(row._mapping) for row in result}
+
+    def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+        query = select(self.results_table).where(
+            self.results_table.c.quiz_id == quiz_id,
+            self.results_table.c.user_id == user_id
+        )
+        result = self._execute(query)
+        return {row._mapping["session_id"]: dict(row._mapping) for row in result}
+
+    def get_session_ids_by_user_and_quiz(self, user_id: str, quiz_id: str) -> List[str]:
+        query = select(self.results_table.c.session_id).where(
+            self.results_table.c.user_id == user_id,
+            self.results_table.c.quiz_id == quiz_id
+        )
+        result = self._execute(query)
+        return [row._mapping["session_id"] for row in result]
+
+    def get_all_sessions(self) -> Dict[str, List[str]]:
+        query = select(self.results_table)
+        result = self._execute(query)
+        sessions_by_user = {}
+        for row in result:
+            user_id = row._mapping["user_id"]
+            if user_id not in sessions_by_user:
+                sessions_by_user[user_id] = []
+            sessions_by_user[user_id].append(row._mapping["session_id"])
+        return sessions_by_user
+
+    def get_sessions_by_user(self, user_id: str) -> List[str]:
+        query = select(self.results_table.c.session_id).where(
+            self.results_table.c.user_id == user_id
+        )
+        result = self._execute(query)
+        return [row._mapping["session_id"] for row in result]
+
+    def get_sessions_by_quiz(self, quiz_id: str) -> List[str]:
+        query = select(self.results_table.c.session_id).where(
+            self.results_table.c.quiz_id == quiz_id
+        )
+        result = self._execute(query)
+        return [row._mapping["session_id"] for row in result]
+
+    def get_sessions_by_quiz_and_user(self, quiz_id: str, user_id: str) -> List[str]:
+        query = select(self.results_table.c.session_id).where(
+            self.results_table.c.quiz_id == quiz_id,
+            self.results_table.c.user_id == user_id
+        )
+        result = self._execute(query)
+        return [row._mapping["session_id"] for row in result]

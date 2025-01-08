@@ -85,6 +85,7 @@ class FileStorageManager(StorageManager):
         filepath = f"quizzes/{quiz_id}.json"
         self._write_json(filepath, quiz_data)
 
+    # Results
     def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve the results of a quiz for a specific user session.
@@ -128,6 +129,23 @@ class FileStorageManager(StorageManager):
         filepath = f"results/{user_id}/{quiz_id}_{session_id}_results.json"
         self._write_json(filepath, results)
 
+    def get_all_results(self) -> Dict[str, Dict[str, Any]]:
+        return self.results
+
+    def get_results_by_quiz(self, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+        results_by_user = {}
+        for user_id, quizzes in self.results.items():
+            if quiz_id in quizzes:
+                results_by_user[user_id] = quizzes[quiz_id]
+        return results_by_user
+
+    def get_results_by_user(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+        return self.results.get(user_id, {})
+
+    def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+        return self.results.get(user_id, {}).get(quiz_id, {})
+
+    # Tokens
     def get_tokens(self) -> List[Dict[str, Any]]:
         return self.tokens
 
@@ -138,6 +156,24 @@ class FileStorageManager(StorageManager):
     def remove_token(self, token: str) -> None:
         self.tokens = [t for t in self.tokens if t["token"] != token]
         self._save("tokens.json", self.tokens)
+
+    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
+        tokens_by_quiz = {}
+        for token_entry in self.tokens:
+            quiz_id = token_entry["quiz_id"]
+            if quiz_id not in tokens_by_quiz:
+                tokens_by_quiz[quiz_id] = []
+            tokens_by_quiz[quiz_id].append(token_entry)
+        return tokens_by_quiz
+
+    def get_tokens_by_quiz(self, quiz_id: str) -> List[Dict[str, Any]]:
+        return [token for token in self.tokens if token["quiz_id"] == quiz_id]
+
+    def get_token_type(self, token: str) -> Optional[str]:
+        for token_entry in self.tokens:
+            if token_entry["token"] == token:
+                return token_entry["type"]
+        return None
 
     def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
         user = self.users.get(user_id)
@@ -158,12 +194,6 @@ class FileStorageManager(StorageManager):
                 return token_entry["quiz_id"]
         return None
 
-    def get_token_type(self, token: str) -> Optional[str]:
-        for token_entry in self.tokens:
-            if token_entry["token"] == token:
-                return token_entry["type"]
-        return None
-
     def get_all_quizzes(self) -> Dict[str, Dict[str, Any]]:
         quizzes_dir = os.path.join(self.base_dir, "quizzes")
         quizzes = {}
@@ -173,11 +203,33 @@ class FileStorageManager(StorageManager):
                 quizzes[quiz_id] = self.get_quiz(quiz_id)
         return quizzes
 
-    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
-        tokens_by_quiz = {}
-        for token_entry in self.tokens:
-            quiz_id = token_entry["quiz_id"]
-            if quiz_id not in tokens_by_quiz:
-                tokens_by_quiz[quiz_id] = []
-            tokens_by_quiz[quiz_id].append(token_entry)
-        return tokens_by_quiz
+    def get_results_by_user_and_quiz(self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+        return self.results.get(user_id, {}).get(quiz_id, {})
+
+    def get_session_ids_by_user_and_quiz(self, user_id: str, quiz_id: str) -> List[str]:
+        return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
+
+    # Sessions
+    def get_all_sessions(self) -> Dict[str, List[str]]:
+        sessions_by_user = {}
+        for user_id, quizzes in self.results.items():
+            sessions_by_user[user_id] = []
+            for quiz_id, sessions in quizzes.items():
+                sessions_by_user[user_id].extend(sessions.keys())
+        return sessions_by_user
+
+    def get_sessions_by_user(self, user_id: str) -> List[str]:
+        sessions = []
+        for quiz_id, quiz_sessions in self.results.get(user_id, {}).items():
+            sessions.extend(quiz_sessions.keys())
+        return sessions
+
+    def get_sessions_by_quiz(self, quiz_id: str) -> List[str]:
+        sessions = []
+        for user_id, quizzes in self.results.items():
+            if quiz_id in quizzes:
+                sessions.extend(quizzes[quiz_id].keys())
+        return sessions
+
+    def get_sessions_by_quiz_and_user(self, quiz_id: str, user_id: str) -> List[str]:
+        return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())

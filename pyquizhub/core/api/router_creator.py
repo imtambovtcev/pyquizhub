@@ -42,6 +42,13 @@ def generate_token_logic(storage_manager: StorageManager, request: TokenRequest)
     return TokenResponse(token=token)
 
 
+def get_results_logic(storage_manager: StorageManager, user_id: str, quiz_id: str):
+    """
+    Logic for getting quiz results.
+    """
+    return storage_manager.get_results(user_id, quiz_id)
+
+
 @router.post("/create_quiz", response_model=QuizCreationResponse)
 def creator_create_quiz(request: CreateQuizRequest, req: Request):
     """
