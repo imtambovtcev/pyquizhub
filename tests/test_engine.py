@@ -2,7 +2,7 @@ import pytest
 from pyquizhub.core.engine.engine import QuizEngine
 import json
 import uuid
-
+import os
 # Load test quiz data
 
 
@@ -13,7 +13,8 @@ def load_quiz_data(file_path):
 
 def test_complex_quiz_flow():
     """Test the flow of the complex quiz."""
-    quiz_data = load_quiz_data("tests/test_quiz_jsons/complex_quiz.json")
+    quiz_data = load_quiz_data(os.path.join(os.path.dirname(
+        __file__), "test_quiz_jsons", "complex_quiz.json"))
     engine = QuizEngine(quiz_data)
 
     # Start the quiz for a user
@@ -43,7 +44,8 @@ def test_complex_quiz_flow():
 
 def test_complex_quiz_loop_flow():
     """Test the flow of the complex quiz."""
-    quiz_data = load_quiz_data("tests/test_quiz_jsons/complex_quiz.json")
+    quiz_data = load_quiz_data(os.path.join(os.path.dirname(
+        __file__), "test_quiz_jsons", "complex_quiz.json"))
     engine = QuizEngine(quiz_data)
 
     # Start the quiz for a user
@@ -80,7 +82,8 @@ def test_complex_quiz_loop_flow():
 def test_invalid_score_updates():
     """Test that invalid score updates raise errors."""
     invalid_quiz_data = load_quiz_data(
-        "tests/test_quiz_jsons/invalid_quiz_bad_score_update.json"
+        os.path.join(os.path.dirname(
+            __file__), "test_quiz_jsons", "invalid_quiz_bad_score_update.json")
     )
     with pytest.raises(ValueError):
         QuizEngine(invalid_quiz_data)
@@ -89,7 +92,8 @@ def test_invalid_score_updates():
 def test_invalid_transitions():
     """Test that invalid transitions raise errors."""
     invalid_quiz_data = load_quiz_data(
-        "tests/test_quiz_jsons/invalid_quiz_bad_transition.json"
+        os.path.join(os.path.dirname(
+            __file__), "test_quiz_jsons", "invalid_quiz_bad_transition.json")
     )
     with pytest.raises(ValueError):
         QuizEngine(invalid_quiz_data)

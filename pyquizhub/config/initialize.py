@@ -32,7 +32,3 @@ def initialize_system():
         print(f"SQL storage initialized with connection: {connection_string}.")
     else:
         raise ValueError(f"Unsupported storage type: {storage_type}")
-
-
-if __name__ == "__main__":
-    initialize_system()

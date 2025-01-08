@@ -15,6 +15,8 @@ pytest = "^8.3.4"
 requests = "^2.32.3"
 httpx = "^0.28.1"
 
+[tool.poetry.scripts]
+pyquizhub-setup = "pyquizhub.config.initialize:initialize_system"
 
 [build-system]
 requires = ["poetry-core"]

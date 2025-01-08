@@ -1,7 +1,7 @@
 import pytest
 from pyquizhub.core.engine.json_validator import QuizJSONValidator
 import json
-
+import os
 # Helper function to load quiz data
 
 
@@ -10,25 +10,27 @@ def load_quiz_data(file_path):
         return json.load(f)
 
 
+jsons_dir = os.path.join(os.path.dirname(__file__), "test_quiz_jsons")
+
 # Define paths to the test JSON files
 VALID_JSON_FILES = [
-    "tests/test_quiz_jsons/simple_quiz.json",
-    "tests/test_quiz_jsons/complex_quiz.json",
+    jsons_dir+"/simple_quiz.json",
+    jsons_dir+"/complex_quiz.json",
 ]
 
 INVALID_JSON_FILES = [
-    "tests/test_quiz_jsons/invalid_quiz_missing_keys.json",
-    "tests/test_quiz_jsons/invalid_quiz_bad_score_update.json",
-    "tests/test_quiz_jsons/invalid_quiz_bad_transition.json",
-    "tests/test_quiz_jsons/invalid_quiz_non_iterable_questions.json",
-    "tests/test_quiz_jsons/invalid_quiz_duplicate_question_ids.json",
-    "tests/test_quiz_jsons/invalid_quiz_unexpected_top_level.json",
-    "tests/test_quiz_jsons/invalid_quiz_invalid_condition_expression.json",
+    jsons_dir+"/invalid_quiz_missing_keys.json",
+    jsons_dir+"/invalid_quiz_bad_score_update.json",
+    jsons_dir+"/invalid_quiz_bad_transition.json",
+    jsons_dir+"/invalid_quiz_non_iterable_questions.json",
+    jsons_dir+"/invalid_quiz_duplicate_question_ids.json",
+    jsons_dir+"/invalid_quiz_unexpected_top_level.json",
+    jsons_dir+"/invalid_quiz_invalid_condition_expression.json",
 ]
 
 WARNING_JSON_FILES = [
-    "tests/test_quiz_jsons/warning_non_trivial_after_trivial.json",
-    "tests/test_quiz_jsons/warning_no_trivial_condition.json",
+    jsons_dir+"/warning_non_trivial_after_trivial.json",
+    jsons_dir+"/warning_no_trivial_condition.json",
 ]
 
 

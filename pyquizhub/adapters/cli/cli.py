@@ -2,10 +2,13 @@ import click
 import requests
 import json
 import yaml
+import os
 
 
-def load_config(config_path):
-    """Load configuration from the given path."""
+def load_config():
+    """Load configuration from the environment variable or default path."""
+    config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "../../config/config.yaml")))
     try:
         with open(config_path, "r") as f:
             return yaml.safe_load(f)
@@ -18,18 +21,11 @@ def load_config(config_path):
 
 
 @click.group()
-@click.option(
-    "--config",
-    default="pyquizhub/config/config.yaml",
-    type=click.Path(exists=False),
-    show_default=True,
-    help="Path to the configuration file."
-)
 @click.pass_context
-def cli(ctx, config):
+def cli(ctx):
     """Quiz Engine CLI"""
     ctx.ensure_object(dict)
-    ctx.obj["CONFIG"] = load_config(config)
+    ctx.obj["CONFIG"] = load_config()
 
 
 @cli.command()
@@ -74,7 +70,7 @@ def start(ctx, user_id, token):
         base_url = config["api"]["base_url"]
 
         response = requests.post(
-            f"{base_url}/start_quiz?token={token}&user_id={user_id}")
+            f"{base_url}/quiz/start_quiz?token={token}&user_id={user_id}")
         if response.status_code == 200:
             quiz_id = response.json().get("quiz_id")
             session_id = response.json().get("session_id")
@@ -125,7 +121,7 @@ def submit_answer(ctx, quiz_id, user_id, session_id, question_id, answer):
         base_url = config["api"]["base_url"]
 
         response = requests.post(
-            f"{base_url}/submit_answer/{quiz_id}",
+            f"{base_url}/quiz/submit_answer/{quiz_id}",
             json={"user_id": user_id, "session_id": session_id,
                   "question_id": question_id, "answer": answer},
         )
@@ -184,6 +180,24 @@ def token(ctx, quiz_id, token_type):
         else:
             click.echo(
                 f"Failed to generate token: {response.json().get('detail', 'Unknown error')}")
+    except Exception as e:
+        click.echo(f"Error: {e}")
+
+
+@cli.command()
+@click.pass_context
+def check(ctx):
+    """Check if the API is working correctly."""
+    try:
+        config = ctx.obj["CONFIG"]
+        base_url = config["api"]["base_url"]
+
+        response = requests.get(f"{base_url}/")
+        if response.status_code == 200:
+            click.echo("API is working correctly.")
+        else:
+            click.echo(
+                f"API check failed: {response.json().get('detail', 'Unknown error')}")
     except Exception as e:
         click.echo(f"Error: {e}")
 

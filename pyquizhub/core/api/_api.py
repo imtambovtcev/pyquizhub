@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import BaseModel
@@ -12,14 +12,18 @@ import yaml
 from pyquizhub.utils import generate_quiz_token, generate_quiz_id
 from pyquizhub.core.engine.engine import QuizEngine
 from datetime import datetime
+import os
 
 app = FastAPI()
 
 # Dependency: Load configuration dynamically
 
 
-def load_config(config_path: str = "pyquizhub/config/config.yaml") -> Dict:
+def load_config(config_path: str = None) -> Dict:
     """Load configuration from the specified path."""
+    if config_path is None:
+        config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.abspath(os.path.join(
+            os.path.dirname(__file__), "../../config/config.yaml")))
     try:
         with open(config_path, "r") as f:
             return yaml.safe_load(f)
@@ -28,11 +32,12 @@ def load_config(config_path: str = "pyquizhub/config/config.yaml") -> Dict:
     except Exception as e:
         raise RuntimeError(f"Error loading configuration: {e}")
 
-# Dependency: Initialize storage manager
+# Initialize storage manager
 
 
-def get_storage_manager(config: Dict = Depends(load_config)) -> StorageManager:
+def get_storage_manager() -> StorageManager:
     """Initialize the storage manager based on the configuration."""
+    config = load_config()
     storage_type = config["storage"]["type"]
     if storage_type == "file":
         return FileStorageManager(config["storage"]["file"]["base_dir"])
@@ -132,6 +137,11 @@ class CreateQuizRequest(BaseModel):
 class ParticipatedUsersResponse(BaseModel):
     user_ids: List[str]
 
+
+class ConfigPathResponse(BaseModel):
+    config_path: str
+    config_data: Dict[str, Any]
+
 # Helper functions
 
 
@@ -175,17 +185,20 @@ def read_root():
 
 
 @app.post("/admin/create_quiz", response_model=QuizCreationResponse)
-def admin_create_quiz(request: CreateQuizRequest, storage_manager: StorageManager = Depends(get_storage_manager)):
+def admin_create_quiz(request: CreateQuizRequest):
+    storage_manager = get_storage_manager()
     return _create_quiz(storage_manager, request.quiz, request.creator_id)
 
 
 @app.post("/admin/generate_token", response_model=TokenResponse)
-def admin_generate_token(request: TokenRequest, storage_manager: StorageManager = Depends(get_storage_manager)):
+def admin_generate_token(request: TokenRequest):
+    storage_manager = get_storage_manager()
     return _generate_token(storage_manager, request.quiz_id, request.type)
 
 
 @app.get("/admin/quiz/{quiz_id}", response_model=QuizDetailResponse)
-def admin_get_quiz(quiz_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
+def admin_get_quiz(quiz_id: str):
+    storage_manager = get_storage_manager()
     try:
         quiz = storage_manager.get_quiz(quiz_id)
         return {
@@ -199,17 +212,28 @@ def admin_get_quiz(quiz_id: str, storage_manager: StorageManager = Depends(get_s
 
 
 @app.get("/admin/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def get_results(quiz_id: str, user_id: str, session_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
+def get_results(quiz_id: str, user_id: str, session_id: str):
+    storage_manager = get_storage_manager()
     return _get_results(storage_manager, quiz_id, user_id, session_id)
 
 
 @app.get("/admin/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
-def get_participated_users(quiz_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
+def get_participated_users(quiz_id: str):
+    storage_manager = get_storage_manager()
     return _get_participated_users(storage_manager, quiz_id)
 
 
+@app.get("/admin/config", response_model=ConfigPathResponse)
+def get_config():
+    config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "../../config/config.yaml")))
+    config_data = load_config(config_path)
+    return ConfigPathResponse(config_path=config_path, config_data=config_data)
+
+
 @app.post("/start_quiz", response_model=NextQuestionResponse)
-def start_quiz(token: str, user_id: str, storage_manager: StorageManager = Depends(get_storage_manager)):
+def start_quiz(token: str, user_id: str):
+    storage_manager = get_storage_manager()
     quiz_id = storage_manager.get_quiz_id_by_token(token)
     if not quiz_id:
         raise HTTPException(status_code=404, detail="Invalid or expired token")
@@ -235,7 +259,8 @@ def start_quiz(token: str, user_id: str, storage_manager: StorageManager = Depen
 
 
 @app.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse)
-def submit_answer(quiz_id: str, request: AnswerRequest, storage_manager: StorageManager = Depends(get_storage_manager)):
+def submit_answer(quiz_id: str, request: AnswerRequest):
+    storage_manager = get_storage_manager()
     user_id = request.user_id
     session_id = request.session_id
     answer = request.answer["answer"]
