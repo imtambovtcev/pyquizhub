@@ -8,8 +8,10 @@ from pyquizhub.core.api.models import (
     QuizCreationResponse,
     TokenRequest,
     TokenResponse,
+    AllQuizzesResponse,
+    AllTokensResponse,
 )
-from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic
+from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic, get_quiz_logic, get_participated_users_logic, get_results_by_quiz_logic
 import os
 import yaml
 
@@ -25,28 +27,16 @@ def admin_get_quiz(quiz_id: str, req: Request):
     Admin retrieves quiz details.
     """
     storage_manager: StorageManager = req.app.state.storage_manager
-    try:
-        quiz = storage_manager.get_quiz(quiz_id)
-        return {
-            "quiz_id": quiz_id,
-            "title": quiz["metadata"]["title"],
-            "creator_id": quiz["creator_id"],
-            "data": quiz["data"],
-        }
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Quiz not found")
+    return get_quiz_logic(storage_manager, quiz_id)
 
 
-@router.get("/results/{quiz_id}/{user_id}", response_model=ResultResponse)
-def admin_get_results(quiz_id: str, user_id: str, session_id: str, req: Request):
+@router.get("/results/{quiz_id}", response_model=ResultResponse)
+def admin_get_results_by_quiz(quiz_id: str, req: Request):
     """
-    Admin retrieves quiz results.
+    Admin retrieves quiz results by quiz ID.
     """
     storage_manager: StorageManager = req.app.state.storage_manager
-    results = storage_manager.get_results(user_id, quiz_id, session_id)
-    if not results:
-        raise HTTPException(status_code=404, detail="Results not found")
-    return results
+    return get_results_by_quiz_logic(storage_manager, quiz_id)
 
 
 @router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
@@ -55,8 +45,7 @@ def admin_participated_users(quiz_id: str, req: Request):
     Admin retrieves users who participated in a quiz.
     """
     storage_manager: StorageManager = req.app.state.storage_manager
-    user_ids = storage_manager.get_participated_users(quiz_id)
-    return {"user_ids": user_ids}
+    return get_participated_users_logic(storage_manager, quiz_id)
 
 
 @router.get("/config", response_model=ConfigPathResponse)
@@ -89,3 +78,23 @@ def admin_generate_token(request: TokenRequest, req: Request):
     """
     storage_manager: StorageManager = req.app.state.storage_manager
     return generate_token_logic(storage_manager, request)
+
+
+@router.get("/all_quizzes", response_model=AllQuizzesResponse)
+def admin_get_all_quizzes(req: Request):
+    """
+    Admin retrieves all quizzes.
+    """
+    storage_manager: StorageManager = req.app.state.storage_manager
+    all_quizzes = storage_manager.get_all_quizzes()
+    return AllQuizzesResponse(quizzes=all_quizzes)
+
+
+@router.get("/all_tokens", response_model=AllTokensResponse)
+def admin_get_all_tokens(req: Request):
+    """
+    Admin retrieves all tokens.
+    """
+    storage_manager: StorageManager = req.app.state.storage_manager
+    all_tokens = storage_manager.get_all_tokens()
+    return AllTokensResponse(tokens=all_tokens)

@@ -138,22 +138,23 @@ def submit_answer(ctx, quiz_id, user_id, session_id, question_id, answer):
 
 @cli.command()
 @click.option("--quiz-id", required=True, help="Quiz ID")
-@click.option("--user-id", required=True, help="User ID")
-@click.option("--session-id", required=True, help="Session ID")
 @click.pass_context
-def results(ctx, quiz_id, user_id, session_id):
+def results(ctx, quiz_id):
     """View results for a quiz."""
     try:
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
-        response = requests.get(
-            f"{base_url}/results/{quiz_id}/{user_id}/{session_id}")
+        response = requests.get(f"{base_url}/admin/results/{quiz_id}")
         if response.status_code == 200:
             data = response.json()
-            click.echo("Your results:")
-            click.echo(f"Scores: {data['scores']}")
-            click.echo(f"Answers: {data['answers']}")
+            click.echo("Quiz results:")
+            for user_id, sessions in data['results'].items():
+                click.echo(f"User ID: {user_id}")
+                for session_id, result in sessions.items():
+                    click.echo(f"  Session ID: {session_id}")
+                    click.echo(f"    Scores: {result['scores']}")
+                    click.echo(f"    Answers: {result['answers']}")
         else:
             click.echo(
                 f"Failed to fetch results: {response.json().get('detail', 'Unknown error')}")

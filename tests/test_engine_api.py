@@ -45,6 +45,15 @@ class TestQuizEngine:
         TestQuizEngine.quiz_id = response.json()["quiz_id"]
         assert TestQuizEngine.quiz_id, "Quiz ID should not be empty."
 
+    def test_get_all_quizzes(self, api_client: TestClient):
+        """Test retrieving all quizzes."""
+        response = api_client.get("/admin/all_quizzes")
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
+        assert "quizzes" in data, "Response should include quizzes."
+        assert TestQuizEngine.quiz_id in data[
+            "quizzes"], f"Quiz ID {TestQuizEngine.quiz_id} should be in the list of quizzes."
+
     def test_generate_token(self, api_client: TestClient):
         """Test generating a token for the created quiz."""
         assert TestQuizEngine.quiz_id, "Quiz ID must be created before generating a token."
@@ -53,6 +62,15 @@ class TestQuizEngine:
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         TestQuizEngine.token = response.json()["token"]
         assert TestQuizEngine.token, "Token should not be empty."
+
+    def test_get_all_tokens(self, api_client: TestClient):
+        """Test retrieving all tokens."""
+        response = api_client.get("/admin/all_tokens")
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
+        assert "tokens" in data, "Response should include tokens."
+        assert TestQuizEngine.quiz_id in data[
+            "tokens"], f"Quiz ID {TestQuizEngine.quiz_id} should be in the list of tokens."
 
     def test_start_quiz(self, api_client: TestClient):
         """Test starting a quiz and save the session_id."""
@@ -68,6 +86,7 @@ class TestQuizEngine:
     def test_submit_answer(self, api_client: TestClient):
         """Test submitting an answer for the current quiz session."""
         assert self.session_id, "Session ID must exist before submitting an answer."
+        # apple quiestion
         answer_request = {
             "user_id": self.user_id,
             "session_id": self.session_id,
@@ -77,27 +96,40 @@ class TestQuizEngine:
             f"/quiz/submit_answer/{self.quiz_id}", json=answer_request)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
-        assert "question" in data or "final_message" in data, "Response should include next question or final message."
+        assert "question" in data, "Response should include next question"
+        assert data["question"]['id'] == 2
+        # pear question
+        response = api_client.post(
+            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request)
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
 
-    # def test_get_participated_users(self, api_client: TestClient):
-    #     """Test retrieving participated users for the quiz."""
-    #     assert self.quiz_id, "Quiz ID must be created before retrieving participants."
-    #     response = client.get(f"/admin/participated_users/{self.quiz_id}")
-    #     assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    #     data = response.json()
-    #     assert "user_ids" in data, "Response should include user IDs."
-    #     assert self.user_id in data["user_ids"], f"User ID {self.user_id} should be in participated users."
+        assert "question" in data, "Response should include next question"
+        assert data["question"]['id'] is None
 
-    # def test_get_results(self, api_client: TestClient):
-    #     """Test retrieving results for the quiz session."""
-    #     assert self.quiz_id, "Quiz ID must be created before retrieving results."
-    #     assert self.session_id, "Session ID must exist before retrieving results."
-    #     response = client.get(
-    #         f"/admin/results/{self.quiz_id}/{self.user_id}?session_id={self.session_id}")
-    #     assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
-    #     data = response.json()
-    #     assert "scores" in data, "Response should include scores."
-    #     assert "answers" in data, "Response should include answers."
+    def test_get_participated_users(self, api_client: TestClient):
+        """Test retrieving participated users for the quiz."""
+        assert self.quiz_id, "Quiz ID must be created before retrieving participants."
+        response = api_client.get(f"/admin/participated_users/{self.quiz_id}")
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
+        assert "user_ids" in data, "Response should include user IDs."
+        assert self.user_id in data["user_ids"], f"User ID {self.user_id} should be in participated users."
+
+    def test_get_results(self, api_client: TestClient):
+        """Test retrieving results for the quiz session."""
+        assert self.quiz_id, "Quiz ID must be created before retrieving results."
+        assert self.session_id, "Session ID must exist before retrieving results."
+        response = api_client.get(
+            f"/admin/results/{self.quiz_id}")
+        assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
+        data = response.json()
+
+        assert "results" in data, "Response should include results."
+        assert "results" in data
+        assert self.user_id in data[
+            "results"], f"Results should contain user {self.user_id}"
+        assert self.session_id in data["results"][self.user_id], "Results should contain the session"
 
     def test_invalid_quiz_data(self, api_client: TestClient, invalid_quiz_data):
         """Test handling invalid quiz data."""

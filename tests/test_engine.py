@@ -41,6 +41,12 @@ def test_complex_quiz_flow():
     assert result["id"] is None
     assert result["data"]["type"] == "final_message"
 
+    # Final check of the results
+    results = engine.get_results(session_id)
+    expected_results = {'scores': {'fruits': 2, 'apples': 2, 'pears': 2}, 'answers': [
+        {'question_id': 1, 'answer': 'yes'}, {'question_id': 2, 'answer': 'yes'}]}
+    assert results == expected_results
+
 
 def test_complex_quiz_loop_flow():
     """Test the flow of the complex quiz."""

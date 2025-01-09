@@ -47,8 +47,8 @@ class FileStorageManager(StorageManager):
                         session_id = parts[1]
                         if quiz_id not in self.results[user_id]:
                             self.results[user_id][quiz_id] = {}
-                        self.results[user_id][quiz_id][session_id] = self.get_results(
-                            user_id, quiz_id, session_id)
+                        self.results[user_id][quiz_id][session_id] = self._load(
+                            f"results/{user_id}/{result_file}")
 
     def _read_json(self, filename: str) -> Any:
         filepath = os.path.join(self.base_dir, filename)
@@ -130,20 +130,71 @@ class FileStorageManager(StorageManager):
         self._write_json(filepath, results)
 
     def get_all_results(self) -> Dict[str, Dict[str, Any]]:
-        return self.results
+        results_by_user = {}
+        for user_id, quizzes in self.results.items():
+            if user_id not in results_by_user:
+                results_by_user[user_id] = {}
+            for quiz_id, sessions in quizzes.items():
+                if quiz_id not in results_by_user[user_id]:
+                    results_by_user[user_id][quiz_id] = {}
+                for session_id, result in sessions.items():
+                    results_by_user[user_id][quiz_id][session_id] = {
+                        "user_id": user_id,
+                        "quiz_id": quiz_id,
+                        "session_id": session_id,
+                        "scores": result.get("scores", {}),
+                        "answers": result.get("answers", {}),
+                        "timestamp": result.get("timestamp")
+                    }
+        return results_by_user
 
     def get_results_by_quiz(self, quiz_id: str) -> Dict[str, Dict[str, Any]]:
         results_by_user = {}
         for user_id, quizzes in self.results.items():
             if quiz_id in quizzes:
-                results_by_user[user_id] = quizzes[quiz_id]
+                print(f"User {user_id} participated in quiz {quiz_id}")
+                print(f"Quizzes: {quizzes}")
+                for session_id, result in quizzes[quiz_id].items():
+                    if user_id not in results_by_user:
+                        results_by_user[user_id] = {}
+                    results_by_user[user_id][session_id] = {
+                        "user_id": user_id,
+                        "quiz_id": quiz_id,
+                        "session_id": session_id,
+                        "scores": result.get("scores", {}) if result else {},
+                        "answers": result.get("answers", {}) if result else {},
+                        "timestamp": result.get("timestamp") if result else {}
+                    }
         return results_by_user
 
     def get_results_by_user(self, user_id: str) -> Dict[str, Dict[str, Any]]:
-        return self.results.get(user_id, {})
+        results_by_quiz = {}
+        for quiz_id, sessions in self.results.get(user_id, {}).items():
+            for session_id, result in sessions.items():
+                if quiz_id not in results_by_quiz:
+                    results_by_quiz[quiz_id] = {}
+                results_by_quiz[quiz_id][session_id] = {
+                    "user_id": user_id,
+                    "quiz_id": quiz_id,
+                    "session_id": session_id,
+                    "scores": result.get("scores", {}),
+                    "answers": result.get("answers", {}),
+                    "timestamp": result.get("timestamp")
+                }
+        return results_by_quiz
 
     def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
-        return self.results.get(user_id, {}).get(quiz_id, {})
+        results_by_session = {}
+        for session_id, result in self.results.get(user_id, {}).get(quiz_id, {}).items():
+            results_by_session[session_id] = {
+                "user_id": user_id,
+                "quiz_id": quiz_id,
+                "session_id": session_id,
+                "scores": result.get("scores", {}),
+                "answers": result.get("answers", {}),
+                "timestamp": result.get("timestamp")
+            }
+        return results_by_session
 
     # Tokens
     def get_tokens(self) -> List[Dict[str, Any]]:

@@ -6,8 +6,12 @@ from pyquizhub.core.api.models import (
     CreateQuizRequest,
     QuizCreationResponse,
     TokenRequest,
-    TokenResponse
+    TokenResponse,
+    QuizDetailResponse,
+    ParticipatedUsersResponse,
+    ResultResponse
 )
+from datetime import datetime
 
 router = APIRouter()
 
@@ -49,6 +53,41 @@ def get_results_logic(storage_manager: StorageManager, user_id: str, quiz_id: st
     return storage_manager.get_results(user_id, quiz_id)
 
 
+def get_results_by_quiz_logic(storage_manager: StorageManager, quiz_id: str):
+    """
+    Logic for getting quiz results by quiz ID.
+    """
+    results = storage_manager.get_results_by_quiz(quiz_id)
+    for user_id, sessions in results.items():
+        for session_id, result in sessions.items():
+            result["timestamp"] = result["timestamp"]
+    return {'results': results}
+
+
+def get_quiz_logic(storage_manager: StorageManager, quiz_id: str):
+    """
+    Logic for getting quiz details.
+    """
+    try:
+        quiz = storage_manager.get_quiz(quiz_id)
+        return {
+            "quiz_id": quiz_id,
+            "title": quiz["metadata"]["title"],
+            "creator_id": quiz["creator_id"],
+            "data": quiz["data"],
+        }
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+
+
+def get_participated_users_logic(storage_manager: StorageManager, quiz_id: str):
+    """
+    Logic for getting participated users.
+    """
+    user_ids = storage_manager.get_participated_users(quiz_id)
+    return {"user_ids": user_ids}
+
+
 @router.post("/create_quiz", response_model=QuizCreationResponse)
 def creator_create_quiz(request: CreateQuizRequest, req: Request):
     """
@@ -65,3 +104,39 @@ def creator_generate_token(request: TokenRequest, req: Request):
     """
     storage_manager: StorageManager = req.app.state.storage_manager
     return generate_token_logic(storage_manager, request)
+
+
+@router.get("/quiz/{quiz_id}", response_model=QuizDetailResponse)
+def creator_get_quiz(quiz_id: str, req: Request):
+    """
+    Endpoint for creators to get quiz details.
+    """
+    storage_manager: StorageManager = req.app.state.storage_manager
+    user_id = req.headers.get("X-User-ID")
+    if not storage_manager.user_has_permission_for_quiz_creation(user_id):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    return get_quiz_logic(storage_manager, quiz_id)
+
+
+@router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
+def creator_participated_users(quiz_id: str, req: Request):
+    """
+    Endpoint for creators to get participated users.
+    """
+    storage_manager: StorageManager = req.app.state.storage_manager
+    user_id = req.headers.get("X-User-ID")
+    if not storage_manager.user_has_permission_for_quiz_creation(user_id):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    return get_participated_users_logic(storage_manager, quiz_id)
+
+
+@router.get("/results/{quiz_id}", response_model=ResultResponse)
+def creator_get_results_by_quiz(quiz_id: str, req: Request):
+    """
+    Endpoint for creators to get quiz results by quiz ID.
+    """
+    storage_manager: StorageManager = req.app.state.storage_manager
+    user_id = req.headers.get("X-User-ID")
+    if not storage_manager.user_has_permission_for_quiz_creation(user_id):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    return get_results_by_quiz_logic(storage_manager, quiz_id)

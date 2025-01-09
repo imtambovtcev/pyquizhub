@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
+from fastapi.middleware import Middleware
 from pyquizhub.core.api.router_admin import router as admin_router
 from pyquizhub.core.api.router_creator import router as creator_router
 from pyquizhub.core.api.router_quiz import router as quiz_router
@@ -7,8 +10,14 @@ from pyquizhub.core.storage.file_storage import FileStorageManager
 from pyquizhub.core.storage.sql_storage import SQLStorageManager
 import os
 import yaml
+import logging
+from pydantic import ValidationError
 
 app = FastAPI()
+
+# Configure logging
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 
 def load_config(config_path: str = None) -> dict:
@@ -49,3 +58,15 @@ app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
 def read_root():
     """Root endpoint for sanity check."""
     return {"message": "Welcome to the Quiz Engine API"}
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    error_details = exc.errors()
+    for error in error_details:
+        logger.error(f"Validation error: {error}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "message": "Invalid input received. Please check your request and try again."}
+    )

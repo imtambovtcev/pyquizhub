@@ -8,6 +8,7 @@ from pyquizhub.core.api.models import (
 import uuid
 from datetime import datetime
 from typing import Dict
+import os
 
 router = APIRouter()
 

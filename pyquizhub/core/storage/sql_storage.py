@@ -221,10 +221,17 @@ class SQLStorageManager(StorageManager):
         results_by_user = {}
         for row in result:
             user_id = row._mapping["user_id"]
+            session_id = row._mapping["session_id"]
             if user_id not in results_by_user:
                 results_by_user[user_id] = {}
-            session_id = row._mapping["session_id"]
-            results_by_user[user_id][session_id] = dict(row._mapping)
+            results_by_user[user_id][session_id] = {
+                "user_id": user_id,
+                "quiz_id": quiz_id,
+                "session_id": session_id,
+                "scores": row._mapping["scores"],
+                "answers": row._mapping["answers"],
+                "timestamp": row._mapping["timestamp"]
+            }
         return results_by_user
 
     def get_results_by_user(self, user_id: str) -> Dict[str, Dict[str, Any]]:
@@ -235,10 +242,17 @@ class SQLStorageManager(StorageManager):
         results_by_quiz = {}
         for row in result:
             quiz_id = row._mapping["quiz_id"]
+            session_id = row._mapping["session_id"]
             if quiz_id not in results_by_quiz:
                 results_by_quiz[quiz_id] = {}
-            session_id = row._mapping["session_id"]
-            results_by_quiz[quiz_id][session_id] = dict(row._mapping)
+            results_by_quiz[quiz_id][session_id] = {
+                "user_id": user_id,
+                "quiz_id": quiz_id,
+                "session_id": session_id,
+                "scores": row._mapping["scores"],
+                "answers": row._mapping["answers"],
+                "timestamp": row._mapping["timestamp"]
+            }
         return results_by_quiz
 
     def get_results_by_user_and_quiz(self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:

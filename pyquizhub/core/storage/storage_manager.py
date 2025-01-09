@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 
 class StorageManager(ABC):
@@ -103,3 +104,7 @@ class StorageManager(ABC):
     @abstractmethod
     def get_all_quizzes(self) -> Dict[str, Any]:
         pass
+
+    def add_result(self, user_id: str, quiz_id: str, session_id: str, result: dict):
+        result["timestamp"] = datetime.now().isoformat()
+        # ...existing code...

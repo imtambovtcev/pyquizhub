@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, List, Optional, Any
+from typing import Optional, Any, List, Dict
 
 
 class Metadata(BaseModel):
@@ -11,9 +11,9 @@ class Metadata(BaseModel):
 
 class Quiz(BaseModel):
     metadata: Metadata
-    scores: Dict[str, float]
-    questions: List[Dict]
-    transitions: Dict[str, List[Dict]]
+    scores: dict[str, float]
+    questions: list[dict]
+    transitions: dict[str, list[dict]]
 
 
 class TokenRequest(BaseModel):
@@ -23,7 +23,7 @@ class TokenRequest(BaseModel):
 
 class QuizData(BaseModel):
     title: str
-    questions: List[Dict[str, Any]]
+    questions: list[dict[str, Any]]
 
 
 class QuizCreationResponse(BaseModel):
@@ -45,12 +45,20 @@ class TokenResponse(BaseModel):
 class AnswerRequest(BaseModel):
     user_id: str
     session_id: str
-    answer: Dict[str, str]
+    answer: dict[str, str]
+
+
+class ResultDetailResponse(BaseModel):
+    user_id: str
+    quiz_id: str
+    session_id: str
+    scores: dict[str, float]
+    answers: list[dict[str, Any]]
+    timestamp: str
 
 
 class ResultResponse(BaseModel):
-    scores: Dict[str, int]
-    answers: Dict[str, str]
+    results: dict[str, dict[str, ResultDetailResponse]]
 
 
 class NextQuestionResponse(BaseModel):
@@ -58,7 +66,7 @@ class NextQuestionResponse(BaseModel):
     user_id: str
     session_id: str
     title: str
-    question: Optional[Dict] = None
+    question: Optional[dict] = None
 
 
 class CreateQuizRequest(BaseModel):
@@ -67,9 +75,17 @@ class CreateQuizRequest(BaseModel):
 
 
 class ParticipatedUsersResponse(BaseModel):
-    user_ids: List[str]
+    user_ids: list[str]
 
 
 class ConfigPathResponse(BaseModel):
     config_path: str
-    config_data: Dict[str, Any]
+    config_data: dict[str, Any]
+
+
+class AllQuizzesResponse(BaseModel):
+    quizzes: Dict[str, Any]
+
+
+class AllTokensResponse(BaseModel):
+    tokens: Dict[str, List[Dict[str, Any]]]
