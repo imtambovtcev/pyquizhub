@@ -1,5 +1,7 @@
 from click.testing import CliRunner
-from pyquizhub.adapters.cli.cli import cli
+from pyquizhub.adapters.cli.admin_cli import admin_cli
+from pyquizhub.adapters.cli.creator_cli import creator_cli
+from pyquizhub.adapters.cli.user_cli import user_cli
 import os
 import pytest
 from unittest.mock import patch
@@ -17,8 +19,10 @@ def extract_value(output, prefix):
 @pytest.fixture
 def mock_requests(api_client):
     """Fixture to mock requests and redirect them to the TestClient."""
-    with patch('pyquizhub.adapters.cli.cli.requests.post') as mock_post, \
-            patch('pyquizhub.adapters.cli.cli.requests.get') as mock_get:
+    with patch('pyquizhub.adapters.cli.admin_cli.requests.post') as mock_post, \
+            patch('pyquizhub.adapters.cli.admin_cli.requests.get') as mock_get, \
+            patch('pyquizhub.adapters.cli.creator_cli.requests.post') as mock_creator_post, \
+            patch('pyquizhub.adapters.cli.user_cli.requests.post') as mock_user_post:
         def convert_response(api_response):
             """Convert TestClient response to requests.Response."""
             response = RequestsResponse()
@@ -42,6 +46,8 @@ def mock_requests(api_client):
 
         mock_post.side_effect = mock_post_side_effect
         mock_get.side_effect = mock_get_side_effect
+        mock_creator_post.side_effect = mock_post_side_effect
+        mock_user_post.side_effect = mock_post_side_effect
 
         yield
 
@@ -51,7 +57,7 @@ def quiz_id(api_client, config_path, mock_requests):
     """Fixture to add a quiz and return the quiz ID."""
     runner = CliRunner()
     result = runner.invoke(
-        cli,
+        creator_cli,
         [
             'add',
             '--file',
@@ -76,7 +82,7 @@ def token(api_client, config_path, quiz_id, mock_requests):
     """Fixture to generate a token for a quiz."""
     runner = CliRunner()
     result = runner.invoke(
-        cli,
+        admin_cli,
         ['token', '--quiz-id', quiz_id, '--token-type', 'permanent'],
         env={"PYQUIZHUB_CONFIG_PATH": str(config_path)},
     )
@@ -106,7 +112,7 @@ def test_start_quiz(api_client, config_path, token, mock_requests):
     # Simulate user inputs for the questions
     inputs = "1\n2\n"  # Answer 'Yes' for the first question and 'No' for the second
     result = runner.invoke(
-        cli,
+        user_cli,
         ['start', '--token', token, '--user-id', '42'],
         input=inputs,
         env={"PYQUIZHUB_CONFIG_PATH": str(config_path)},
@@ -122,7 +128,7 @@ def test_check_connection(api_client, config_path, mock_requests):
     """Test checking the API connection."""
     runner = CliRunner()
     result = runner.invoke(
-        cli, ['check'], env={"PYQUIZHUB_CONFIG_PATH": str(config_path)}
+        admin_cli, ['check'], env={"PYQUIZHUB_CONFIG_PATH": str(config_path)}
     )
 
     assert result.exit_code == 0
