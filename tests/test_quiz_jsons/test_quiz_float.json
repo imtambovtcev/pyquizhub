@@ -1,0 +1,35 @@
+{
+    "metadata": {
+        "title": "Simple Quiz Float",
+        "description": "Correct answer: 3.14",
+        "author": "Test Author",
+        "version": "1.0"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What is your height in meters?",
+                "type": "float"
+            },
+            "score_updates": [
+                {
+                    "condition": "answer > 1.75",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "next_question_id": null
+            }
+        ]
+    }
+}

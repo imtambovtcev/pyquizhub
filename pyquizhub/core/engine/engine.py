@@ -74,6 +74,32 @@ class QuizEngine:
         if current_question is None:
             return self.end_quiz(session_id)
 
+        # Validate answer based on question type
+        question_type = current_question["data"]["type"]
+        try:
+            if question_type == "integer":
+                answer = int(answer)
+            elif question_type == "float":
+                answer = float(answer)
+            elif question_type == "multiple_select":
+                if not isinstance(answer, list):
+                    raise ValueError(
+                        "Answer must be a list of selected options.")
+                for option in answer:
+                    if option not in [opt["value"] for opt in current_question["data"]["options"]]:
+                        raise ValueError(f"Invalid option selected: {option}")
+            elif question_type == "multiple_choice":
+                if answer not in [opt["value"] for opt in current_question["data"]["options"]]:
+                    raise ValueError(f"Invalid option selected: {answer}")
+        except ValueError as e:
+            logging.error(
+                f"Invalid answer for question {current_question['id']}: {e}")
+            return {
+                "id": current_question["id"],
+                "data": current_question["data"],
+                "error": str(e)
+            }
+
         session["answers"].append(
             {"question_id": current_question["id"], "answer": answer}
         )

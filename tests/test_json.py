@@ -12,26 +12,19 @@ def load_quiz_data(file_path):
 
 jsons_dir = os.path.join(os.path.dirname(__file__), "test_quiz_jsons")
 
-# Define paths to the test JSON files
-VALID_JSON_FILES = [
-    jsons_dir+"/simple_quiz.json",
-    jsons_dir+"/complex_quiz.json",
-]
+# Automatically define paths to the test JSON files
+VALID_JSON_FILES = []
+INVALID_JSON_FILES = []
+WARNING_JSON_FILES = []
 
-INVALID_JSON_FILES = [
-    jsons_dir+"/invalid_quiz_missing_keys.json",
-    jsons_dir+"/invalid_quiz_bad_score_update.json",
-    jsons_dir+"/invalid_quiz_bad_transition.json",
-    jsons_dir+"/invalid_quiz_non_iterable_questions.json",
-    jsons_dir+"/invalid_quiz_duplicate_question_ids.json",
-    jsons_dir+"/invalid_quiz_unexpected_top_level.json",
-    jsons_dir+"/invalid_quiz_invalid_condition_expression.json",
-]
-
-WARNING_JSON_FILES = [
-    jsons_dir+"/warning_non_trivial_after_trivial.json",
-    jsons_dir+"/warning_no_trivial_condition.json",
-]
+for file_name in os.listdir(jsons_dir):
+    if "_quiz" in file_name and file_name.endswith(".json"):
+        if file_name.startswith("invalid"):
+            INVALID_JSON_FILES.append(os.path.join(jsons_dir, file_name))
+        elif file_name.startswith("warning"):
+            WARNING_JSON_FILES.append(os.path.join(jsons_dir, file_name))
+        else:
+            VALID_JSON_FILES.append(os.path.join(jsons_dir, file_name))
 
 
 @pytest.mark.parametrize("json_file", VALID_JSON_FILES)

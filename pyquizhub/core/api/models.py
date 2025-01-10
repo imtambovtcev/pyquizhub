@@ -61,12 +61,18 @@ class ResultResponse(BaseModel):
     results: dict[str, dict[str, ResultDetailResponse]]
 
 
+class Question(BaseModel):
+    id: int | None
+    data: dict[str, Any] | None
+    error: Optional[str] = None
+
+
 class NextQuestionResponse(BaseModel):
     quiz_id: str
     user_id: str
     session_id: str
     title: str
-    question: Optional[dict] = None
+    question: Optional[Question | None] = None
 
 
 class CreateQuizRequest(BaseModel):

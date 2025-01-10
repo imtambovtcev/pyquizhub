@@ -1,0 +1,35 @@
+{
+    "metadata": {
+        "title": "Simple Quiz Integer",
+        "description": "Correct answer: 19",
+        "author": "Test Author",
+        "version": "1.0"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "How old are you?",
+                "type": "integer"
+            },
+            "score_updates": [
+                {
+                    "condition": "answer > 18",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "next_question_id": null
+            }
+        ]
+    }
+}

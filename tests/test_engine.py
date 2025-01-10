@@ -3,12 +3,34 @@ from pyquizhub.core.engine.engine import QuizEngine
 import json
 import uuid
 import os
+
 # Load test quiz data
 
 
 def load_quiz_data(file_path):
     with open(file_path, "r") as f:
         return json.load(f)
+
+# Extract the correct answer from the quiz metadata
+
+
+def extract_answer(quiz_data):
+    description = quiz_data["metadata"]["description"]
+    answer_prefix = "Correct answer: "
+    if answer_prefix in description:
+        answer_str = description.split(answer_prefix)[1].strip()
+        try:
+            return json.loads(answer_str.replace("'", "\""))
+        except json.JSONDecodeError:
+            return answer_str
+    return None
+
+
+jsons_dir = os.path.join(os.path.dirname(__file__), "test_quiz_jsons")
+
+# Collect all test quiz files
+test_quiz_files = [f for f in os.listdir(
+    jsons_dir) if f.startswith("test_quiz")]
 
 
 def test_complex_quiz_flow():
@@ -103,3 +125,22 @@ def test_invalid_transitions():
     )
     with pytest.raises(ValueError):
         QuizEngine(invalid_quiz_data)
+
+
+@pytest.mark.parametrize("quiz_file", test_quiz_files)
+def test_quiz_types(quiz_file):
+    """Test the flow of various quiz types."""
+    quiz_data = load_quiz_data(os.path.join(jsons_dir, quiz_file))
+    engine = QuizEngine(quiz_data)
+
+    # Extract the correct answer from the quiz metadata
+    answer = extract_answer(quiz_data)
+    assert answer is not None, f"Correct answer not found in metadata for {quiz_file}"
+
+    # Start the quiz for a user
+    session_id = str(uuid.uuid4())
+    engine.start_quiz(session_id)
+
+    # Answer the question
+    result = engine.answer_question(session_id, answer)
+    assert engine.sessions[session_id]["scores"]["score_a"] == 1

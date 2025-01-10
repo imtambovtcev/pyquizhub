@@ -30,11 +30,14 @@ class QuizJSONValidator:
             return {"errors": errors, "warnings": warnings}
 
         # Default variables for validation
-        default_variables = {"answer": None, **quiz_data.get("scores", {})}
+        default_variables = quiz_data.get("scores", {}).copy()
 
         # Validate scores
         if not isinstance(quiz_data["scores"], dict):
             errors.append("The 'scores' field must be a dictionary.")
+        elif "answer" in quiz_data["scores"]:
+            errors.append(
+                "The 'scores' field must not contain the special variable 'answer'.")
 
         # Validate questions
         question_ids = set()
@@ -65,9 +68,32 @@ class QuizJSONValidator:
                 errors.append(f"Invalid question data format: {data}")
                 continue
 
-            if data["type"] == "multiple_choice" and "options" not in data:
-                errors.append(
-                    f"Multiple choice question missing options: {data}")
+            current_answer_type = None
+            if data["type"] == "multiple_choice":
+                current_answer_type = str
+                if "options" not in data:
+                    errors.append(
+                        f"Multiple choice question missing options: {data}")
+            elif data["type"] == "multiple_select":
+                current_answer_type = list
+                if "options" not in data:
+                    errors.append(
+                        f"Multiple select question missing options: {data}")
+            elif data["type"] == "text":
+                current_answer_type = str
+                if "options" in data:
+                    errors.append(
+                        f"Question type '{data['type']}' should not have options: {data}")
+            elif data["type"] == "integer":
+                current_answer_type = int
+                if "options" in data:
+                    errors.append(
+                        f"Question type '{data['type']}' should not have options: {data}")
+            elif data["type"] == "float":
+                current_answer_type = float
+                if "options" in data:
+                    errors.append(
+                        f"Question type '{data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
@@ -86,10 +112,14 @@ class QuizJSONValidator:
                         continue
                     # Validate conditions and updates
                     try:
+
+                        allowed_variables = {
+                            **default_variables, "answer": current_answer_type()} if current_answer_type else default_variables
                         SafeEvaluator.eval_expr(
-                            update["condition"], default_variables)
+                            update["condition"], allowed_variables)
                         for expr in update["update"].values():
-                            SafeEvaluator.eval_expr(expr, default_variables)
+                            SafeEvaluator.eval_expr(
+                                expr, allowed_variables)
                     except Exception as e:
                         errors.append(
                             f"Invalid score update condition or expression in question {question['id']}: {e}")
@@ -118,7 +148,8 @@ class QuizJSONValidator:
 
                 # Validate condition expression
                 try:
-                    SafeEvaluator.eval_expr(expression, default_variables)
+                    SafeEvaluator.eval_expr(
+                        expression, {**default_variables, "answer": current_answer_type()})
                 except Exception as e:
                     errors.append(
                         f"Invalid transition expression in question {question_id}: {e}")

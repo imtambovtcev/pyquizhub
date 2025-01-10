@@ -14,7 +14,8 @@ class SafeEvaluator:
         ast.Lt: operator.lt,
         ast.LtE: operator.le,
         ast.Gt: operator.gt,
-        ast.GtE: operator.ge
+        ast.GtE: operator.ge,
+        ast.In: lambda left, right: left in right,
     }
 
     @staticmethod

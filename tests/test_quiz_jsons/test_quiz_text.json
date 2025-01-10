@@ -1,0 +1,35 @@
+{
+    "metadata": {
+        "title": "Simple Quiz Text",
+        "description": "Correct answer: \"John\"",
+        "author": "Test Author",
+        "version": "1.0"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What is your name?",
+                "type": "text"
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'John'",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "next_question_id": null
+            }
+        ]
+    }
+}

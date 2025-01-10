@@ -1,0 +1,55 @@
+{
+    "metadata": {
+        "title": "Simple Quiz Multiple Select",
+        "description": "Correct answer: [\"apple\", \"cherry\"]",
+        "author": "Test Author",
+        "version": "1.0"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Which fruits do you like?",
+                "type": "multiple_select",
+                "options": [
+                    {
+                        "value": "apple",
+                        "label": "Apple"
+                    },
+                    {
+                        "value": "banana",
+                        "label": "Banana"
+                    },
+                    {
+                        "value": "cherry",
+                        "label": "Cherry"
+                    }
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "'apple' in answer",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                },
+                {
+                    "condition": "'banana' in answer",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "next_question_id": null
+            }
+        ]
+    }
+}
