@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Start Quiz{% endblock %}
+
+{% block content %}
+<div class="start-form">
+    <h1>Welcome to PyQuizHub</h1>
+    <form action="/start" method="post">
+        <input type="text" name="token" placeholder="Enter quiz token" required>
+        <button type="submit">Start Quiz</button>
+    </form>
+</div>
+{% endblock %}

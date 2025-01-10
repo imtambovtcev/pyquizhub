@@ -14,6 +14,8 @@ pyyaml = "^6.0.2"
 pytest = "^8.3.4"
 requests = "^2.32.3"
 httpx = "^0.28.1"
+jinja2 = "^3.1.5"
+python-multipart = "^0.0.20"
 
 [tool.poetry.scripts]
 pyquizhub-setup = "pyquizhub.config.initialize:initialize_system"
