@@ -1,0 +1,45 @@
+{
+    "metadata": {
+        "title": "Simple Quiz Multiple Choice",
+        "description": "Correct answer: \"yes\"",
+        "author": "Test Author",
+        "version": "1.0"
+    },
+    "scores": {
+        "score_a": 0
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Do you like apples?",
+                "type": "multiple_choice",
+                "options": [
+                    {
+                        "value": "yes",
+                        "label": "Yes"
+                    },
+                    {
+                        "value": "no",
+                        "label": "No"
+                    }
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'yes'",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "next_question_id": null
+            }
+        ]
+    }
+}
