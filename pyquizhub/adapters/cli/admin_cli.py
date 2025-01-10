@@ -3,21 +3,16 @@ import requests
 import json
 import yaml
 import os
+from pyquizhub.config.config_utils import load_config, get_config_value, get_token_from_config
 
 
-def load_config():
-    """Load configuration from the environment variable or default path."""
-    config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.abspath(os.path.join(
-        os.path.dirname(__file__), "../../config/config.yaml")))
-    try:
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        click.echo(f"Error: Configuration file not found at {config_path}.")
-        raise
-    except Exception as e:
-        click.echo(f"Error loading configuration: {e}")
-        raise
+def get_headers():
+    config = load_config()
+    headers = {"Content-Type": "application/json"}
+    token = get_token_from_config("admin")
+    if token:
+        headers["Authorization"] = token
+    return headers
 
 
 @click.group()
@@ -44,7 +39,7 @@ def add(ctx, file, creator_id):
         response = requests.post(
             f"{base_url}/admin/create_quiz",
             json={"quiz": quiz_data, "creator_id": creator_id},
-            headers={"Content-Type": "application/json"},
+            headers=get_headers(),
         )
         if response.status_code == 200:
             click.echo("Quiz added successfully.")
@@ -70,7 +65,7 @@ def token(ctx, quiz_id, token_type):
         base_url = config["api"]["base_url"]
 
         response = requests.post(
-            f"{base_url}/admin/generate_token", json={"quiz_id": quiz_id, "type": token_type}
+            f"{base_url}/admin/generate_token", json={"quiz_id": quiz_id, "type": token_type}, headers=get_headers()
         )
         if response.status_code == 200:
             data = response.json()
@@ -91,7 +86,8 @@ def results(ctx, quiz_id):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
-        response = requests.get(f"{base_url}/admin/results/{quiz_id}")
+        response = requests.get(
+            f"{base_url}/admin/results/{quiz_id}", headers=get_headers())
         if response.status_code == 200:
             data = response.json()
             click.echo("Quiz results:")
@@ -116,7 +112,7 @@ def check(ctx):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
-        response = requests.get(f"{base_url}/")
+        response = requests.get(f"{base_url}/", headers=get_headers())
         if response.status_code == 200:
             click.echo("API is working correctly.")
         else:

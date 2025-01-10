@@ -8,3 +8,9 @@ storage:
 
 api:
   base_url: "http://127.0.0.1:8000"
+
+security:
+  use_tokens: true
+  admin_token_env: "PYQUIZHUB_ADMIN_TOKEN"
+  creator_token_env: "PYQUIZHUB_CREATOR_TOKEN"
+  user_token_env: "PYQUIZHUB_USER_TOKEN"

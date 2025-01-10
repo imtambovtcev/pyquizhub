@@ -3,6 +3,7 @@ import requests
 import json
 import yaml
 import os
+from pyquizhub.config.config_utils import get_token_from_config
 
 
 def load_config():
@@ -18,6 +19,15 @@ def load_config():
     except Exception as e:
         click.echo(f"Error loading configuration: {e}")
         raise
+
+
+def get_headers():
+    config = load_config()
+    headers = {"Content-Type": "application/json"}
+    token = get_token_from_config("user")
+    if token:
+        headers["Authorization"] = token
+    return headers
 
 
 @click.group()
@@ -39,7 +49,9 @@ def start(ctx, user_id, token):
         base_url = config["api"]["base_url"]
 
         response = requests.post(
-            f"{base_url}/quiz/start_quiz?token={token}&user_id={user_id}")
+            f"{base_url}/quiz/start_quiz?token={token}&user_id={user_id}",
+            headers=get_headers()
+        )
         if response.status_code == 200:
             quiz_id = response.json().get("quiz_id")
             session_id = response.json().get("session_id")
@@ -93,6 +105,7 @@ def submit_answer(ctx, quiz_id, user_id, session_id, question_id, answer):
             f"{base_url}/quiz/submit_answer/{quiz_id}",
             json={"user_id": user_id, "session_id": session_id,
                   "question_id": question_id, "answer": answer},
+            headers=get_headers()
         )
         if response.status_code == 200:
             return response.json()

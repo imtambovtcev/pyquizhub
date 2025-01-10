@@ -3,6 +3,7 @@ import requests
 import json
 import yaml
 import os
+from pyquizhub.config.config_utils import get_token_from_config
 
 
 def load_config():
@@ -18,6 +19,15 @@ def load_config():
     except Exception as e:
         click.echo(f"Error loading configuration: {e}")
         raise
+
+
+def get_headers():
+    config = load_config()
+    headers = {"Content-Type": "application/json"}
+    token = get_token_from_config("creator")
+    if token:
+        headers["Authorization"] = token
+    return headers
 
 
 @click.group()
@@ -44,7 +54,7 @@ def add(ctx, file, creator_id):
         response = requests.post(
             f"{base_url}/admin/create_quiz",
             json={"quiz": quiz_data, "creator_id": creator_id},
-            headers={"Content-Type": "application/json"},
+            headers=get_headers(),
         )
         if response.status_code == 200:
             click.echo("Quiz added successfully.")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.json_validator import QuizJSONValidator
 from pyquizhub.utils import generate_quiz_token, generate_quiz_id
@@ -12,8 +12,16 @@ from pyquizhub.core.api.models import (
     ResultResponse
 )
 from datetime import datetime
+from pyquizhub.config.config_utils import get_token_from_config, get_config_value
 
 router = APIRouter()
+
+
+def creator_token_dependency(request: Request):
+    token = request.headers.get("Authorization")
+    expected_token = get_token_from_config("creator")
+    if token != expected_token:
+        raise HTTPException(status_code=403, detail="Invalid creator token")
 
 
 def create_quiz_logic(storage_manager: StorageManager, request: CreateQuizRequest) -> QuizCreationResponse:
@@ -88,7 +96,7 @@ def get_participated_users_logic(storage_manager: StorageManager, quiz_id: str):
     return {"user_ids": user_ids}
 
 
-@router.post("/create_quiz", response_model=QuizCreationResponse)
+@router.post("/create_quiz", response_model=QuizCreationResponse, dependencies=[Depends(creator_token_dependency)])
 def creator_create_quiz(request: CreateQuizRequest, req: Request):
     """
     Endpoint for creators to create a quiz.
@@ -97,7 +105,7 @@ def creator_create_quiz(request: CreateQuizRequest, req: Request):
     return create_quiz_logic(storage_manager, request)
 
 
-@router.post("/generate_token", response_model=TokenResponse)
+@router.post("/generate_token", response_model=TokenResponse, dependencies=[Depends(creator_token_dependency)])
 def creator_generate_token(request: TokenRequest, req: Request):
     """
     Endpoint for creators to generate tokens.
@@ -106,7 +114,7 @@ def creator_generate_token(request: TokenRequest, req: Request):
     return generate_token_logic(storage_manager, request)
 
 
-@router.get("/quiz/{quiz_id}", response_model=QuizDetailResponse)
+@router.get("/quiz/{quiz_id}", response_model=QuizDetailResponse, dependencies=[Depends(creator_token_dependency)])
 def creator_get_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz details.
@@ -118,7 +126,7 @@ def creator_get_quiz(quiz_id: str, req: Request):
     return get_quiz_logic(storage_manager, quiz_id)
 
 
-@router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
+@router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse, dependencies=[Depends(creator_token_dependency)])
 def creator_participated_users(quiz_id: str, req: Request):
     """
     Endpoint for creators to get participated users.
@@ -130,7 +138,7 @@ def creator_participated_users(quiz_id: str, req: Request):
     return get_participated_users_logic(storage_manager, quiz_id)
 
 
-@router.get("/results/{quiz_id}", response_model=ResultResponse)
+@router.get("/results/{quiz_id}", response_model=ResultResponse, dependencies=[Depends(creator_token_dependency)])
 def creator_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz results by quiz ID.

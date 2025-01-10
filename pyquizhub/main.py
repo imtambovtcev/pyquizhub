@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.middleware import Middleware
@@ -12,6 +12,7 @@ import os
 import yaml
 import logging
 from pydantic import ValidationError
+from pyquizhub.config.config_utils import load_config, get_config_value
 
 app = FastAPI()
 
@@ -20,24 +21,17 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
-def load_config(config_path: str = None) -> dict:
-    if config_path is None:
-        config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.join(
-            os.path.dirname(__file__), "config/config.yaml"))
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
-
-
 @app.on_event("startup")
 async def startup_event():
     config = load_config()
-    storage_type = config["storage"]["type"]
+    app.state.config = config
+    storage_type = get_config_value(config, "storage.type", "file")
     if storage_type == "file":
         app.state.storage_manager = FileStorageManager(
-            config["storage"]["file"]["base_dir"])
+            get_config_value(config, "storage.file.base_dir", ".pyquizhub"))
     elif storage_type == "sql":
         app.state.storage_manager = SQLStorageManager(
-            config["storage"]["sql"]["connection_string"])
+            get_config_value(config, "storage.sql.connection_string", "sqlite:///pyquizhub.db"))
     else:
         raise ValueError(f"Unsupported storage type: {storage_type}")
 

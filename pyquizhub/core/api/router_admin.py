@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.api.models import (
     QuizDetailResponse,
     ResultResponse,
@@ -14,6 +14,7 @@ from pyquizhub.core.api.models import (
 from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic, get_quiz_logic, get_participated_users_logic, get_results_by_quiz_logic
 import os
 import yaml
+from pyquizhub.config.config_utils import get_token_from_config, get_config_value
 
 from pyquizhub.core.storage.storage_manager import StorageManager
 
@@ -21,7 +22,14 @@ from pyquizhub.core.storage.storage_manager import StorageManager
 router = APIRouter()
 
 
-@router.get("/quiz/{quiz_id}", response_model=QuizDetailResponse)
+def admin_token_dependency(request: Request):
+    token = request.headers.get("Authorization")
+    expected_token = get_token_from_config("admin")
+    if token != expected_token:
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+
+
+@router.get("/quiz/{quiz_id}", response_model=QuizDetailResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_get_quiz(quiz_id: str, req: Request):
     """
     Admin retrieves quiz details.
@@ -30,7 +38,7 @@ def admin_get_quiz(quiz_id: str, req: Request):
     return get_quiz_logic(storage_manager, quiz_id)
 
 
-@router.get("/results/{quiz_id}", response_model=ResultResponse)
+@router.get("/results/{quiz_id}", response_model=ResultResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Admin retrieves quiz results by quiz ID.
@@ -39,7 +47,7 @@ def admin_get_results_by_quiz(quiz_id: str, req: Request):
     return get_results_by_quiz_logic(storage_manager, quiz_id)
 
 
-@router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse)
+@router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_participated_users(quiz_id: str, req: Request):
     """
     Admin retrieves users who participated in a quiz.
@@ -48,7 +56,7 @@ def admin_participated_users(quiz_id: str, req: Request):
     return get_participated_users_logic(storage_manager, quiz_id)
 
 
-@router.get("/config", response_model=ConfigPathResponse)
+@router.get("/config", response_model=ConfigPathResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_get_config(req: Request):
     """
     Admin retrieves the current configuration.
@@ -62,7 +70,7 @@ def admin_get_config(req: Request):
     return ConfigPathResponse(config_path=config_path, config_data=config_data)
 
 
-@router.post("/create_quiz", response_model=QuizCreationResponse)
+@router.post("/create_quiz", response_model=QuizCreationResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_create_quiz(request: CreateQuizRequest, req: Request):
     """
     Admin creates a quiz (reusing creator logic).
@@ -71,7 +79,7 @@ def admin_create_quiz(request: CreateQuizRequest, req: Request):
     return create_quiz_logic(storage_manager, request)
 
 
-@router.post("/generate_token", response_model=TokenResponse)
+@router.post("/generate_token", response_model=TokenResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_generate_token(request: TokenRequest, req: Request):
     """
     Admin generates a token (reusing creator logic).
@@ -80,7 +88,7 @@ def admin_generate_token(request: TokenRequest, req: Request):
     return generate_token_logic(storage_manager, request)
 
 
-@router.get("/all_quizzes", response_model=AllQuizzesResponse)
+@router.get("/all_quizzes", response_model=AllQuizzesResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_get_all_quizzes(req: Request):
     """
     Admin retrieves all quizzes.
@@ -90,7 +98,7 @@ def admin_get_all_quizzes(req: Request):
     return AllQuizzesResponse(quizzes=all_quizzes)
 
 
-@router.get("/all_tokens", response_model=AllTokensResponse)
+@router.get("/all_tokens", response_model=AllTokensResponse, dependencies=[Depends(admin_token_dependency)])
 def admin_get_all_tokens(req: Request):
     """
     Admin retrieves all tokens.

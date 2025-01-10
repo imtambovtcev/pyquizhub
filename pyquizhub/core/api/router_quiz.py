@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
 from pyquizhub.core.api.models import (
@@ -9,14 +9,23 @@ import uuid
 from datetime import datetime
 from typing import Dict
 import os
+from pyquizhub.config.config_utils import get_token_from_config, get_config_value
 
 router = APIRouter()
+
+
+def user_token_dependency(request: Request):
+    token = request.headers.get("Authorization")
+    expected_token = get_token_from_config("user")
+    if token != expected_token:
+        raise HTTPException(status_code=403, detail="Invalid user token")
+
 
 # In-memory dictionary to hold active quiz engines for each quiz_id
 quiz_engines: Dict[str, QuizEngine] = {}
 
 
-@router.post("/start_quiz", response_model=NextQuestionResponse)
+@router.post("/start_quiz", response_model=NextQuestionResponse, dependencies=[Depends(user_token_dependency)])
 def start_quiz(token: str, user_id: str, request: Request):
     """Start a quiz session using a token."""
     # Retrieve the storage manager from app.state
@@ -53,7 +62,7 @@ def start_quiz(token: str, user_id: str, request: Request):
     }
 
 
-@router.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse)
+@router.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse, dependencies=[Depends(user_token_dependency)])
 def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
     """Submit an answer for the current question and get the next question."""
     # Retrieve the storage manager from app.state
