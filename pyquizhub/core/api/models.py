@@ -45,7 +45,7 @@ class TokenResponse(BaseModel):
 class AnswerRequest(BaseModel):
     user_id: str
     session_id: str
-    answer: dict[str, str]
+    answer: dict[str, str | int | float | list | None]
 
 
 class ResultDetailResponse(BaseModel):

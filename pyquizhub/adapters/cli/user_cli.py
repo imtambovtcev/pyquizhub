@@ -91,6 +91,27 @@ def handle_question(question):
             click.echo(f"  {idx + 1}: {option['label']}")
         answer = click.prompt("Enter the number of your choice", type=int)
         return {"answer": question["data"]["options"][answer - 1]["value"]}
+    elif question["data"]["type"] == "multiple_select":
+        click.echo(f"Question {question['id']}: {question['data']['text']}")
+        for idx, option in enumerate(question["data"].get("options", [])):
+            click.echo(f"  {idx + 1}: {option['label']}")
+        answer = click.prompt(
+            "Enter the numbers of your choices separated by commas", type=str)
+        selected_options = [question["data"]["options"]
+                            [int(idx) - 1]["value"] for idx in answer.split(",")]
+        return {"answer": selected_options}
+    elif question["data"]["type"] == "integer":
+        click.echo(f"Question {question['id']}: {question['data']['text']}")
+        answer = click.prompt("Enter your answer", type=int)
+        return {"answer": answer}
+    elif question["data"]["type"] == "float":
+        click.echo(f"Question {question['id']}: {question['data']['text']}")
+        answer = click.prompt("Enter your answer", type=float)
+        return {"answer": answer}
+    elif question["data"]["type"] == "text":
+        click.echo(f"Question {question['id']}: {question['data']['text']}")
+        answer = click.prompt("Enter your answer", type=str)
+        return {"answer": answer}
     else:
         return {"answer": click.prompt("Your answer")}
 
