@@ -3,10 +3,14 @@ from sqlalchemy.exc import IntegrityError
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from .storage_manager import StorageManager
+import logging
 
 
 class SQLStorageManager(StorageManager):
     def __init__(self, connection_string: str):
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug(
+            f"Initializing SQLStorageManager with connection string: {connection_string}")
         self.engine = create_engine(connection_string)
         self.metadata = MetaData()
 
@@ -42,17 +46,20 @@ class SQLStorageManager(StorageManager):
         self.metadata.create_all(self.engine)
 
     def _execute(self, query):
+        self.logger.debug(f"Executing query: {query}")
         with self.engine.connect() as conn:
             result = conn.execute(query)
             conn.commit()  # Ensure changes are saved
             return result
 
     def get_users(self) -> Dict[str, Any]:
+        self.logger.debug("Fetching all users")
         query = select(self.users_table)
         result = self._execute(query)
         return {row._mapping["id"]: row._mapping["permissions"] for row in result}
 
     def add_users(self, users: Dict[str, Any]) -> None:
+        self.logger.debug(f"Adding users: {users}")
         for user_id, permissions in users.items():
             query = insert(self.users_table).values(
                 id=user_id, permissions=permissions)
@@ -65,6 +72,7 @@ class SQLStorageManager(StorageManager):
                 self._execute(query)
 
     def get_quiz(self, quiz_id: str) -> Dict[str, Any]:
+        self.logger.debug(f"Fetching quiz with ID: {quiz_id}")
         query = select(self.quizzes_table).where(
             self.quizzes_table.c.id == quiz_id)
         result = self._execute(query).fetchone()
@@ -73,6 +81,7 @@ class SQLStorageManager(StorageManager):
         return result._mapping["data"]
 
     def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any], creator_id: str) -> None:
+        self.logger.debug(f"Adding quiz with ID: {quiz_id}")
         query = insert(self.quizzes_table).values(
             id=quiz_id, creator_id=creator_id, data=quiz_data)
         try:
@@ -84,25 +93,8 @@ class SQLStorageManager(StorageManager):
             self._execute(query)
 
     def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieve the results of a quiz for a specific user session.
-
-        Args:
-            user_id (str): The ID of the user.
-            quiz_id (str): The ID of the quiz.
-            session_id (str): The ID of the session.
-
-        Returns:
-            Optional[Dict[str, Any]]: A dictionary containing the results in the format:
-                {
-                    'user_id': <user_id>,
-                    'quiz_id': <quiz_id>,
-                    'session_id': <session_id>,
-                    'scores': <scores_dict>,
-                    'answers': <answers_dict>
-                }
-                or None if the results file does not exist.
-        """
+        self.logger.debug(
+            f"Fetching results for user {user_id}, quiz {quiz_id}, session {session_id}")
         query = select(self.results_table).where(
             self.results_table.c.user_id == user_id,
             self.results_table.c.quiz_id == quiz_id,
@@ -112,6 +104,8 @@ class SQLStorageManager(StorageManager):
         return dict(result._mapping) if result else None
 
     def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
+        self.logger.debug(
+            f"Adding results for user {user_id}, quiz {quiz_id}, session {session_id}")
         results["timestamp"] = datetime.now().isoformat()
         query = insert(self.results_table).values(
             user_id=user_id, quiz_id=quiz_id, session_id=session_id, scores=results[
@@ -128,11 +122,13 @@ class SQLStorageManager(StorageManager):
             self._execute(query)
 
     def get_tokens(self) -> List[Dict[str, Any]]:
+        self.logger.debug("Fetching all tokens")
         query = select(self.tokens_table)
         result = self._execute(query)
         return [dict(row._mapping) for row in result]
 
     def add_tokens(self, tokens: List[Dict[str, Any]]) -> None:
+        self.logger.debug(f"Adding tokens: {tokens}")
         for token in tokens:
             query = insert(self.tokens_table).values(token)
             try:
@@ -144,11 +140,13 @@ class SQLStorageManager(StorageManager):
                 self._execute(query)
 
     def remove_token(self, token: str) -> None:
+        self.logger.debug(f"Removing token: {token}")
         query = delete(self.tokens_table).where(
             self.tokens_table.c.token == token)
         self._execute(query)
 
     def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
+        self.logger.debug("Fetching all tokens grouped by quiz")
         query = select(self.tokens_table)
         result = self._execute(query)
         tokens_by_quiz = {}
@@ -160,12 +158,14 @@ class SQLStorageManager(StorageManager):
         return tokens_by_quiz
 
     def get_tokens_by_quiz(self, quiz_id: str) -> List[Dict[str, Any]]:
+        self.logger.debug(f"Fetching tokens for quiz ID: {quiz_id}")
         query = select(self.tokens_table).where(
             self.tokens_table.c.quiz_id == quiz_id)
         result = self._execute(query)
         return [dict(row._mapping) for row in result]
 
     def get_token_type(self, token: str) -> Optional[str]:
+        self.logger.debug(f"Fetching token type for token: {token}")
         query = select(self.tokens_table.c.type).where(
             self.tokens_table.c.token == token
         )
@@ -173,6 +173,8 @@ class SQLStorageManager(StorageManager):
         return result._mapping["type"] if result else None
 
     def get_participated_users(self, quiz_id: str) -> List[str]:
+        self.logger.debug(
+            f"Fetching participated users for quiz ID: {quiz_id}")
         query = select(self.results_table.c.user_id).where(
             self.results_table.c.quiz_id == quiz_id
         )
@@ -180,6 +182,8 @@ class SQLStorageManager(StorageManager):
         return [row._mapping["user_id"] for row in result]
 
     def user_has_permission_for_quiz_creation(self, user_id: str) -> bool:
+        self.logger.debug(
+            f"Checking if user {user_id} has permission for quiz creation")
         query = select(self.users_table.c.permissions).where(
             self.users_table.c.id == user_id)
         result = self._execute(query).fetchone()
@@ -188,17 +192,20 @@ class SQLStorageManager(StorageManager):
         return False
 
     def get_quiz_id_by_token(self, token: str) -> Optional[str]:
+        self.logger.debug(f"Fetching quiz ID for token: {token}")
         query = select(self.tokens_table.c.quiz_id).where(
             self.tokens_table.c.token == token)
         result = self._execute(query).fetchone()
         return result._mapping["quiz_id"] if result else None
 
     def get_all_quizzes(self) -> Dict[str, Dict[str, Any]]:
+        self.logger.debug("Fetching all quizzes")
         query = select(self.quizzes_table)
         result = self._execute(query)
         return {row._mapping["id"]: dict(row._mapping) for row in result}
 
     def get_all_results(self) -> Dict[str, Dict[str, Any]]:
+        self.logger.debug("Fetching all results")
         query = select(self.results_table)
         result = self._execute(query)
         results_by_user = {}
@@ -214,6 +221,7 @@ class SQLStorageManager(StorageManager):
         return results_by_user
 
     def get_results_by_quiz(self, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+        self.logger.debug(f"Fetching results by quiz ID: {quiz_id}")
         query = select(self.results_table).where(
             self.results_table.c.quiz_id == quiz_id
         )
@@ -235,6 +243,7 @@ class SQLStorageManager(StorageManager):
         return results_by_user
 
     def get_results_by_user(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+        self.logger.debug(f"Fetching results by user ID: {user_id}")
         query = select(self.results_table).where(
             self.results_table.c.user_id == user_id
         )
@@ -256,6 +265,8 @@ class SQLStorageManager(StorageManager):
         return results_by_quiz
 
     def get_results_by_user_and_quiz(self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+        self.logger.debug(
+            f"Fetching results by user ID: {user_id} and quiz ID: {quiz_id}")
         query = select(self.results_table).where(
             self.results_table.c.user_id == user_id,
             self.results_table.c.quiz_id == quiz_id
@@ -264,6 +275,8 @@ class SQLStorageManager(StorageManager):
         return {row._mapping["session_id"]: dict(row._mapping) for row in result}
 
     def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+        self.logger.debug(
+            f"Fetching results by quiz ID: {quiz_id} and user ID: {user_id}")
         query = select(self.results_table).where(
             self.results_table.c.quiz_id == quiz_id,
             self.results_table.c.user_id == user_id
@@ -272,6 +285,8 @@ class SQLStorageManager(StorageManager):
         return {row._mapping["session_id"]: dict(row._mapping) for row in result}
 
     def get_session_ids_by_user_and_quiz(self, user_id: str, quiz_id: str) -> List[str]:
+        self.logger.debug(
+            f"Fetching session IDs by user ID: {user_id} and quiz ID: {quiz_id}")
         query = select(self.results_table.c.session_id).where(
             self.results_table.c.user_id == user_id,
             self.results_table.c.quiz_id == quiz_id
@@ -280,6 +295,7 @@ class SQLStorageManager(StorageManager):
         return [row._mapping["session_id"] for row in result]
 
     def get_all_sessions(self) -> Dict[str, List[str]]:
+        self.logger.debug("Fetching all sessions")
         query = select(self.results_table)
         result = self._execute(query)
         sessions_by_user = {}
@@ -291,6 +307,7 @@ class SQLStorageManager(StorageManager):
         return sessions_by_user
 
     def get_sessions_by_user(self, user_id: str) -> List[str]:
+        self.logger.debug(f"Fetching sessions by user ID: {user_id}")
         query = select(self.results_table.c.session_id).where(
             self.results_table.c.user_id == user_id
         )
@@ -298,6 +315,7 @@ class SQLStorageManager(StorageManager):
         return [row._mapping["session_id"] for row in result]
 
     def get_sessions_by_quiz(self, quiz_id: str) -> List[str]:
+        self.logger.debug(f"Fetching sessions by quiz ID: {quiz_id}")
         query = select(self.results_table.c.session_id).where(
             self.results_table.c.quiz_id == quiz_id
         )
@@ -305,6 +323,8 @@ class SQLStorageManager(StorageManager):
         return [row._mapping["session_id"] for row in result]
 
     def get_sessions_by_quiz_and_user(self, quiz_id: str, user_id: str) -> List[str]:
+        self.logger.debug(
+            f"Fetching sessions by quiz ID: {quiz_id} and user ID: {user_id}")
         query = select(self.results_table.c.session_id).where(
             self.results_table.c.quiz_id == quiz_id,
             self.results_table.c.user_id == user_id

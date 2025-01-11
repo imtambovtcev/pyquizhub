@@ -3,7 +3,9 @@ import requests
 import json
 import yaml
 import os
-from pyquizhub.config.config_utils import get_token_from_config
+from pyquizhub.config.config_utils import get_token_from_config, get_logger
+
+logger = get_logger(__name__)
 
 
 def load_config():
@@ -45,6 +47,7 @@ def user_cli(ctx):
 def start(ctx, user_id, token):
     """Start a quiz."""
     try:
+        logger.debug(f"Starting quiz with token: {token} for user: {user_id}")
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
@@ -119,6 +122,8 @@ def handle_question(question):
 def submit_answer(ctx, quiz_id, user_id, session_id, question_id, answer):
     """Submit an answer for a quiz question."""
     try:
+        logger.debug(
+            f"Submitting answer for quiz_id: {quiz_id}, user_id: {user_id}, session_id: {session_id}")
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 

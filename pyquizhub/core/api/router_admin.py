@@ -33,6 +33,7 @@ def admin_get_quiz(quiz_id: str, req: Request):
     """
     Admin retrieves quiz details.
     """
+    logger.debug(f"Admin fetching quiz details for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return get_quiz_logic(storage_manager, quiz_id)
 
@@ -42,6 +43,7 @@ def admin_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Admin retrieves quiz results by quiz ID.
     """
+    logger.debug(f"Admin fetching results for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return get_results_by_quiz_logic(storage_manager, quiz_id)
 
@@ -51,6 +53,7 @@ def admin_participated_users(quiz_id: str, req: Request):
     """
     Admin retrieves users who participated in a quiz.
     """
+    logger.debug(f"Admin fetching participated users for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return get_participated_users_logic(storage_manager, quiz_id)
 
@@ -75,6 +78,8 @@ def admin_create_quiz(request: CreateQuizRequest, req: Request):
     """
     Admin creates a quiz (reusing creator logic).
     """
+    logger.debug(
+        f"Admin creating quiz with title: {request.quiz.metadata.title}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return create_quiz_logic(storage_manager, request)
 
@@ -84,6 +89,7 @@ def admin_generate_token(request: TokenRequest, req: Request):
     """
     Admin generates a token (reusing creator logic).
     """
+    logger.debug(f"Admin generating token for quiz_id: {request.quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return generate_token_logic(storage_manager, request)
 
@@ -93,6 +99,7 @@ def admin_get_all_quizzes(req: Request):
     """
     Admin retrieves all quizzes.
     """
+    logger.debug("Admin fetching all quizzes")
     storage_manager: StorageManager = req.app.state.storage_manager
     all_quizzes = storage_manager.get_all_quizzes()
     logger.info("Admin retrieved all quizzes")
@@ -104,6 +111,7 @@ def admin_get_all_tokens(req: Request):
     """
     Admin retrieves all tokens.
     """
+    logger.debug("Admin fetching all tokens")
     storage_manager: StorageManager = req.app.state.storage_manager
     all_tokens = storage_manager.get_all_tokens()
     logger.info("Admin retrieved all tokens")

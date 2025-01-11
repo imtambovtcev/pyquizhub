@@ -27,8 +27,8 @@ class LogManager:
 
     def get_logger(self, name: str) -> logging.Logger:
         logger = logging.getLogger(name)
-        if logger.hasHandlers():
-            return logger
+        # if logger.hasHandlers():
+        #     return logger
 
         logger.setLevel(self.default_level)
         formatter = logging.Formatter(

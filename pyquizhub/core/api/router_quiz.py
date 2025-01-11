@@ -29,6 +29,7 @@ quiz_engines: Dict[str, QuizEngine] = {}
 @router.post("/start_quiz", response_model=NextQuestionResponse, dependencies=[Depends(user_token_dependency)])
 def start_quiz(token: str, user_id: str, request: Request):
     """Start a quiz session using a token."""
+    logger.debug(f"Starting quiz with token: {token} for user: {user_id}")
     # Retrieve the storage manager from app.state
     storage_manager: StorageManager = request.app.state.storage_manager
 
@@ -70,6 +71,8 @@ def start_quiz(token: str, user_id: str, request: Request):
 @router.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse, dependencies=[Depends(user_token_dependency)])
 def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
     """Submit an answer for the current question and get the next question."""
+    logger.debug(
+        f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
     # Retrieve the storage manager from app.state
     storage_manager: StorageManager = req.app.state.storage_manager
 

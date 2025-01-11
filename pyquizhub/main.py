@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
+    logger.debug("Starting up the application")
     config = load_config()
     app.state.config = config
     storage_type = get_config_value(config, "storage.type", "file")
@@ -39,6 +40,7 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    logger.debug("Shutting down the application")
     if hasattr(app.state, "storage_manager"):
         storage_manager: StorageManager = app.state.storage_manager
         # storage_manager.close()
@@ -53,6 +55,7 @@ app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
 @app.get("/")
 def read_root():
     """Root endpoint for sanity check."""
+    logger.info("Root endpoint accessed")
     return {"message": "Welcome to the Quiz Engine API"}
 
 
@@ -60,7 +63,7 @@ def read_root():
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     error_details = exc.errors()
     for error in error_details:
-        logger.error(f"Validation error: {error}")
+        logger.error(f"Validation error: {error}, request: {request}")
     return JSONResponse(
         status_code=422,
         content={

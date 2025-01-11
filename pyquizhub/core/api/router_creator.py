@@ -29,6 +29,7 @@ def create_quiz_logic(storage_manager: StorageManager, request: CreateQuizReques
     """
     Logic for creating a quiz. Shared between creator and admin.
     """
+    logger.debug(f"Creating quiz with title: {request.quiz.metadata.title}")
     # Validate the quiz structure
     validation_result = QuizJSONValidator.validate(request.quiz.dict())
     if validation_result["errors"]:
@@ -51,6 +52,7 @@ def generate_token_logic(storage_manager: StorageManager, request: TokenRequest)
     """
     Logic for generating a quiz token. Shared between creator and admin.
     """
+    logger.debug(f"Generating token for quiz_id: {request.quiz_id}")
     token = generate_quiz_token()
     token_data = {"token": token,
                   "quiz_id": request.quiz_id, "type": request.type}
@@ -65,6 +67,8 @@ def get_results_logic(storage_manager: StorageManager, user_id: str, quiz_id: st
     """
     Logic for getting quiz results.
     """
+    logger.debug(
+        f"Fetching results for user_id: {user_id}, quiz_id: {quiz_id}")
     return storage_manager.get_results(user_id, quiz_id)
 
 
@@ -72,6 +76,7 @@ def get_results_by_quiz_logic(storage_manager: StorageManager, quiz_id: str):
     """
     Logic for getting quiz results by quiz ID.
     """
+    logger.debug(f"Fetching results by quiz_id: {quiz_id}")
     results = storage_manager.get_results_by_quiz(quiz_id)
     for user_id, sessions in results.items():
         for session_id, result in sessions.items():
@@ -83,6 +88,7 @@ def get_quiz_logic(storage_manager: StorageManager, quiz_id: str):
     """
     Logic for getting quiz details.
     """
+    logger.debug(f"Fetching quiz details for quiz_id: {quiz_id}")
     try:
         quiz = storage_manager.get_quiz(quiz_id)
         return {
@@ -100,6 +106,7 @@ def get_participated_users_logic(storage_manager: StorageManager, quiz_id: str):
     """
     Logic for getting participated users.
     """
+    logger.debug(f"Fetching participated users for quiz_id: {quiz_id}")
     user_ids = storage_manager.get_participated_users(quiz_id)
     return {"user_ids": user_ids}
 
@@ -109,6 +116,8 @@ def creator_create_quiz(request: CreateQuizRequest, req: Request):
     """
     Endpoint for creators to create a quiz.
     """
+    logger.debug(
+        f"Creator creating quiz with title: {request.quiz.metadata.title}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return create_quiz_logic(storage_manager, request)
 
@@ -118,6 +127,7 @@ def creator_generate_token(request: TokenRequest, req: Request):
     """
     Endpoint for creators to generate tokens.
     """
+    logger.debug(f"Creator generating token for quiz_id: {request.quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     return generate_token_logic(storage_manager, request)
 
@@ -127,6 +137,7 @@ def creator_get_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz details.
     """
+    logger.debug(f"Creator fetching quiz details for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     user_id = req.headers.get("X-User-ID")
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
@@ -141,6 +152,7 @@ def creator_participated_users(quiz_id: str, req: Request):
     """
     Endpoint for creators to get participated users.
     """
+    logger.debug(f"Creator fetching participated users for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     user_id = req.headers.get("X-User-ID")
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
@@ -155,6 +167,7 @@ def creator_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz results by quiz ID.
     """
+    logger.debug(f"Creator fetching results for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
     user_id = req.headers.get("X-User-ID")
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):

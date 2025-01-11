@@ -1,5 +1,8 @@
 import ast
 import operator
+from pyquizhub.config.config_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class SafeEvaluator:
@@ -21,6 +24,9 @@ class SafeEvaluator:
     @staticmethod
     def eval_expr(expr, variables):
         """Safely evaluates a mathematical or logical expression."""
+        logger.debug(
+            f"Evaluating expression: {expr} with variables: {variables}")
+
         def _eval(node):
             if isinstance(node, ast.BinOp):
                 left = _eval(node.left)

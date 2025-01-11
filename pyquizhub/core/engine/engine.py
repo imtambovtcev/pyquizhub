@@ -30,7 +30,7 @@ class QuizEngine:
 
     def start_quiz(self, session_id):
         if session_id in self.sessions:
-            logging.warning(
+            self.logger.warning(
                 f"Quiz session already active for session {session_id}.")
             return {
                 **self.get_current_question_id_and_data(session_id),
@@ -41,6 +41,7 @@ class QuizEngine:
             "scores": {key: 0 for key in self.quiz.get("scores", {}).keys()},
             "answers": []
         }
+        self.logger.info(f"Started quiz session {session_id}")
         return self.get_current_question(session_id)
 
     def get_current_question_id_and_data(self, session_id):
@@ -93,7 +94,7 @@ class QuizEngine:
                 if answer not in [opt["value"] for opt in current_question["data"]["options"]]:
                     raise ValueError(f"Invalid option selected: {answer}")
         except ValueError as e:
-            logging.error(
+            self.logger.error(
                 f"Invalid answer for question {current_question['id']}: {e}")
             return {
                 "id": current_question["id"],
@@ -142,4 +143,5 @@ class QuizEngine:
         session = self.sessions.get(session_id)
         if not session:
             raise ValueError("No active session for this session ID.")
+        self.logger.info(f"Ending quiz session {session_id}")
         return {'id': None,  'data': {"type": 'final_message', "text": "Quiz completed!" if session["current_question_id"] is None else "Quiz still in progress, but the quiz was terminated."}}

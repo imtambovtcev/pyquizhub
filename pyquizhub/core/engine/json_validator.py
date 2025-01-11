@@ -1,5 +1,8 @@
 import json
 from .safe_evaluator import SafeEvaluator
+from pyquizhub.config.config_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class QuizJSONValidator:
@@ -14,6 +17,7 @@ class QuizJSONValidator:
         Returns:
             dict: A dictionary containing 'errors' and 'warnings'.
         """
+        logger.debug(f"Validating quiz data: {quiz_data}")
         errors = []
         warnings = []
 

@@ -3,7 +3,9 @@ import requests
 import json
 import yaml
 import os
-from pyquizhub.config.config_utils import get_token_from_config
+from pyquizhub.config.config_utils import get_token_from_config, get_logger
+
+logger = get_logger(__name__)
 
 
 def load_config():
@@ -45,6 +47,8 @@ def creator_cli(ctx):
 def add(ctx, file, creator_id):
     """Add an existing quiz to the storage."""
     try:
+        logger.debug(
+            f"Adding quiz from file: {file} with creator_id: {creator_id}")
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
@@ -65,6 +69,78 @@ def add(ctx, file, creator_id):
             click.echo(response.json().get("errors", ""))
     except FileNotFoundError:
         click.echo("Error: File not found.")
+    except Exception as e:
+        click.echo(f"Error: {e}")
+
+
+@creator_cli.command()
+@click.option("--quiz-id", required=True, help="Quiz ID")
+@click.option("--token-type", required=True, type=click.Choice(["permanent", "single-use"]), help="Token type")
+@click.pass_context
+def token(ctx, quiz_id, token_type):
+    """Generate a token for a quiz."""
+    try:
+        logger.debug(
+            f"Generating token for quiz_id: {quiz_id} with token_type: {token_type}")
+        config = ctx.obj["CONFIG"]
+        base_url = config["api"]["base_url"]
+
+        response = requests.post(
+            f"{base_url}/admin/generate_token", json={"quiz_id": quiz_id, "type": token_type}, headers=get_headers()
+        )
+        if response.status_code == 200:
+            data = response.json()
+            click.echo(f"Token generated successfully: {data['token']}")
+        else:
+            click.echo(
+                f"Failed to generate token: {response.json().get('detail', 'Unknown error')}")
+    except Exception as e:
+        click.echo(f"Error: {e}")
+
+
+@creator_cli.command()
+@click.option("--quiz-id", required=True, help="Quiz ID")
+@click.pass_context
+def results(ctx, quiz_id):
+    """View results for a quiz."""
+    try:
+        logger.debug(f"Fetching results for quiz_id: {quiz_id}")
+        config = ctx.obj["CONFIG"]
+        base_url = config["api"]["base_url"]
+
+        response = requests.get(
+            f"{base_url}/admin/results/{quiz_id}", headers=get_headers())
+        if response.status_code == 200:
+            data = response.json()
+            click.echo("Quiz results:")
+            for user_id, sessions in data['results'].items():
+                click.echo(f"User ID: {user_id}")
+                for session_id, result in sessions.items():
+                    click.echo(f"  Session ID: {session_id}")
+                    click.echo(f"    Scores: {result['scores']}")
+                    click.echo(f"    Answers: {result['answers']}")
+        else:
+            click.echo(
+                f"Failed to fetch results: {response.json().get('detail', 'Unknown error')}")
+    except Exception as e:
+        click.echo(f"Error: {e}")
+
+
+@creator_cli.command()
+@click.pass_context
+def check(ctx):
+    """Check if the API is working correctly."""
+    try:
+        logger.debug("Checking if the API is working correctly")
+        config = ctx.obj["CONFIG"]
+        base_url = config["api"]["base_url"]
+
+        response = requests.get(f"{base_url}/", headers=get_headers())
+        if response.status_code == 200:
+            click.echo("API is working correctly.")
+        else:
+            click.echo(
+                f"API check failed: {response.json().get('detail', 'Unknown error')}")
     except Exception as e:
         click.echo(f"Error: {e}")
 
