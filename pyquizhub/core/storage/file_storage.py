@@ -2,18 +2,18 @@ import os
 import json
 from typing import Any, Dict, List, Optional
 from .storage_manager import StorageManager
-import logging
+from pyquizhub.config.config_utils import get_logger
 from datetime import datetime
-logging.basicConfig(level=logging.INFO)
 
 
 class FileStorageManager(StorageManager):
     def __init__(self, base_dir: str):
         self.base_dir = base_dir
+        self.logger = get_logger(__name__)
         self.reinit()
 
     def reinit(self):
-        logging.info(f"Using file storage at {self.base_dir}")
+        self.logger.info(f"Using file storage at {self.base_dir}")
         os.makedirs(self.base_dir, exist_ok=True)
         os.makedirs(os.path.join(self.base_dir, "quizzes"), exist_ok=True)
         os.makedirs(os.path.join(self.base_dir, "results"), exist_ok=True)
@@ -32,7 +32,7 @@ class FileStorageManager(StorageManager):
         for quiz_file in os.listdir(quizzes_dir):
             if quiz_file.endswith(".json"):
                 quiz_id = os.path.splitext(quiz_file)[0]
-                logging.info(f"Loading quiz {quiz_id}")
+                self.logger.info(f"Loading quiz {quiz_id}")
                 self.quizzes[quiz_id] = self.get_quiz(quiz_id)
         self.results = {}
         results_dir = os.path.join(self.base_dir, "results")
@@ -152,8 +152,9 @@ class FileStorageManager(StorageManager):
         results_by_user = {}
         for user_id, quizzes in self.results.items():
             if quiz_id in quizzes:
-                print(f"User {user_id} participated in quiz {quiz_id}")
-                print(f"Quizzes: {quizzes}")
+                self.logger.info(
+                    f"User {user_id} participated in quiz {quiz_id}")
+                self.logger.debug(f"Quizzes: {quizzes}")
                 for session_id, result in quizzes[quiz_id].items():
                     if user_id not in results_by_user:
                         results_by_user[user_id] = {}

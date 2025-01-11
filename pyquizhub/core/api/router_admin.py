@@ -14,11 +14,10 @@ from pyquizhub.core.api.models import (
 from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic, get_quiz_logic, get_participated_users_logic, get_results_by_quiz_logic
 import os
 import yaml
-from pyquizhub.config.config_utils import get_token_from_config, get_config_value
-
+from pyquizhub.config.config_utils import get_token_from_config, get_logger
 from pyquizhub.core.storage.storage_manager import StorageManager
 
-
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -66,6 +65,7 @@ def admin_get_config(req: Request):
         with open(config_path, "r") as f:
             config_data = yaml.safe_load(f)
     except FileNotFoundError:
+        logger.error(f"Config file not found at path: {config_path}")
         raise HTTPException(status_code=404, detail="Config not found")
     return ConfigPathResponse(config_path=config_path, config_data=config_data)
 
@@ -95,6 +95,7 @@ def admin_get_all_quizzes(req: Request):
     """
     storage_manager: StorageManager = req.app.state.storage_manager
     all_quizzes = storage_manager.get_all_quizzes()
+    logger.info("Admin retrieved all quizzes")
     return AllQuizzesResponse(quizzes=all_quizzes)
 
 
@@ -105,4 +106,5 @@ def admin_get_all_tokens(req: Request):
     """
     storage_manager: StorageManager = req.app.state.storage_manager
     all_tokens = storage_manager.get_all_tokens()
+    logger.info("Admin retrieved all tokens")
     return AllTokensResponse(tokens=all_tokens)

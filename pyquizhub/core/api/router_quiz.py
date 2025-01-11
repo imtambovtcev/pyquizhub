@@ -9,8 +9,9 @@ import uuid
 from datetime import datetime
 from typing import Dict
 import os
-from pyquizhub.config.config_utils import get_token_from_config, get_config_value
+from pyquizhub.config.config_utils import get_token_from_config, get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -34,6 +35,7 @@ def start_quiz(token: str, user_id: str, request: Request):
     # Validate token and get quiz ID
     quiz_id = storage_manager.get_quiz_id_by_token(token)
     if not quiz_id:
+        logger.error(f"Invalid or expired token: {token}")
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 
     # Check token type and remove if single-use
@@ -52,6 +54,9 @@ def start_quiz(token: str, user_id: str, request: Request):
     quiz_engine: QuizEngine = quiz_engines[quiz_id]
     session_id = str(uuid.uuid4())
     question = quiz_engine.start_quiz(session_id)
+
+    logger.info(
+        f"Started quiz session {session_id} for user {user_id} on quiz {quiz_id}")
 
     return {
         "quiz_id": quiz_id,
@@ -75,6 +80,8 @@ def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
 
     # Ensure the quiz engine exists for the given quiz_id
     if quiz_id not in quiz_engines:
+        logger.error(
+            f"Quiz not found for quiz_id: {quiz_id} with token: {request.headers.get('Authorization')}")
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     # Process the answer using the QuizEngine
@@ -86,6 +93,8 @@ def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
         results = quiz_engine.get_results(session_id)
         results["timestamp"] = datetime.now().isoformat()
         storage_manager.add_results(user_id, quiz_id, session_id, results)
+        logger.info(
+            f"Quiz session {session_id} for user {user_id} on quiz {quiz_id} completed")
 
     return {
         "quiz_id": quiz_id,

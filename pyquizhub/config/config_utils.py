@@ -1,6 +1,7 @@
 import os
 import yaml
 from fastapi import HTTPException
+import logging
 
 
 def load_config(config_path: str = None) -> dict:
@@ -29,3 +30,10 @@ def get_token_from_config(token_type: str) -> str:
             config, f"security.{token_type}_token_env", "")
         return os.getenv(token_env_key, None)
     return None
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Get a configured logger instance."""
+    config = load_config()
+    from pyquizhub.logging.log_manager import LogManager
+    return LogManager.get_instance(config.get('logging', {})).get_logger(name)

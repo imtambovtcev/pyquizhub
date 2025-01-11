@@ -12,8 +12,9 @@ from pyquizhub.core.api.models import (
     ResultResponse
 )
 from datetime import datetime
-from pyquizhub.config.config_utils import get_token_from_config, get_config_value
+from pyquizhub.config.config_utils import get_token_from_config, get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -31,6 +32,7 @@ def create_quiz_logic(storage_manager: StorageManager, request: CreateQuizReques
     # Validate the quiz structure
     validation_result = QuizJSONValidator.validate(request.quiz.dict())
     if validation_result["errors"]:
+        logger.error(f"Quiz validation failed: {validation_result['errors']}")
         raise HTTPException(
             status_code=400, detail=validation_result["errors"])
 
@@ -39,6 +41,8 @@ def create_quiz_logic(storage_manager: StorageManager, request: CreateQuizReques
     quiz_data = request.quiz.dict()
     quiz_data["creator_id"] = request.creator_id
     storage_manager.add_quiz(quiz_id, quiz_data, request.creator_id)
+
+    logger.info(f"Quiz {quiz_id} created by creator {request.creator_id}")
 
     return QuizCreationResponse(quiz_id=quiz_id, title=request.quiz.metadata.title)
 
@@ -51,6 +55,9 @@ def generate_token_logic(storage_manager: StorageManager, request: TokenRequest)
     token_data = {"token": token,
                   "quiz_id": request.quiz_id, "type": request.type}
     storage_manager.add_tokens([token_data])
+
+    logger.info(f"Token generated for quiz {request.quiz_id}")
+
     return TokenResponse(token=token)
 
 
@@ -85,6 +92,7 @@ def get_quiz_logic(storage_manager: StorageManager, quiz_id: str):
             "data": quiz["data"],
         }
     except FileNotFoundError:
+        logger.error(f"Quiz {quiz_id} not found")
         raise HTTPException(status_code=404, detail="Quiz not found")
 
 
@@ -122,6 +130,8 @@ def creator_get_quiz(quiz_id: str, req: Request):
     storage_manager: StorageManager = req.app.state.storage_manager
     user_id = req.headers.get("X-User-ID")
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
+        logger.error(
+            f"Permission denied for user {user_id} to access quiz {quiz_id}")
         raise HTTPException(status_code=403, detail="Permission denied")
     return get_quiz_logic(storage_manager, quiz_id)
 
@@ -134,6 +144,8 @@ def creator_participated_users(quiz_id: str, req: Request):
     storage_manager: StorageManager = req.app.state.storage_manager
     user_id = req.headers.get("X-User-ID")
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
+        logger.error(
+            f"Permission denied for user {user_id} to access participated users for quiz {quiz_id}")
         raise HTTPException(status_code=403, detail="Permission denied")
     return get_participated_users_logic(storage_manager, quiz_id)
 
@@ -146,5 +158,7 @@ def creator_get_results_by_quiz(quiz_id: str, req: Request):
     storage_manager: StorageManager = req.app.state.storage_manager
     user_id = req.headers.get("X-User-ID")
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
+        logger.error(
+            f"Permission denied for user {user_id} to access results for quiz {quiz_id}")
         raise HTTPException(status_code=403, detail="Permission denied")
     return get_results_by_quiz_logic(storage_manager, quiz_id)

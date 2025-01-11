@@ -1,7 +1,7 @@
 import json
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
-import logging
+from pyquizhub.config.config_utils import get_logger
 
 
 class QuizEngine:
@@ -9,6 +9,7 @@ class QuizEngine:
         """Initialize the QuizEngine with quiz data."""
         self.quiz = self.load_quiz(quiz_data)
         self.sessions = {}  # Active user sessions
+        self.logger = get_logger(__name__)
 
     def load_quiz(self, quiz_data):
         """Validate and load the quiz data."""
@@ -62,7 +63,7 @@ class QuizEngine:
         )
         if not question:
             raise ValueError(f"Question with ID {question_id} not found.")
-        print(f"Question {question_id}: {question}")
+        self.logger.debug(f"Question {question_id}: {question}")
         return question
 
     def answer_question(self, session_id, answer):
@@ -117,7 +118,7 @@ class QuizEngine:
             current_question["id"], session["scores"]
         )
 
-        print(f"Next question ID: {next_question_id}")
+        self.logger.debug(f"Next question ID: {next_question_id}")
 
         if next_question_id is not None:
             session["current_question_id"] = next_question_id

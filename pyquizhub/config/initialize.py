@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, MetaData
 def initialize_system():
     """Initialize the pyquizhub system based on the configuration."""
     # Load configuration
-    config_path = "config.yaml"
+    config_path = os.path.abspath("config.yaml")
     if not os.path.exists(config_path):
         raise FileNotFoundError(
             f"Configuration file '{config_path}' not found.")

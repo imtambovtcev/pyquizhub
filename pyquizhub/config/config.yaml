@@ -14,3 +14,17 @@ security:
   admin_token_env: "PYQUIZHUB_ADMIN_TOKEN"
   creator_token_env: "PYQUIZHUB_CREATOR_TOKEN"
   user_token_env: "PYQUIZHUB_USER_TOKEN"
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+  file:
+    enabled: true
+    path: "logs/pyquizhub.log"
+    max_size: 1048576  # 1MB
+    backup_count: 5
+    level: "DEBUG"
+  console:
+    enabled: true
+    level: "INFO"

@@ -10,15 +10,13 @@ from pyquizhub.core.storage.file_storage import FileStorageManager
 from pyquizhub.core.storage.sql_storage import SQLStorageManager
 import os
 import yaml
-import logging
 from pydantic import ValidationError
-from pyquizhub.config.config_utils import load_config, get_config_value
+from pyquizhub.config.config_utils import load_config, get_config_value, get_logger
 
 app = FastAPI()
 
 # Configure logging
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @app.on_event("startup")
@@ -33,7 +31,10 @@ async def startup_event():
         app.state.storage_manager = SQLStorageManager(
             get_config_value(config, "storage.sql.connection_string", "sqlite:///pyquizhub.db"))
     else:
+        logger.error(f"Unsupported storage type: {storage_type}")
         raise ValueError(f"Unsupported storage type: {storage_type}")
+
+    logger.info("Application startup complete")
 
 
 @app.on_event("shutdown")
@@ -41,6 +42,7 @@ async def shutdown_event():
     if hasattr(app.state, "storage_manager"):
         storage_manager: StorageManager = app.state.storage_manager
         # storage_manager.close()
+    logger.info("Application shutdown complete")
 
 # Include routers
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
