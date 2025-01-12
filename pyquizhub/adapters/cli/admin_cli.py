@@ -4,7 +4,7 @@ import json
 import yaml
 import os
 from pyquizhub.config.config_utils import load_config, get_config_value, get_token_from_config
-from pyquizhub.core.api.models import CreateQuizRequest, QuizCreationResponse, TokenRequest, TokenResponse, ResultResponse
+from pyquizhub.models import CreateQuizRequest, QuizCreationResponse, TokenRequest, TokenResponse, ResultResponse
 
 
 def get_headers():

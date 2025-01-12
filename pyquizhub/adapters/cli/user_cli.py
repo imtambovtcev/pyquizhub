@@ -4,7 +4,7 @@ import json
 import yaml
 import os
 from pyquizhub.config.config_utils import get_token_from_config, get_logger
-from pyquizhub.core.api.models import StartQuizRequest, StartQuizResponse, SubmitAnswerResponse
+from pyquizhub.models import StartQuizRequest, StartQuizResponse, SubmitAnswerResponse, AnswerRequest
 
 logger = get_logger(__name__)
 
@@ -129,9 +129,15 @@ def submit_answer(ctx, quiz_id, user_id, session_id, answer):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
+        answer_request = AnswerRequest(
+            user_id=user_id,
+            session_id=session_id,
+            answer=answer
+        )
+
         response = requests.post(
             f"{base_url}/quiz/submit_answer/{quiz_id}",
-            json={"user_id": user_id, "session_id": session_id, "answer": answer},
+            json=answer_request.dict(),
             headers=get_headers()
         )
         if response.status_code == 200:

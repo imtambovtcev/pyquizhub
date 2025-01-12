@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
-from pyquizhub.core.api.models import (
+from pyquizhub.models import (
     QuizDetailResponse,
     ResultResponse,
     ParticipatedUsersResponse,

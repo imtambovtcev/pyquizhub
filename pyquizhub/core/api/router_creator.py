@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.json_validator import QuizJSONValidator
 from pyquizhub.utils import generate_quiz_token, generate_quiz_id
-from pyquizhub.core.api.models import (
+from pyquizhub.models import (
     CreateQuizRequest,
     QuizCreationResponse,
     TokenRequest,

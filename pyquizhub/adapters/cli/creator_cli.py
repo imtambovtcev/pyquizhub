@@ -4,7 +4,7 @@ import json
 import yaml
 import os
 from pyquizhub.config.config_utils import get_token_from_config, get_logger
-from pyquizhub.core.api.models import CreateQuizRequest, QuizCreationResponse, TokenRequest, TokenResponse, ResultResponse
+from pyquizhub.models import CreateQuizRequest, QuizCreationResponse, TokenRequest, TokenResponse, ResultResponse
 
 logger = get_logger(__name__)
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
-from pyquizhub.core.api.models import (
+from pyquizhub.models import (
     NextQuestionResponse,
     AnswerRequest,
     StartQuizRequest,

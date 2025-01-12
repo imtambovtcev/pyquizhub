@@ -1,7 +1,7 @@
 import requests
 from fastapi import HTTPException
 from pyquizhub.config.config_utils import get_logger
-from pyquizhub.core.api.models import StartQuizRequest, SubmitAnswerRequest
+from pyquizhub.models import StartQuizRequest, SubmitAnswerRequest
 import json
 
 logger = get_logger(__name__)

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from pyquizhub.core.api.models import StartQuizRequest, SubmitAnswerRequest
+from pyquizhub.models import StartQuizRequest, SubmitAnswerRequest
 from .quiz_handler import QuizHandler
 from pyquizhub.config.config_utils import load_config, get_logger
 import uuid
