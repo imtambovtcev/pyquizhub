@@ -175,3 +175,12 @@ cython_debug/
 .vscode/
 
 logs/
+
+# Sphinx build directories
+docs/_build/
+docs/source/modules.rst
+docs/source/*.pyc
+
+# Cache and intermediate files
+docs/.doctrees/
+docs/.buildinfo
