@@ -4,6 +4,9 @@ import json
 import tempfile
 import os
 from fastapi.testclient import TestClient
+from pyquizhub.config.config_utils import get_token_from_config, load_config
+
+from pyquizhub.core.api.models import StartQuizRequest, StartQuizResponse, TokenRequest, AnswerRequest
 
 
 # Fixture to provide quiz data for tests
@@ -24,6 +27,26 @@ def invalid_quiz_data():
         return json.load(f)
 
 
+@pytest.fixture(scope="module")
+def user_headers(config_path):
+    config = load_config(str(config_path))
+    headers = {"Content-Type": "application/json"}
+    token = get_token_from_config("user")
+    if token:
+        headers["Authorization"] = token
+    return headers
+
+
+@pytest.fixture(scope="module")
+def admin_headers(config_path):
+    config = load_config(str(config_path))
+    headers = {"Content-Type": "application/json"}
+    token = get_token_from_config("admin")
+    if token:
+        headers["Authorization"] = token
+    return headers
+
+
 class TestQuizEngine:
     """Group of tests for the Quiz Engine."""
 
@@ -37,70 +60,75 @@ class TestQuizEngine:
         assert response.status_code == 200
         assert response.json() == {"message": "Welcome to the Quiz Engine API"}
 
-    def test_create_quiz(self, api_client: TestClient, quiz_data):
+    def test_create_quiz(self, api_client: TestClient, quiz_data, admin_headers):
         """Test creating a quiz and save the quiz_id."""
+        request_data = {"quiz": quiz_data, "creator_id": self.user_id}
         response = api_client.post(
-            "/admin/create_quiz", json={"quiz": quiz_data, "creator_id": self.user_id})
+            "/admin/create_quiz", json=request_data, headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         TestQuizEngine.quiz_id = response.json()["quiz_id"]
         assert TestQuizEngine.quiz_id, "Quiz ID should not be empty."
 
-    def test_get_all_quizzes(self, api_client: TestClient):
+    def test_get_all_quizzes(self, api_client: TestClient, admin_headers):
         """Test retrieving all quizzes."""
-        response = api_client.get("/admin/all_quizzes")
+        response = api_client.get(
+            "/admin/all_quizzes", headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
         assert "quizzes" in data, "Response should include quizzes."
         assert TestQuizEngine.quiz_id in data[
             "quizzes"], f"Quiz ID {TestQuizEngine.quiz_id} should be in the list of quizzes."
 
-    def test_generate_token(self, api_client: TestClient):
+    def test_generate_token(self, api_client: TestClient, admin_headers):
         """Test generating a token for the created quiz."""
         assert TestQuizEngine.quiz_id, "Quiz ID must be created before generating a token."
+        request_data = TokenRequest(quiz_id=self.quiz_id, type="permanent")
         response = api_client.post(
-            "/admin/generate_token", json={"quiz_id": self.quiz_id, "type": "permanent"})
+            "/admin/generate_token", json=request_data.dict(), headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         TestQuizEngine.token = response.json()["token"]
         assert TestQuizEngine.token, "Token should not be empty."
 
-    def test_get_all_tokens(self, api_client: TestClient):
+    def test_get_all_tokens(self, api_client: TestClient, admin_headers):
         """Test retrieving all tokens."""
-        response = api_client.get("/admin/all_tokens")
+        response = api_client.get(
+            "/admin/all_tokens", headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
         assert "tokens" in data, "Response should include tokens."
         assert TestQuizEngine.quiz_id in data[
             "tokens"], f"Quiz ID {TestQuizEngine.quiz_id} should be in the list of tokens."
 
-    def test_start_quiz(self, api_client: TestClient):
+    def test_start_quiz(self, api_client: TestClient, user_headers):
         """Test starting a quiz and save the session_id."""
         assert self.token, "Token must be generated before starting the quiz."
+        request_data = StartQuizRequest(token=self.token, user_id=self.user_id)
         response = api_client.post(
-            f"/quiz/start_quiz?token={self.token}&user_id={self.user_id}")
+            f"/quiz/start_quiz", json=request_data.dict(), headers=user_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
         TestQuizEngine.session_id = data["session_id"]
         assert TestQuizEngine.session_id, "Session ID should not be empty."
         assert "question" in data, "Question should be present in response."
 
-    def test_submit_answer(self, api_client: TestClient):
+    def test_submit_answer(self, api_client: TestClient, user_headers):
         """Test submitting an answer for the current quiz session."""
         assert self.session_id, "Session ID must exist before submitting an answer."
         # apple quiestion
-        answer_request = {
-            "user_id": self.user_id,
-            "session_id": self.session_id,
-            "answer": {"answer": "yes"}
-        }
+        answer_request = AnswerRequest(
+            user_id=self.user_id,
+            session_id=self.session_id,
+            answer={"answer": "yes"}
+        )
         response = api_client.post(
-            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request)
+            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request.dict(), headers=user_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
         assert "question" in data, "Response should include next question"
         assert data["question"]['id'] == 2
         # pear question
         response = api_client.post(
-            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request)
+            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request.dict(), headers=user_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
 

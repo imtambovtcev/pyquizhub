@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from pyquizhub.core.api.models import StartQuizRequest, SubmitAnswerRequest
 from .quiz_handler import QuizHandler
 from pyquizhub.config.config_utils import load_config, get_logger
 import uuid
@@ -34,7 +35,8 @@ async def start_quiz(request: Request, token: str = Form(...)):
     user_id = str(uuid.uuid4())
     try:
         logger.info(f"Starting quiz for user {user_id} with token {token}")
-        response = await quiz_handler.start_quiz(token, user_id)
+        start_quiz_request = StartQuizRequest(token=token, user_id=user_id)
+        response = await quiz_handler.start_quiz(start_quiz_request)
         logger.info(f"Received response: {response}")
         return templates.TemplateResponse(
             "quiz.html",
@@ -69,15 +71,15 @@ async def submit_answer(
         logger.info(
             f"Submitting answer for user {user_id} in session {session_id}")
         answer_dict = json.loads(answer)
-        response = await quiz_handler.submit_answer(
-            quiz_id, user_id, session_id, answer_dict
-        )
+        submit_answer_request = SubmitAnswerRequest(
+            quiz_id=quiz_id, user_id=user_id, session_id=session_id, answer=answer_dict)
+        response = await quiz_handler.submit_answer(submit_answer_request)
         logger.info(f"Received response: {response}")
         return templates.TemplateResponse(
             "quiz.html",
             {
                 "request": request,
-                "question": response["question"],
+                "question": response.get("question"),
                 "quiz_id": quiz_id,
                 "session_id": session_id,
                 "user_id": user_id
@@ -90,6 +92,18 @@ async def submit_answer(
             {
                 "request": request,
                 "error": str(e),
+                "quiz_id": quiz_id,
+                "session_id": session_id,
+                "user_id": user_id
+            }
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return templates.TemplateResponse(
+            "quiz.html",
+            {
+                "request": request,
+                "error": "An unexpected error occurred. Please try again.",
                 "quiz_id": quiz_id,
                 "session_id": session_id,
                 "user_id": user_id

@@ -95,3 +95,24 @@ class AllQuizzesResponse(BaseModel):
 
 class AllTokensResponse(BaseModel):
     tokens: Dict[str, List[Dict[str, Any]]]
+
+
+class StartQuizRequest(BaseModel):
+    token: str
+    user_id: str
+
+
+class StartQuizResponse(BaseModel):
+    quiz_id: str
+    user_id: str
+    session_id: str
+    title: str
+    question: Question
+
+
+class SubmitAnswerResponse(BaseModel):
+    quiz_id: str
+    user_id: str
+    session_id: str
+    title: str
+    question: Question

@@ -3,7 +3,10 @@ from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
 from pyquizhub.core.api.models import (
     NextQuestionResponse,
-    AnswerRequest
+    AnswerRequest,
+    StartQuizRequest,
+    StartQuizResponse,
+    SubmitAnswerResponse
 )
 import uuid
 from datetime import datetime
@@ -26,23 +29,24 @@ def user_token_dependency(request: Request):
 quiz_engines: Dict[str, QuizEngine] = {}
 
 
-@router.post("/start_quiz", response_model=NextQuestionResponse, dependencies=[Depends(user_token_dependency)])
-def start_quiz(token: str, user_id: str, request: Request):
+@router.post("/start_quiz", response_model=StartQuizResponse, dependencies=[Depends(user_token_dependency)])
+def start_quiz(request: StartQuizRequest, req: Request):
     """Start a quiz session using a token."""
-    logger.debug(f"Starting quiz with token: {token} for user: {user_id}")
+    logger.debug(
+        f"Starting quiz with token: {request.token} for user: {request.user_id}")
     # Retrieve the storage manager from app.state
-    storage_manager: StorageManager = request.app.state.storage_manager
+    storage_manager: StorageManager = req.app.state.storage_manager
 
     # Validate token and get quiz ID
-    quiz_id = storage_manager.get_quiz_id_by_token(token)
+    quiz_id = storage_manager.get_quiz_id_by_token(request.token)
     if not quiz_id:
-        logger.error(f"Invalid or expired token: {token}")
+        logger.error(f"Invalid or expired token: {request.token}")
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 
     # Check token type and remove if single-use
-    token_type = storage_manager.get_token_type(token)
+    token_type = storage_manager.get_token_type(request.token)
     if token_type == "single-use":
-        storage_manager.remove_token(token)
+        storage_manager.remove_token(request.token)
 
     # Load quiz data
     quiz = storage_manager.get_quiz(quiz_id)
@@ -57,18 +61,18 @@ def start_quiz(token: str, user_id: str, request: Request):
     question = quiz_engine.start_quiz(session_id)
 
     logger.info(
-        f"Started quiz session {session_id} for user {user_id} on quiz {quiz_id}")
+        f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
 
-    return {
-        "quiz_id": quiz_id,
-        "user_id": user_id,
-        "session_id": session_id,
-        "title": quiz["metadata"]["title"],
-        "question": question
-    }
+    return StartQuizResponse(
+        quiz_id=quiz_id,
+        user_id=request.user_id,
+        session_id=session_id,
+        title=quiz["metadata"]["title"],
+        question=question
+    )
 
 
-@router.post("/submit_answer/{quiz_id}", response_model=NextQuestionResponse, dependencies=[Depends(user_token_dependency)])
+@router.post("/submit_answer/{quiz_id}", response_model=SubmitAnswerResponse, dependencies=[Depends(user_token_dependency)])
 def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
     """Submit an answer for the current question and get the next question."""
     logger.debug(
@@ -99,10 +103,10 @@ def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
         logger.info(
             f"Quiz session {session_id} for user {user_id} on quiz {quiz_id} completed")
 
-    return {
-        "quiz_id": quiz_id,
-        "user_id": user_id,
-        "session_id": session_id,
-        "title": quiz_engine.quiz["metadata"]["title"],
-        "question": next_question
-    }
+    return SubmitAnswerResponse(
+        quiz_id=quiz_id,
+        user_id=user_id,
+        session_id=session_id,
+        title=quiz_engine.quiz["metadata"]["title"],
+        question=next_question
+    )

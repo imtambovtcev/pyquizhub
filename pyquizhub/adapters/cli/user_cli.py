@@ -4,6 +4,7 @@ import json
 import yaml
 import os
 from pyquizhub.config.config_utils import get_token_from_config, get_logger
+from pyquizhub.core.api.models import StartQuizRequest, StartQuizResponse, SubmitAnswerResponse
 
 logger = get_logger(__name__)
 
@@ -51,16 +52,17 @@ def start(ctx, user_id, token):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
+        request_data = StartQuizRequest(token=token, user_id=user_id)
         response = requests.post(
-            f"{base_url}/quiz/start_quiz?token={token}&user_id={user_id}",
+            f"{base_url}/quiz/start_quiz",
+            json=request_data.dict(),
             headers=get_headers()
         )
         if response.status_code == 200:
-            quiz_id = response.json().get("quiz_id")
-            session_id = response.json().get("session_id")
-            click.echo(f"Starting quiz: {response.json().get('title')}")
-            handle_quiz_loop(ctx, quiz_id, user_id,
-                             session_id, response.json())
+            response_data = StartQuizResponse(**response.json())
+            click.echo(f"Starting quiz: {response_data.title}")
+            handle_quiz_loop(ctx, response_data.quiz_id, user_id,
+                             response_data.session_id, response_data)
         else:
             click.echo(
                 f"Failed to start quiz: {response.json().get('detail', 'Unknown error')}")
@@ -71,55 +73,55 @@ def start(ctx, user_id, token):
 
 def handle_quiz_loop(ctx, quiz_id, user_id, session_id, initial_response):
     """Handle the quiz loop."""
-    question = initial_response["question"]
-    while question.get('id', None) is not None:
+    question = initial_response.question
+    while question and question.id is not None:
         answer = handle_question(question)
         response = submit_answer(
-            ctx, quiz_id, user_id, session_id, question["id"], answer)
+            ctx, quiz_id, user_id, session_id, answer)
         if not response:
             click.echo("Failed to submit answer.")
             return
-        question = response.get("question")
+        question = response.question
     click.echo("Quiz completed!")
 
 
 def handle_question(question):
     """Handle a single quiz question."""
-    if question["data"]["type"] == "final_message":
-        click.echo(question["data"]["text"])
+    if question.data["type"] == "final_message":
+        click.echo(question.data["text"])
         return None
-    elif question["data"]["type"] == "multiple_choice":
-        click.echo(f"Question {question['id']}: {question['data']['text']}")
-        for idx, option in enumerate(question["data"].get("options", [])):
+    elif question.data["type"] == "multiple_choice":
+        click.echo(f"Question {question.id}: {question.data['text']}")
+        for idx, option in enumerate(question.data.get("options", [])):
             click.echo(f"  {idx + 1}: {option['label']}")
         answer = click.prompt("Enter the number of your choice", type=int)
-        return {"answer": question["data"]["options"][answer - 1]["value"]}
-    elif question["data"]["type"] == "multiple_select":
-        click.echo(f"Question {question['id']}: {question['data']['text']}")
-        for idx, option in enumerate(question["data"].get("options", [])):
+        return {"answer": question.data["options"][answer - 1]["value"]}
+    elif question.data["type"] == "multiple_select":
+        click.echo(f"Question {question.id}: {question.data['text']}")
+        for idx, option in enumerate(question.data.get("options", [])):
             click.echo(f"  {idx + 1}: {option['label']}")
         answer = click.prompt(
             "Enter the numbers of your choices separated by commas", type=str)
-        selected_options = [question["data"]["options"]
+        selected_options = [question.data["options"]
                             [int(idx) - 1]["value"] for idx in answer.split(",")]
         return {"answer": selected_options}
-    elif question["data"]["type"] == "integer":
-        click.echo(f"Question {question['id']}: {question['data']['text']}")
+    elif question.data["type"] == "integer":
+        click.echo(f"Question {question.id}: {question.data['text']}")
         answer = click.prompt("Enter your answer", type=int)
         return {"answer": answer}
-    elif question["data"]["type"] == "float":
-        click.echo(f"Question {question['id']}: {question['data']['text']}")
+    elif question.data["type"] == "float":
+        click.echo(f"Question {question.id}: {question.data['text']}")
         answer = click.prompt("Enter your answer", type=float)
         return {"answer": answer}
-    elif question["data"]["type"] == "text":
-        click.echo(f"Question {question['id']}: {question['data']['text']}")
+    elif question.data["type"] == "text":
+        click.echo(f"Question {question.id}: {question.data['text']}")
         answer = click.prompt("Enter your answer", type=str)
         return {"answer": answer}
     else:
         return {"answer": click.prompt("Your answer")}
 
 
-def submit_answer(ctx, quiz_id, user_id, session_id, question_id, answer):
+def submit_answer(ctx, quiz_id, user_id, session_id, answer):
     """Submit an answer for a quiz question."""
     try:
         logger.debug(
@@ -129,16 +131,18 @@ def submit_answer(ctx, quiz_id, user_id, session_id, question_id, answer):
 
         response = requests.post(
             f"{base_url}/quiz/submit_answer/{quiz_id}",
-            json={"user_id": user_id, "session_id": session_id,
-                  "question_id": question_id, "answer": answer},
+            json={"user_id": user_id, "session_id": session_id, "answer": answer},
             headers=get_headers()
         )
         if response.status_code == 200:
-            return response.json()
+            return SubmitAnswerResponse(**response.json())
         else:
             click.echo(
                 f"Failed to submit answer: {response.json().get('detail', 'Unknown error')}")
             return None
+    except json.JSONDecodeError as e:
+        click.echo(f"JSON decode error: {e}")
+        return None
     except Exception as e:
         click.echo(f"Error: {e}")
         return None
