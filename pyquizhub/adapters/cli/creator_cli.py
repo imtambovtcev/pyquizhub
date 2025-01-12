@@ -7,6 +7,7 @@ from pyquizhub.config.config_utils import get_token_from_config, get_logger
 from pyquizhub.models import CreateQuizRequestModel, QuizCreationResponseModel, TokenRequestModel, TokenResponseModel, QuizResultResponseModel
 
 logger = get_logger(__name__)
+logger.debug("Loaded user_cli.py")
 
 
 def load_config():

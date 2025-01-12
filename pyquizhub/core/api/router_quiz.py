@@ -15,6 +15,7 @@ import os
 from pyquizhub.config.config_utils import get_token_from_config, get_logger
 
 logger = get_logger(__name__)
+logger.debug("Loaded router_quiz.py")
 router = APIRouter()
 
 

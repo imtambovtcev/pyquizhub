@@ -18,6 +18,7 @@ from pyquizhub.config.config_utils import get_token_from_config, get_logger
 from pyquizhub.core.storage.storage_manager import StorageManager
 
 logger = get_logger(__name__)
+logger.debug("Loaded router_admin.py")
 router = APIRouter()
 
 

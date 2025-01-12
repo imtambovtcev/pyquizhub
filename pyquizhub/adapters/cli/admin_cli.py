@@ -5,6 +5,10 @@ import yaml
 import os
 from pyquizhub.config.config_utils import load_config, get_config_value, get_token_from_config
 from pyquizhub.models import CreateQuizRequestModel, QuizCreationResponseModel, TokenRequestModel, TokenResponseModel, QuizResultResponseModel
+from pyquizhub.config.config_utils import get_logger
+
+logger = get_logger(__name__)
+logger.debug("Loaded admin_cli.py")
 
 
 def get_headers():

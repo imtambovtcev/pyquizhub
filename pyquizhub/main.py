@@ -12,11 +12,21 @@ import os
 import yaml
 from pydantic import ValidationError
 from pyquizhub.config.config_utils import load_config, get_config_value, get_logger
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
 # Configure logging
 logger = get_logger(__name__)
+logger.debug("Loaded main.py")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
