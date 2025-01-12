@@ -18,15 +18,30 @@ security:
   user_token_env: "PYQUIZHUB_USER_TOKEN"
 
 logging:
-  level: "DEBUG"
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  date_format: "%Y-%m-%d %H:%M:%S"
-  file:
-    enabled: true
-    path: ".pyquizhub/logs/pyquizhub.log"
-    max_size: 1048576  # 1MB
-    backup_count: 5
-    level: "DEBUG"
-  console:
-    enabled: true
-    level: "INFO"
+  version: 1
+  disable_existing_loggers: false
+  formatters:
+    standard:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: INFO
+      formatter: standard
+      stream: ext://sys.stdout
+    file:
+      class: logging.handlers.RotatingFileHandler
+      level: DEBUG
+      formatter: standard
+      filename: .pyquizhub/logs/pyquizhub.log
+      maxBytes: 1048576
+      backupCount: 5
+  root:
+    level: DEBUG
+    handlers: [console, file]
+  loggers:
+    pyquizhub:
+      level: DEBUG
+      handlers: [console, file]
+      propagate: false
