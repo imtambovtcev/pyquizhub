@@ -1,5 +1,4 @@
 import pytest
-from pyquizhub.core.engine.engine import QuizEngine
 import json
 import uuid
 import os
@@ -35,6 +34,7 @@ test_quiz_files = [f for f in os.listdir(
 
 def test_complex_quiz_flow():
     """Test the flow of the complex quiz."""
+    from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(os.path.dirname(
         __file__), "test_quiz_jsons", "complex_quiz.json"))
     engine = QuizEngine(quiz_data)
@@ -72,6 +72,7 @@ def test_complex_quiz_flow():
 
 def test_complex_quiz_loop_flow():
     """Test the flow of the complex quiz."""
+    from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(os.path.dirname(
         __file__), "test_quiz_jsons", "complex_quiz.json"))
     engine = QuizEngine(quiz_data)
@@ -109,6 +110,7 @@ def test_complex_quiz_loop_flow():
 
 def test_invalid_score_updates():
     """Test that invalid score updates raise errors."""
+    from pyquizhub.core.engine.engine import QuizEngine
     invalid_quiz_data = load_quiz_data(
         os.path.join(os.path.dirname(
             __file__), "test_quiz_jsons", "invalid_quiz_bad_score_update.json")
@@ -119,6 +121,7 @@ def test_invalid_score_updates():
 
 def test_invalid_transitions():
     """Test that invalid transitions raise errors."""
+    from pyquizhub.core.engine.engine import QuizEngine
     invalid_quiz_data = load_quiz_data(
         os.path.join(os.path.dirname(
             __file__), "test_quiz_jsons", "invalid_quiz_bad_transition.json")
@@ -130,6 +133,7 @@ def test_invalid_transitions():
 @pytest.mark.parametrize("quiz_file", test_quiz_files)
 def test_quiz_types(quiz_file):
     """Test the flow of various quiz types."""
+    from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(jsons_dir, quiz_file))
     engine = QuizEngine(quiz_data)
 

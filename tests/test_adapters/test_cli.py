@@ -1,11 +1,7 @@
 from click.testing import CliRunner
-from pyquizhub.adapters.cli.admin_cli import admin_cli
-from pyquizhub.adapters.cli.creator_cli import creator_cli
-from pyquizhub.adapters.cli.user_cli import user_cli
 import os
 import pytest
 from unittest.mock import patch
-from requests.models import Response as RequestsResponse
 
 
 def extract_value(output, prefix):
@@ -19,6 +15,7 @@ def extract_value(output, prefix):
 @pytest.fixture
 def mock_requests(api_client):
     """Fixture to mock requests and redirect them to the TestClient."""
+    from requests.models import Response as RequestsResponse
     with patch('pyquizhub.adapters.cli.admin_cli.requests.post') as mock_post, \
             patch('pyquizhub.adapters.cli.admin_cli.requests.get') as mock_get, \
             patch('pyquizhub.adapters.cli.creator_cli.requests.post') as mock_creator_post, \
@@ -55,6 +52,7 @@ def mock_requests(api_client):
 @pytest.fixture
 def quiz_id(api_client, config_path, mock_requests):
     """Fixture to add a quiz and return the quiz ID."""
+    from pyquizhub.adapters.cli.creator_cli import creator_cli
     runner = CliRunner()
     result = runner.invoke(
         creator_cli,
@@ -80,6 +78,7 @@ def quiz_id(api_client, config_path, mock_requests):
 @pytest.fixture
 def token(api_client, config_path, quiz_id, mock_requests):
     """Fixture to generate a token for a quiz."""
+    from pyquizhub.adapters.cli.admin_cli import admin_cli
     runner = CliRunner()
     result = runner.invoke(
         admin_cli,
@@ -107,6 +106,7 @@ def test_generate_token(token):
 
 def test_start_quiz(api_client, config_path, token, mock_requests):
     """Test starting a quiz and verifying the flow."""
+    from pyquizhub.adapters.cli.user_cli import user_cli
     runner = CliRunner()
 
     # Simulate user inputs for the questions
@@ -126,6 +126,7 @@ def test_start_quiz(api_client, config_path, token, mock_requests):
 
 def test_check_connection(api_client, config_path, mock_requests):
     """Test checking the API connection."""
+    from pyquizhub.adapters.cli.admin_cli import admin_cli
     runner = CliRunner()
     result = runner.invoke(
         admin_cli, ['check'], env={"PYQUIZHUB_CONFIG_PATH": str(config_path)}

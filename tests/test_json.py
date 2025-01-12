@@ -1,5 +1,4 @@
 import pytest
-from pyquizhub.core.engine.json_validator import QuizJSONValidator
 import json
 import os
 # Helper function to load quiz data
@@ -30,6 +29,7 @@ for file_name in os.listdir(jsons_dir):
 @pytest.mark.parametrize("json_file", VALID_JSON_FILES)
 def test_valid_json_files(json_file):
     """Test that valid JSON files pass validation without errors."""
+    from pyquizhub.core.engine.json_validator import QuizJSONValidator
     quiz_data = load_quiz_data(json_file)
     result = QuizJSONValidator.validate(quiz_data)
     assert len(result["errors"]) == 0, f"Unexpected errors: {result['errors']}"
@@ -40,6 +40,7 @@ def test_valid_json_files(json_file):
 @pytest.mark.parametrize("json_file", INVALID_JSON_FILES)
 def test_invalid_json_files(json_file):
     """Test that invalid JSON files produce errors."""
+    from pyquizhub.core.engine.json_validator import QuizJSONValidator
     quiz_data = load_quiz_data(json_file)
     result = QuizJSONValidator.validate(quiz_data)
     assert len(result["errors"]) > 0, f"Expected errors, but none were found."
@@ -49,6 +50,7 @@ def test_invalid_json_files(json_file):
 @pytest.mark.parametrize("json_file", WARNING_JSON_FILES)
 def test_warning_json_files(json_file):
     """Test that JSON files with warnings produce the correct warnings."""
+    from pyquizhub.core.engine.json_validator import QuizJSONValidator
     quiz_data = load_quiz_data(json_file)
     result = QuizJSONValidator.validate(quiz_data)
     assert len(result["errors"]) == 0, f"Unexpected errors: {result['errors']}"
