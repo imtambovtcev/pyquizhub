@@ -1,18 +1,21 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError, ResponseValidationError
-from fastapi.middleware import Middleware
-from pyquizhub.core.api.router_admin import router as admin_router
-from pyquizhub.core.api.router_creator import router as creator_router
-from pyquizhub.core.api.router_quiz import router as quiz_router
-from pyquizhub.core.storage.storage_manager import StorageManager
-from pyquizhub.core.storage.file_storage import FileStorageManager
-from pyquizhub.core.storage.sql_storage import SQLStorageManager
-import os
-import yaml
-from pydantic import ValidationError
-from pyquizhub.config.config_utils import load_config, get_config_value, get_logger
 from fastapi.middleware.cors import CORSMiddleware
+from pyquizhub.config.config_utils import load_config, get_config_value, get_logger
+from pydantic import ValidationError
+import yaml
+import os
+from pyquizhub.core.storage.sql_storage import SQLStorageManager
+from pyquizhub.core.storage.file_storage import FileStorageManager
+from pyquizhub.core.storage.storage_manager import StorageManager
+from pyquizhub.core.api.router_quiz import router as quiz_router
+from pyquizhub.core.api.router_creator import router as creator_router
+from pyquizhub.core.api.router_admin import router as admin_router
+from fastapi.middleware import Middleware
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, Depends, HTTPException
+import logging
+logging.basicConfig(level=logging.INFO)
+
 
 app = FastAPI()
 
@@ -79,3 +82,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "message": "Invalid input received. Please check your request and try again."}
     )
+
+if __name__ == "__main__":
+    import uvicorn
+    config = load_config()
+    host = get_config_value(config, "api.host", "0.0.0.0")
+    port = get_config_value(config, "api.port", 8000)
+    uvicorn.run(app, host=host, port=port)

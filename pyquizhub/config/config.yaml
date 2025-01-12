@@ -8,6 +8,8 @@ storage:
 
 api:
   base_url: "http://127.0.0.1:8000"
+  host: "0.0.0.0"  # Host for uvicorn
+  port: 8000       # Port for uvicorn
 
 security:
   use_tokens: true

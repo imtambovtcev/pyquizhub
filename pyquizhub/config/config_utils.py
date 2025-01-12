@@ -37,3 +37,10 @@ def get_logger(name: str) -> logging.Logger:
     config = load_config()
     from pyquizhub.logging.log_manager import LogManager
     return LogManager.get_instance(config.get('logging', {})).get_logger(name)
+
+
+def get_uvicorn_config():
+    config = load_config()
+    host = get_config_value(config, "api.host", "0.0.0.0")
+    port = get_config_value(config, "api.port", 8000)
+    return host, port
