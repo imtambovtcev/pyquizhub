@@ -4,7 +4,7 @@ import json
 import yaml
 import os
 from pyquizhub.config.config_utils import get_token_from_config, get_logger
-from pyquizhub.models import StartQuizRequest, StartQuizResponse, SubmitAnswerResponse, AnswerRequest
+from pyquizhub.models import StartQuizRequestModel, StartQuizResponseModel, SubmitAnswerResponseModel, AnswerRequestModel
 
 logger = get_logger(__name__)
 
@@ -52,14 +52,14 @@ def start(ctx, user_id, token):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
-        request_data = StartQuizRequest(token=token, user_id=user_id)
+        request_data = StartQuizRequestModel(token=token, user_id=user_id)
         response = requests.post(
             f"{base_url}/quiz/start_quiz",
             json=request_data.dict(),
             headers=get_headers()
         )
         if response.status_code == 200:
-            response_data = StartQuizResponse(**response.json())
+            response_data = StartQuizResponseModel(**response.json())
             click.echo(f"Starting quiz: {response_data.title}")
             handle_quiz_loop(ctx, response_data.quiz_id, user_id,
                              response_data.session_id, response_data)
@@ -129,7 +129,7 @@ def submit_answer(ctx, quiz_id, user_id, session_id, answer):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
-        answer_request = AnswerRequest(
+        answer_request = AnswerRequestModel(
             user_id=user_id,
             session_id=session_id,
             answer=answer
@@ -141,7 +141,7 @@ def submit_answer(ctx, quiz_id, user_id, session_id, answer):
             headers=get_headers()
         )
         if response.status_code == 200:
-            return SubmitAnswerResponse(**response.json())
+            return SubmitAnswerResponseModel(**response.json())
         else:
             click.echo(
                 f"Failed to submit answer: {response.json().get('detail', 'Unknown error')}")

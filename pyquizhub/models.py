@@ -1,54 +1,80 @@
 from pydantic import BaseModel
-from typing import Optional, Any, List, Dict
+from typing import Optional, Any
 
 
-class Metadata(BaseModel):
+# Metadata Models
+class MetadataModel(BaseModel):
     title: str
     description: Optional[str] = None
     author: Optional[str] = None
     version: Optional[str] = None
 
 
-class Quiz(BaseModel):
-    metadata: Metadata
+# Quiz Models
+class QuizModel(BaseModel):
+    metadata: MetadataModel
     scores: dict[str, float]
     questions: list[dict]
     transitions: dict[str, list[dict]]
 
 
-class TokenRequest(BaseModel):
-    quiz_id: str
-    type: str  # "permanent" or "single-use"
-
-
-class QuizData(BaseModel):
+class QuizContentModel(BaseModel):
     title: str
     questions: list[dict[str, Any]]
 
 
-class QuizCreationResponse(BaseModel):
+class QuizCreationResponseModel(BaseModel):
     quiz_id: str
     title: str
 
 
-class QuizDetailResponse(BaseModel):
+class QuizDetailResponseModel(BaseModel):
     quiz_id: str
     title: str
     creator_id: str
-    data: QuizData
+    data: QuizContentModel
 
 
-class TokenResponse(BaseModel):
+class CreateQuizRequestModel(BaseModel):
+    quiz: QuizModel
+    creator_id: str
+
+
+class AllQuizzesResponseModel(BaseModel):
+    quizzes: dict[str, Any]
+
+
+# Token Models
+class TokenRequestModel(BaseModel):
+    quiz_id: str
+    type: str  # "permanent" or "single-use"
+
+
+class TokenResponseModel(BaseModel):
     token: str
 
 
-class AnswerRequest(BaseModel):
+class AllTokensResponseModel(BaseModel):
+    tokens: dict[str, list[dict[str, Any]]]
+
+
+# Answer Models
+class AnswerRequestModel(BaseModel):
     user_id: str
     session_id: str
     answer: dict[str, str | int | float | list | None]
 
 
-class ResultDetailResponse(BaseModel):
+class SubmitAnswerResponseModel(BaseModel):
+    quiz_id: str
+    user_id: str
+    session_id: str
+    title: str
+    question: 'QuestionModel'
+
+
+# Result Models
+class QuizResultDetailModel(BaseModel):
     user_id: str
     quiz_id: str
     session_id: str
@@ -57,62 +83,45 @@ class ResultDetailResponse(BaseModel):
     timestamp: str
 
 
-class ResultResponse(BaseModel):
-    results: dict[str, dict[str, ResultDetailResponse]]
+class QuizResultResponseModel(BaseModel):
+    results: dict[str, dict[str, QuizResultDetailModel]]
 
 
-class Question(BaseModel):
+# Question Models
+class QuestionModel(BaseModel):
     id: int | None
     data: dict[str, Any] | None
     error: Optional[str] = None
 
 
-class NextQuestionResponse(BaseModel):
+class NextQuestionResponseModel(BaseModel):
     quiz_id: str
     user_id: str
     session_id: str
     title: str
-    question: Optional[Question | None] = None
+    question: Optional[QuestionModel | None] = None
 
 
-class CreateQuizRequest(BaseModel):
-    quiz: Quiz
-    creator_id: str
-
-
-class ParticipatedUsersResponse(BaseModel):
+# User Models
+class ParticipatedUsersResponseModel(BaseModel):
     user_ids: list[str]
 
 
-class ConfigPathResponse(BaseModel):
+# Config Models
+class ConfigPathResponseModel(BaseModel):
     config_path: str
     config_data: dict[str, Any]
 
 
-class AllQuizzesResponse(BaseModel):
-    quizzes: Dict[str, Any]
-
-
-class AllTokensResponse(BaseModel):
-    tokens: Dict[str, List[Dict[str, Any]]]
-
-
-class StartQuizRequest(BaseModel):
+# Start Quiz Models
+class StartQuizRequestModel(BaseModel):
     token: str
     user_id: str
 
 
-class StartQuizResponse(BaseModel):
+class StartQuizResponseModel(BaseModel):
     quiz_id: str
     user_id: str
     session_id: str
     title: str
-    question: Question
-
-
-class SubmitAnswerResponse(BaseModel):
-    quiz_id: str
-    user_id: str
-    session_id: str
-    title: str
-    question: Question
+    question: QuestionModel

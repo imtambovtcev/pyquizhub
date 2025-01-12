@@ -4,7 +4,7 @@ import json
 import yaml
 import os
 from pyquizhub.config.config_utils import get_token_from_config, get_logger
-from pyquizhub.models import CreateQuizRequest, QuizCreationResponse, TokenRequest, TokenResponse, ResultResponse
+from pyquizhub.models import CreateQuizRequestModel, QuizCreationResponseModel, TokenRequestModel, TokenResponseModel, QuizResultResponseModel
 
 logger = get_logger(__name__)
 
@@ -56,14 +56,15 @@ def add(ctx, file, creator_id):
         with open(file, "r") as f:
             quiz_data = json.load(f)
 
-        request_data = CreateQuizRequest(quiz=quiz_data, creator_id=creator_id)
+        request_data = CreateQuizRequestModel(
+            quiz=quiz_data, creator_id=creator_id)
         response = requests.post(
             f"{base_url}/admin/create_quiz",
             json=request_data.dict(),
             headers=get_headers(),
         )
         if response.status_code == 200:
-            response_data = QuizCreationResponse(**response.json())
+            response_data = QuizCreationResponseModel(**response.json())
             click.echo("Quiz added successfully.")
             click.echo(f"Quiz ID: {response_data.quiz_id}")
         else:
@@ -88,12 +89,12 @@ def token(ctx, quiz_id, token_type):
         config = ctx.obj["CONFIG"]
         base_url = config["api"]["base_url"]
 
-        request_data = TokenRequest(quiz_id=quiz_id, type=token_type)
+        request_data = TokenRequestModel(quiz_id=quiz_id, type=token_type)
         response = requests.post(
             f"{base_url}/admin/generate_token", json=request_data.dict(), headers=get_headers()
         )
         if response.status_code == 200:
-            response_data = TokenResponse(**response.json())
+            response_data = TokenResponseModel(**response.json())
             click.echo(f"Token generated successfully: {response_data.token}")
         else:
             click.echo(
@@ -115,7 +116,7 @@ def results(ctx, quiz_id):
         response = requests.get(
             f"{base_url}/admin/results/{quiz_id}", headers=get_headers())
         if response.status_code == 200:
-            response_data = ResultResponse(**response.json())
+            response_data = QuizResultResponseModel(**response.json())
             click.echo("Quiz results:")
             for user_id, sessions in response_data.results.items():
                 click.echo(f"User ID: {user_id}")

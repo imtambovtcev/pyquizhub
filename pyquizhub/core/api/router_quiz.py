@@ -2,11 +2,11 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
 from pyquizhub.models import (
-    NextQuestionResponse,
-    AnswerRequest,
-    StartQuizRequest,
-    StartQuizResponse,
-    SubmitAnswerResponse
+    NextQuestionResponseModel,
+    AnswerRequestModel,
+    StartQuizRequestModel,
+    StartQuizResponseModel,
+    SubmitAnswerResponseModel
 )
 import uuid
 from datetime import datetime
@@ -29,8 +29,8 @@ def user_token_dependency(request: Request):
 quiz_engines: Dict[str, QuizEngine] = {}
 
 
-@router.post("/start_quiz", response_model=StartQuizResponse, dependencies=[Depends(user_token_dependency)])
-def start_quiz(request: StartQuizRequest, req: Request):
+@router.post("/start_quiz", response_model=StartQuizResponseModel, dependencies=[Depends(user_token_dependency)])
+def start_quiz(request: StartQuizRequestModel, req: Request):
     """Start a quiz session using a token."""
     logger.debug(
         f"Starting quiz with token: {request.token} for user: {request.user_id}")
@@ -63,7 +63,7 @@ def start_quiz(request: StartQuizRequest, req: Request):
     logger.info(
         f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
 
-    return StartQuizResponse(
+    return StartQuizResponseModel(
         quiz_id=quiz_id,
         user_id=request.user_id,
         session_id=session_id,
@@ -72,8 +72,8 @@ def start_quiz(request: StartQuizRequest, req: Request):
     )
 
 
-@router.post("/submit_answer/{quiz_id}", response_model=SubmitAnswerResponse, dependencies=[Depends(user_token_dependency)])
-def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
+@router.post("/submit_answer/{quiz_id}", response_model=SubmitAnswerResponseModel, dependencies=[Depends(user_token_dependency)])
+def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     """Submit an answer for the current question and get the next question."""
     logger.debug(
         f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
@@ -103,7 +103,7 @@ def submit_answer(quiz_id: str, request: AnswerRequest, req: Request):
         logger.info(
             f"Quiz session {session_id} for user {user_id} on quiz {quiz_id} completed")
 
-    return SubmitAnswerResponse(
+    return SubmitAnswerResponseModel(
         quiz_id=quiz_id,
         user_id=user_id,
         session_id=session_id,

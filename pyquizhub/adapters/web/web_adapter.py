@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from pyquizhub.models import StartQuizRequest, SubmitAnswerRequest
+from pyquizhub.models import StartQuizRequestModel, SubmitAnswerRequest
 from .quiz_handler import QuizHandler
 from pyquizhub.config.config_utils import load_config, get_logger
 import uuid
@@ -35,7 +35,8 @@ async def start_quiz(request: Request, token: str = Form(...)):
     user_id = str(uuid.uuid4())
     try:
         logger.info(f"Starting quiz for user {user_id} with token {token}")
-        start_quiz_request = StartQuizRequest(token=token, user_id=user_id)
+        start_quiz_request = StartQuizRequestModel(
+            token=token, user_id=user_id)
         response = await quiz_handler.start_quiz(start_quiz_request)
         logger.info(f"Received response: {response}")
         return templates.TemplateResponse(

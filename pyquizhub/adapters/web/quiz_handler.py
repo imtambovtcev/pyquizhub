@@ -1,7 +1,7 @@
 import requests
 from fastapi import HTTPException
 from pyquizhub.config.config_utils import get_logger
-from pyquizhub.models import StartQuizRequest, SubmitAnswerRequest
+from pyquizhub.models import StartQuizRequestModel, SubmitAnswerRequest
 import json
 
 logger = get_logger(__name__)
@@ -20,7 +20,7 @@ class QuizHandler:
             "Accept": "application/json"
         }
 
-    async def start_quiz(self, request: StartQuizRequest):
+    async def start_quiz(self, request: StartQuizRequestModel):
         try:
             logger.info(
                 f"Starting quiz for user {request.user_id} with token {request.token}")
