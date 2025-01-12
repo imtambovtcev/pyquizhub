@@ -16,6 +16,8 @@ requests = "^2.32.3"
 httpx = "^0.28.1"
 jinja2 = "^3.1.5"
 python-multipart = "^0.0.20"
+flask = "^3.1.0"
+flask-cors = "^5.0.0"
 
 [tool.poetry.scripts]
 pyquizhub-setup = "pyquizhub.config.initialize:initialize_system"
