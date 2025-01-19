@@ -271,7 +271,7 @@ def creator_participated_users(quiz_id: str, req: Request):
     return get_participated_users_logic(storage_manager, quiz_id)
 
 
-@ router.get("/results/{quiz_id}", response_model=QuizResultResponseModel, dependencies=[Depends(creator_token_dependency)])
+@router.get("/results/{quiz_id}", response_model=QuizResultResponseModel, dependencies=[Depends(creator_token_dependency)])
 def creator_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz results by quiz ID.
