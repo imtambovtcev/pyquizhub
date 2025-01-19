@@ -13,8 +13,6 @@ from fastapi.middleware import Middleware
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, Depends, HTTPException
-import logging
-logging.basicConfig(level=logging.INFO)
 
 
 app = FastAPI()
