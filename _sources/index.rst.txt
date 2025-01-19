@@ -3,15 +3,40 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Pyquizhub documentation
-=======================
+Welcome to Pyquizhub's documentation
+====================================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+PyQuizHub is a flexible quiz management system with a modular architecture that consists of:
 
+* Core Engine - Handles quiz logic and data management
+* Storage Backends - Supports multiple storage options
+* Access Adapters - Provides different access levels and interaction methods
+
+Access Levels
+-------------
+
+* **Admin** - Full system access and configuration
+* **Creator** - Can create and manage quizzes
+* **User** - Can take quizzes using access tokens
+
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
+   getting_started
+   architecture
+   quiz_format
+   core/index
+   adapters/index
+   deployment
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
