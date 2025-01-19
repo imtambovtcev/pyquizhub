@@ -1,3 +1,13 @@
+"""
+Quiz JSON schema validation module.
+
+This module provides validation capabilities for quiz JSON structures to ensure:
+- Required fields are present 
+- Data types are correct
+- Expressions and conditions are valid
+- Quiz flow is properly defined
+"""
+
 import json
 from .safe_evaluator import SafeEvaluator
 from pyquizhub.config.config_utils import get_logger
@@ -6,16 +16,33 @@ logger = get_logger(__name__)
 
 
 class QuizJSONValidator:
+    """
+    Validates quiz JSON structure and content.
+
+    This class performs comprehensive validation of quiz definitions including:
+    - Schema validation
+    - Expression validation
+    - Question flow validation
+    - Type checking
+    """
+
     @staticmethod
-    def validate(quiz_data):
+    def validate(quiz_data: dict) -> dict:
         """
-        Validate the JSON structure and contents, returning detailed validation results.
+        Validate the JSON structure and contents of a quiz.
 
         Args:
-            quiz_data (dict): The quiz data as a dictionary.
+            quiz_data (dict): The quiz data to validate
 
         Returns:
-            dict: A dictionary containing 'errors' and 'warnings'.
+            dict: Validation results containing:
+                - errors (list): List of validation errors
+                - warnings (list): List of validation warnings
+
+        Examples:
+            >>> result = QuizJSONValidator.validate(quiz_data)
+            >>> if result["errors"]:
+            >>>     print("Validation failed:", result["errors"])
         """
         logger.debug(f"Validating quiz data: {quiz_data}")
         errors = []

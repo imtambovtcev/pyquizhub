@@ -1,3 +1,11 @@
+"""
+Provides safe expression evaluation capabilities for quiz conditions.
+
+This module implements a restricted expression evaluator that safely handles
+mathematical and logical expressions while preventing code injection and
+access to unauthorized operations.
+"""
+
 import ast
 import operator
 from pyquizhub.config.config_utils import get_logger
@@ -6,6 +14,18 @@ logger = get_logger(__name__)
 
 
 class SafeEvaluator:
+    """
+    Safely evaluates mathematical and logical expressions with restricted operations.
+
+    This class provides a secure way to evaluate expressions by:
+    - Allowing only whitelisted operators
+    - Preventing access to potentially dangerous builtins
+    - Restricting variable access to provided context
+
+    Attributes:
+        ALLOWED_OPERATORS (dict): Mapping of AST operator nodes to Python operator functions
+    """
+
     ALLOWED_OPERATORS = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
@@ -22,8 +42,26 @@ class SafeEvaluator:
     }
 
     @staticmethod
-    def eval_expr(expr, variables):
-        """Safely evaluates a mathematical or logical expression."""
+    def eval_expr(expr: str, variables: dict) -> any:
+        """
+        Safely evaluates a mathematical or logical expression.
+
+        Args:
+            expr (str): The expression to evaluate
+            variables (dict): Variables available in the expression context
+
+        Returns:
+            any: Result of the expression evaluation
+
+        Raises:
+            ValueError: If expression contains unauthorized operations or variables
+
+        Examples:
+            >>> SafeEvaluator.eval_expr("2 + 2", {})
+            4
+            >>> SafeEvaluator.eval_expr("score > 10", {"score": 15}) 
+            True
+        """
         logger.debug(
             f"Evaluating expression: {expr} with variables: {variables}")
 

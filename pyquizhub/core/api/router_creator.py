@@ -1,3 +1,16 @@
+"""
+Creator API Router for PyQuizHub.
+
+This module provides API endpoints for quiz creators including:
+- Quiz creation
+- Token generation 
+- Result retrieval
+- Quiz status monitoring
+- Participant tracking
+
+All endpoints require creator authentication and enforce appropriate permissions.
+"""
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.json_validator import QuizJSONValidator
@@ -20,6 +33,15 @@ router = APIRouter()
 
 
 def creator_token_dependency(request: Request):
+    """
+    Dependency to validate creator authentication token.
+
+    Args:
+        request: FastAPI Request object containing headers
+
+    Raises:
+        HTTPException: If creator token is invalid
+    """
     token = request.headers.get("Authorization")
     expected_token = get_token_from_config("creator")
     if token != expected_token:
@@ -28,7 +50,17 @@ def creator_token_dependency(request: Request):
 
 def create_quiz_logic(storage_manager: StorageManager, request: CreateQuizRequestModel) -> QuizCreationResponseModel:
     """
-    Logic for creating a quiz. Shared between creator and admin.
+    Logic for creating a quiz, shared between creator and admin roles.
+
+    Args:
+        storage_manager: StorageManager instance
+        request: CreateQuizRequestModel containing quiz definition
+
+    Returns:
+        QuizCreationResponseModel: Created quiz details
+
+    Raises:
+        HTTPException: If quiz validation fails
     """
     logger.debug(f"Creating quiz with title: {request.quiz.metadata.title}")
     # Validate the quiz structure
@@ -51,7 +83,14 @@ def create_quiz_logic(storage_manager: StorageManager, request: CreateQuizReques
 
 def generate_token_logic(storage_manager: StorageManager, request: TokenRequestModel) -> TokenResponseModel:
     """
-    Logic for generating a quiz token. Shared between creator and admin.
+    Shared logic for generating quiz access tokens.
+
+    Args:
+        storage_manager: StorageManager instance
+        request: TokenRequestModel containing quiz ID and token type
+
+    Returns:
+        TokenResponseModel: Generated token details
     """
     logger.debug(f"Generating token for quiz_id: {request.quiz_id}")
     token = generate_quiz_token()
@@ -66,7 +105,15 @@ def generate_token_logic(storage_manager: StorageManager, request: TokenRequestM
 
 def get_results_logic(storage_manager: StorageManager, user_id: str, quiz_id: str):
     """
-    Logic for getting quiz results.
+    Get quiz results for a specific user.
+
+    Args:
+        storage_manager: StorageManager instance
+        user_id: ID of the user
+        quiz_id: ID of the quiz
+
+    Returns:
+        dict: User's quiz results
     """
     logger.debug(
         f"Fetching results for user_id: {user_id}, quiz_id: {quiz_id}")
@@ -75,7 +122,14 @@ def get_results_logic(storage_manager: StorageManager, user_id: str, quiz_id: st
 
 def get_results_by_quiz_logic(storage_manager: StorageManager, quiz_id: str):
     """
-    Logic for getting quiz results by quiz ID.
+    Get all results for a specific quiz.
+
+    Args:
+        storage_manager: StorageManager instance
+        quiz_id: ID of the quiz
+
+    Returns:
+        dict: All results for the quiz, grouped by user
     """
     logger.debug(f"Fetching results by quiz_id: {quiz_id}")
     results = storage_manager.get_results_by_quiz(quiz_id)
@@ -87,7 +141,17 @@ def get_results_by_quiz_logic(storage_manager: StorageManager, quiz_id: str):
 
 def get_quiz_logic(storage_manager: StorageManager, quiz_id: str):
     """
-    Logic for getting quiz details.
+    Get quiz details and contents.
+
+    Args:
+        storage_manager: StorageManager instance
+        quiz_id: ID of the quiz
+
+    Returns:
+        dict: Quiz details and metadata
+
+    Raises:
+        HTTPException: If quiz not found
     """
     logger.debug(f"Fetching quiz details for quiz_id: {quiz_id}")
     try:
@@ -105,7 +169,14 @@ def get_quiz_logic(storage_manager: StorageManager, quiz_id: str):
 
 def get_participated_users_logic(storage_manager: StorageManager, quiz_id: str):
     """
-    Logic for getting participated users.
+    Get list of users who participated in a quiz.
+
+    Args:
+        storage_manager: StorageManager instance
+        quiz_id: ID of the quiz
+
+    Returns:
+        dict: List of user IDs who took the quiz
     """
     logger.debug(f"Fetching participated users for quiz_id: {quiz_id}")
     user_ids = storage_manager.get_participated_users(quiz_id)
@@ -115,7 +186,17 @@ def get_participated_users_logic(storage_manager: StorageManager, quiz_id: str):
 @router.post("/create_quiz", response_model=QuizCreationResponseModel, dependencies=[Depends(creator_token_dependency)])
 def creator_create_quiz(request: CreateQuizRequestModel, req: Request):
     """
-    Endpoint for creators to create a quiz.
+    Create a new quiz as a creator.
+
+    Args:
+        request: CreateQuizRequestModel containing quiz definition
+        req: FastAPI Request object containing application state
+
+    Returns:
+        QuizCreationResponseModel: Created quiz details
+
+    Raises:
+        HTTPException: If quiz validation fails
     """
     logger.debug(
         f"Creator creating quiz with title: {request.quiz.metadata.title}")
@@ -127,6 +208,13 @@ def creator_create_quiz(request: CreateQuizRequestModel, req: Request):
 def creator_generate_token(request: TokenRequestModel, req: Request):
     """
     Endpoint for creators to generate tokens.
+
+    Args:
+        request: TokenRequestModel containing quiz ID and token type
+        req: FastAPI Request object containing application state
+
+    Returns:
+        TokenResponseModel: Generated token details
     """
     logger.debug(f"Creator generating token for quiz_id: {request.quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
@@ -137,6 +225,16 @@ def creator_generate_token(request: TokenRequestModel, req: Request):
 def creator_get_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz details.
+
+    Args:
+        quiz_id: ID of the quiz
+        req: FastAPI Request object containing application state
+
+    Returns:
+        dict: Quiz details and metadata
+
+    Raises:
+        HTTPException: If quiz not found or permission denied
     """
     logger.debug(f"Creator fetching quiz details for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
@@ -152,6 +250,16 @@ def creator_get_quiz(quiz_id: str, req: Request):
 def creator_participated_users(quiz_id: str, req: Request):
     """
     Endpoint for creators to get participated users.
+
+    Args:
+        quiz_id: ID of the quiz
+        req: FastAPI Request object containing application state
+
+    Returns:
+        dict: List of user IDs who took the quiz
+
+    Raises:
+        HTTPException: If permission denied
     """
     logger.debug(f"Creator fetching participated users for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager
@@ -167,6 +275,16 @@ def creator_participated_users(quiz_id: str, req: Request):
 def creator_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Endpoint for creators to get quiz results by quiz ID.
+
+    Args:
+        quiz_id: ID of the quiz
+        req: FastAPI Request object containing application state
+
+    Returns:
+        dict: All results for the quiz, grouped by user
+
+    Raises:
+        HTTPException: If permission denied
     """
     logger.debug(f"Creator fetching results for quiz_id: {quiz_id}")
     storage_manager: StorageManager = req.app.state.storage_manager

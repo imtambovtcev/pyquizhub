@@ -1,3 +1,17 @@
+"""
+Quiz API Router for PyQuizHub.
+
+This module provides API endpoints for quiz-taking functionality including:
+- Starting quiz sessions 
+- Processing answers
+- Handling quiz flow
+- Managing quiz state
+- Token validation
+
+The router handles quiz session management and interaction between users and 
+quiz engine instances.
+"""
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
@@ -20,6 +34,15 @@ router = APIRouter()
 
 
 def user_token_dependency(request: Request):
+    """
+    Dependency to validate user authentication token.
+
+    Args:
+        request: FastAPI Request object containing headers
+
+    Raises:
+        HTTPException: If user token is invalid
+    """
     token = request.headers.get("Authorization")
     expected_token = get_token_from_config("user")
     if token != expected_token:
@@ -32,7 +55,19 @@ quiz_engines: Dict[str, QuizEngine] = {}
 
 @router.post("/start_quiz", response_model=StartQuizResponseModel, dependencies=[Depends(user_token_dependency)])
 def start_quiz(request: StartQuizRequestModel, req: Request):
-    """Start a quiz session using a token."""
+    """
+    Start a new quiz session for a user.
+
+    Args:
+        request: StartQuizRequestModel containing token and user ID
+        req: FastAPI Request object containing application state
+
+    Returns:
+        StartQuizResponseModel: Initial quiz session data and first question
+
+    Raises:
+        HTTPException: If token is invalid or quiz not found
+    """
     logger.debug(
         f"Starting quiz with token: {request.token} for user: {request.user_id}")
     # Retrieve the storage manager from app.state
@@ -75,7 +110,20 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
 @router.post("/submit_answer/{quiz_id}", response_model=SubmitAnswerResponseModel, dependencies=[Depends(user_token_dependency)])
 def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
-    """Submit an answer for the current question and get the next question."""
+    """
+    Submit an answer and get the next question.
+
+    Args:
+        quiz_id: ID of the active quiz
+        request: AnswerRequestModel containing answer data
+        req: FastAPI Request object containing application state
+
+    Returns:
+        SubmitAnswerResponseModel: Next question or quiz completion status
+
+    Raises:
+        HTTPException: If quiz not found or answer invalid
+    """
     logger.debug(
         f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
     # Retrieve the storage manager from app.state

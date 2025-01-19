@@ -1,3 +1,13 @@
+"""
+PyQuizHub test configuration.
+
+This module provides pytest fixtures for setting up test environments, including:
+- Temporary project directories
+- Configuration files
+- Storage directories
+- Logger setup
+- API client setup
+"""
 
 import pytest
 import os
@@ -24,8 +34,12 @@ def config_path(test_project_dir):
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_config(config_path):
-    """Setup the config file and environment variable."""
+    """
+    Setup the config file and environment variable.
 
+    This fixture sets up the configuration file and the PYQUIZHUB_CONFIG_PATH
+    environment variable for the duration of the test module.
+    """
     original_config_path = os.environ.get("PYQUIZHUB_CONFIG_PATH")
     os.environ["PYQUIZHUB_CONFIG_PATH"] = str(config_path)
 
@@ -53,7 +67,11 @@ def storage_base_dir(test_project_dir):
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_logger(config_path, test_project_dir):
-    """Setup logger to log to the pytest temp directory."""
+    """
+    Setup logger to log to the pytest temp directory.
+
+    This fixture configures the logger to write logs to the test project directory.
+    """
     from pyquizhub.logging.log_manager import LogManager
     log_dir = test_project_dir / "logs"
     log_dir.mkdir()
@@ -82,7 +100,11 @@ logging:
 
 @pytest.fixture(scope="module")
 def api_client(config_path, storage_base_dir, test_project_dir):
-    """Creates a unique API client for each test module with its own storage."""
+    """
+    Creates a unique API client for each test module with its own storage.
+
+    This fixture sets up an API client with a unique storage directory for each test module.
+    """
     from pyquizhub.main import app
     config_content = f"""
 storage:
