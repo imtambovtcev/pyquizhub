@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYQUIZHUB_CONFIG_PATH=/app/config/config.yaml
+    volumes:
+      - ./config:/app/config
+      - ./config.yaml:/app/config/config.yaml
+    depends_on:
+      - db
+    networks:
+      - pyquizhub-network
+
+  web:
+    build: .
+    command: poetry run python -m pyquizhub.adapters.web.server
+    ports:
+      - "8080:8080"
+    environment:
+      - PYQUIZHUB_CONFIG_PATH=/app/config/config.yaml
+    volumes:
+      - ./config:/app/config
+      - ./config.yaml:/app/config/config.yaml
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=pyquizhub
+      - POSTGRES_USER=pyquizhub
+      - POSTGRES_PASSWORD=pyquizhub
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - pyquizhub-network
+
+volumes:
+  postgres_data:
+
+networks:
+  pyquizhub-network:
+    driver: bridge
