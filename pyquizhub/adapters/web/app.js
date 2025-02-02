@@ -1,7 +1,5 @@
 import { v4 as uuidv4 } from 'https://cdn.jsdelivr.net/npm/uuid@8.3.2/dist/esm-browser/index.js';
 
-const API_BASE_URL = `http://${window.location.hostname}:8000`;
-
 class QuizApp {
     constructor() {
         this.startScreen = document.getElementById('start-screen');
@@ -13,8 +11,18 @@ class QuizApp {
 
         this.currentQuiz = null;
         this.userId = uuidv4();  // Use uuidv4 to generate a UUID
+        this.authToken = null;
+        this.loadAuthToken();
 
         this.initializeEventListeners();
+    }
+
+    async loadAuthToken() {
+        const response = await fetch(`${API_BASE_URL}/auth/user_token`);
+        if (response.ok) {
+            const data = await response.json();
+            this.authToken = data.token;
+        }
     }
 
     initializeEventListeners() {
@@ -27,11 +35,10 @@ class QuizApp {
         const token = document.getElementById('token').value;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/quiz/start_quiz`, {
+            const response = await fetch('/api/quiz/start_quiz', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({
                     token,
@@ -57,11 +64,10 @@ class QuizApp {
         try {
             const answer = this.getAnswer();
             console.log("Submitting answer:", answer);
-            const response = await fetch(`${API_BASE_URL}/quiz/submit_answer/${this.currentQuiz.quiz_id}`, {  // Changed from quizId to quiz_id
+            const response = await fetch(`/api/quiz/submit_answer/${this.currentQuiz.quiz_id}`, {  // Changed from quizId to quiz_id
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({
                     quiz_id: this.currentQuiz.quiz_id,

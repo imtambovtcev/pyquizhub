@@ -185,3 +185,5 @@ docs/source/*.pyc
 # Cache and intermediate files
 docs/.doctrees/
 docs/.buildinfo
+
+config.yaml
