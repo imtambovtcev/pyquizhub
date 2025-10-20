@@ -74,11 +74,59 @@
            <div itemprop="articleBody">
              
   <h1>Source code for pyquizhub.adapters.web.server</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">send_from_directory</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">send_from_directory</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">jsonify</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask_cors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CORS</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyquizhub.config.config_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_token_from_config</span><span class="p">,</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">CORS</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+
+<span class="c1"># Load config and get API URL and token</span>
+
+
+<div class="viewcode-block" id="load_config">
+<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.load_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">():</span>
+    <span class="n">config_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;PYQUIZHUB_CONFIG_PATH&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;../../config/config.yaml&quot;</span><span class="p">)))</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+        <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+
+
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">()</span>
+<span class="n">API_BASE_URL</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">][</span><span class="s2">&quot;base_url&quot;</span><span class="p">]</span>
+<span class="n">USER_TOKEN</span> <span class="o">=</span> <span class="n">get_token_from_config</span><span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="proxy_request">
+<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.proxy_request">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">proxy_request</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Proxy requests to the core API with user token.&quot;&quot;&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Content-Type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="n">USER_TOKEN</span>
+    <span class="p">}</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">API_BASE_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Proxying </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> request to: </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;GET&#39;</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">json</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()),</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error proxying request: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}),</span> <span class="mi">500</span></div>
+
 
 
 <div class="viewcode-block" id="index">
@@ -89,11 +137,35 @@
 
 
 
-<div class="viewcode-block" id="serve_static">
-<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.serve_static">[docs]</a>
-<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&lt;path:path&gt;&#39;</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">serve_static</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">send_from_directory</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+<div class="viewcode-block" id="style">
+<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.style">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/style.css&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">style</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">send_from_directory</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;style.css&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="app_js">
+<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.app_js">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/app.js&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">app_js</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">send_from_directory</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;app.js&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="start_quiz">
+<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.start_quiz">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/api/quiz/start_quiz&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">start_quiz</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">proxy_request</span><span class="p">(</span><span class="s1">&#39;quiz/start_quiz&#39;</span><span class="p">,</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="submit_answer">
+<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.submit_answer">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/api/quiz/submit_answer/&lt;quiz_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">submit_answer</span><span class="p">(</span><span class="n">quiz_id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">proxy_request</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;quiz/submit_answer/</span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">)</span></div>
 
 
 
