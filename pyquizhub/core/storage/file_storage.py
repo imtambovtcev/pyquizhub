@@ -9,7 +9,7 @@ import os
 import json
 from typing import Any, Dict, List, Optional
 from .storage_manager import StorageManager
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_logger
 from datetime import datetime
 
 

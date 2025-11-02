@@ -10,7 +10,7 @@ This module provides validation capabilities for quiz JSON structures to ensure:
 
 import json
 from .safe_evaluator import SafeEvaluator
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_logger
 
 logger = get_logger(__name__)
 

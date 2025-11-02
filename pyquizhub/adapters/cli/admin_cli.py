@@ -1,20 +1,19 @@
 import click
 import requests
 import json
-import yaml
 import os
-from pyquizhub.config.config_utils import load_config, get_config_value, get_token_from_config
+from pyquizhub.config.settings import get_config_manager, get_logger
 from pyquizhub.models import CreateQuizRequestModel, QuizCreationResponseModel, TokenRequestModel, TokenResponseModel, QuizResultResponseModel
-from pyquizhub.config.config_utils import get_logger
 
 logger = get_logger(__name__)
 logger.debug("Loaded admin_cli.py")
 
 
 def get_headers():
-    config = load_config()
+    """Get request headers with admin token."""
+    config_manager = get_config_manager()
     headers = {"Content-Type": "application/json"}
-    token = get_token_from_config("admin")
+    token = config_manager.get_token("admin")
     if token:
         headers["Authorization"] = token
     return headers
@@ -25,7 +24,9 @@ def get_headers():
 def admin_cli(ctx):
     """Admin CLI for managing quizzes."""
     ctx.ensure_object(dict)
-    ctx.obj["CONFIG"] = load_config()
+    config_manager = get_config_manager()
+    config_manager.load()
+    ctx.obj["CONFIG_MANAGER"] = config_manager
 
 
 @admin_cli.command()
@@ -35,8 +36,8 @@ def admin_cli(ctx):
 def add(ctx, file, creator_id):
     """Add an existing quiz to the storage."""
     try:
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         with open(file, "r") as f:
             quiz_data = json.load(f)
@@ -69,8 +70,8 @@ def add(ctx, file, creator_id):
 def token(ctx, quiz_id, token_type):
     """Generate a token for a quiz."""
     try:
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         request_data = TokenRequestModel(quiz_id=quiz_id, type=token_type)
         response = requests.post(
@@ -92,8 +93,8 @@ def token(ctx, quiz_id, token_type):
 def results(ctx, quiz_id):
     """View results for a quiz."""
     try:
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         response = requests.get(
             f"{base_url}/admin/results/{quiz_id}", headers=get_headers())
@@ -118,8 +119,8 @@ def results(ctx, quiz_id):
 def check(ctx):
     """Check if the API is working correctly."""
     try:
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         response = requests.get(f"{base_url}/", headers=get_headers())
         if response.status_code == 200:

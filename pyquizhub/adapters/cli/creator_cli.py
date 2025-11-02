@@ -1,34 +1,19 @@
 import click
 import requests
 import json
-import yaml
 import os
-from pyquizhub.config.config_utils import get_token_from_config, get_logger
+from pyquizhub.config.settings import get_config_manager, get_logger
 from pyquizhub.models import CreateQuizRequestModel, QuizCreationResponseModel, TokenRequestModel, TokenResponseModel, QuizResultResponseModel
 
 logger = get_logger(__name__)
-logger.debug("Loaded user_cli.py")
-
-
-def load_config():
-    """Load configuration from the environment variable or default path."""
-    config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.abspath(os.path.join(
-        os.path.dirname(__file__), "../../config/config.yaml")))
-    try:
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        click.echo(f"Error: Configuration file not found at {config_path}.")
-        raise
-    except Exception as e:
-        click.echo(f"Error loading configuration: {e}")
-        raise
+logger.debug("Loaded creator_cli.py")
 
 
 def get_headers():
-    config = load_config()
+    """Get request headers with creator token."""
+    config_manager = get_config_manager()
     headers = {"Content-Type": "application/json"}
-    token = get_token_from_config("creator")
+    token = config_manager.get_token("creator")
     if token:
         headers["Authorization"] = token
     return headers
@@ -39,7 +24,9 @@ def get_headers():
 def creator_cli(ctx):
     """Creator CLI for managing quizzes."""
     ctx.ensure_object(dict)
-    ctx.obj["CONFIG"] = load_config()
+    config_manager = get_config_manager()
+    config_manager.load()
+    ctx.obj["CONFIG_MANAGER"] = config_manager
 
 
 @creator_cli.command()
@@ -51,8 +38,8 @@ def add(ctx, file, creator_id):
     try:
         logger.debug(
             f"Adding quiz from file: {file} with creator_id: {creator_id}")
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         with open(file, "r") as f:
             quiz_data = json.load(f)
@@ -87,8 +74,8 @@ def token(ctx, quiz_id, token_type):
     try:
         logger.debug(
             f"Generating token for quiz_id: {quiz_id} with token_type: {token_type}")
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         request_data = TokenRequestModel(quiz_id=quiz_id, type=token_type)
         response = requests.post(
@@ -111,8 +98,8 @@ def results(ctx, quiz_id):
     """View results for a quiz."""
     try:
         logger.debug(f"Fetching results for quiz_id: {quiz_id}")
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         response = requests.get(
             f"{base_url}/admin/results/{quiz_id}", headers=get_headers())
@@ -138,8 +125,8 @@ def check(ctx):
     """Check if the API is working correctly."""
     try:
         logger.debug("Checking if the API is working correctly")
-        config = ctx.obj["CONFIG"]
-        base_url = config["api"]["base_url"]
+        config_manager = ctx.obj["CONFIG_MANAGER"]
+        base_url = config_manager.api_base_url
 
         response = requests.get(f"{base_url}/", headers=get_headers())
         if response.status_code == 200:

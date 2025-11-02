@@ -12,7 +12,7 @@ This module provides pytest fixtures for setting up test environments, including
 import pytest
 import os
 from fastapi.testclient import TestClient
-from pyquizhub.config.config_utils import load_config
+from pyquizhub.config.settings import ConfigManager, get_config_manager
 
 
 @pytest.fixture(scope="module")
@@ -49,7 +49,13 @@ fixture:
     config_path: {str(config_path)}
 """)
 
+    # Reset ConfigManager to ensure clean state for tests
+    ConfigManager.reset_instance()
+
     yield
+
+    # Reset ConfigManager after tests
+    ConfigManager.reset_instance()
 
     if original_config_path:
         os.environ["PYQUIZHUB_CONFIG_PATH"] = original_config_path
@@ -94,8 +100,9 @@ logging:
     with open(config_path, "a") as f:
         f.write(config_content)
 
-    config = load_config(str(config_path))
-    LogManager.get_instance(config.get('logging', {}))
+    config_manager = get_config_manager()
+    config_manager.load(str(config_path))
+    LogManager.get_instance(config_manager.logging_config)
 
 
 @pytest.fixture(scope="module")

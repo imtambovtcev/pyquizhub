@@ -8,7 +8,9 @@ access to unauthorized operations.
 
 import ast
 import operator
-from pyquizhub.config.config_utils import get_logger
+from typing import Any, Dict
+import logging
+from pyquizhub.config.settings import get_logger
 
 logger = get_logger(__name__)
 

@@ -26,7 +26,7 @@ import uuid
 from datetime import datetime
 from typing import Dict
 import os
-from pyquizhub.config.config_utils import get_token_from_config, get_logger
+from pyquizhub.config.settings import get_logger
 
 logger = get_logger(__name__)
 logger.debug("Loaded router_quiz.py")
@@ -43,8 +43,10 @@ def user_token_dependency(request: Request):
     Raises:
         HTTPException: If user token is invalid
     """
+    from pyquizhub.config.settings import get_config_manager
     token = request.headers.get("Authorization")
-    expected_token = get_token_from_config("user")
+    config_manager = get_config_manager()
+    expected_token = config_manager.get_token("user")
     if token != expected_token:
         raise HTTPException(status_code=403, detail="Invalid user token")
 

@@ -1,7 +1,6 @@
 from fastapi.middleware.cors import CORSMiddleware
-from pyquizhub.config.config_utils import load_config, get_config_value, get_logger
+from pyquizhub.config.settings import get_config_manager, get_logger
 from pydantic import ValidationError
-import yaml
 import os
 from pyquizhub.core.storage.sql_storage import SQLStorageManager
 from pyquizhub.core.storage.file_storage import FileStorageManager
@@ -27,15 +26,17 @@ app = FastAPI()
 async def lifespan(app: FastAPI):
     # Startup
     logger.debug("Starting up the application")
-    config = load_config()
-    app.state.config = config
-    storage_type = get_config_value(config, "storage.type", "file")
+    config_manager = get_config_manager()
+    config_manager.load()  # Ensure config is loaded
+
+    app.state.config_manager = config_manager
+    storage_type = config_manager.storage_type
     if storage_type == "file":
         app.state.storage_manager = FileStorageManager(
-            get_config_value(config, "storage.file.base_dir", ".pyquizhub"))
+            config_manager.storage_file_base_dir)
     elif storage_type == "sql":
         app.state.storage_manager = SQLStorageManager(
-            get_config_value(config, "storage.sql.connection_string", "sqlite:///pyquizhub.db"))
+            config_manager.storage_sql_connection_string)
     else:
         logger.error(f"Unsupported storage type: {storage_type}")
         raise ValueError(f"Unsupported storage type: {storage_type}")
@@ -89,7 +90,7 @@ app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
 
 if __name__ == "__main__":
     import uvicorn
-    config = load_config()
-    host = get_config_value(config, "api.host", "0.0.0.0")
-    port = get_config_value(config, "api.port", 8000)
-    uvicorn.run(app, host=host, port=port)
+    config_manager = get_config_manager()
+    config_manager.load()
+    uvicorn.run(app, host=config_manager.api_host,
+                port=config_manager.api_port)

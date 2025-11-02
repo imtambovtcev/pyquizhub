@@ -2,7 +2,7 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-from pyquizhub.config.config_utils import get_token_from_config, get_logger
+from pyquizhub.config.settings import get_config_manager, get_logger
 
 logger = get_logger(__name__)
 
@@ -10,19 +10,11 @@ app = Flask(__name__)
 CORS(app)
 
 # Load config and get API URL and token
+config_manager = get_config_manager()
+config_manager.load()
 
-
-def load_config():
-    config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", os.path.abspath(os.path.join(
-        os.path.dirname(__file__), "../../config/config.yaml")))
-    with open(config_path, "r") as f:
-        import yaml
-        return yaml.safe_load(f)
-
-
-config = load_config()
-API_BASE_URL = config["api"]["base_url"]
-USER_TOKEN = get_token_from_config("user")
+API_BASE_URL = config_manager.api_base_url
+USER_TOKEN = config_manager.get_token("user")
 
 
 def proxy_request(path, method='GET', json=None):
