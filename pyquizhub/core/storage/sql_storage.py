@@ -61,6 +61,18 @@ class SQLStorageManager(StorageManager):
             Column("quiz_id", String),
             Column("type", String)
         )
+        self.sessions_table = Table(
+            "sessions", self.metadata,
+            Column("session_id", String, primary_key=True),
+            Column("user_id", String),
+            Column("quiz_id", String),
+            Column("current_question_id", JSON),
+            Column("scores", JSON),
+            Column("answers", JSON),
+            Column("completed", String),
+            Column("created_at", String),
+            Column("updated_at", String)
+        )
 
         # Create tables if they don't exist
         self.metadata.create_all(self.engine)
@@ -386,3 +398,90 @@ class SQLStorageManager(StorageManager):
         )
         result = self._execute(query)
         return [row._mapping["session_id"] for row in result]
+
+    # Session State Management (for stateless engine)
+    def save_session_state(self, session_data: Dict[str, Any]) -> None:
+        """
+        Save complete session state to database.
+        
+        Args:
+            session_data: Dictionary containing session metadata and engine state
+        """
+        session_id = session_data["session_id"]
+        query = insert(self.sessions_table).values(
+            session_id=session_id,
+            user_id=session_data["user_id"],
+            quiz_id=session_data["quiz_id"],
+            current_question_id=session_data["current_question_id"],
+            scores=session_data["scores"],
+            answers=session_data["answers"],
+            completed=str(session_data["completed"]),
+            created_at=session_data["created_at"],
+            updated_at=session_data["updated_at"]
+        )
+        try:
+            self._execute(query)
+            self.logger.info(f"Saved session state for session {session_id}")
+        except IntegrityError:
+            # Session already exists, update instead
+            self.update_session_state(session_id, session_data)
+
+    def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Load session state from database.
+        
+        Args:
+            session_id: Unique session identifier
+            
+        Returns:
+            Session data dictionary or None if not found
+        """
+        query = select(self.sessions_table).where(
+            self.sessions_table.c.session_id == session_id
+        )
+        result = self._execute(query).fetchone()
+        if not result:
+            self.logger.warning(f"Session {session_id} not found")
+            return None
+        
+        session_data = dict(result._mapping)
+        # Convert 'completed' from string back to boolean
+        session_data["completed"] = session_data["completed"] == "True"
+        self.logger.debug(f"Loaded session state for session {session_id}")
+        return session_data
+
+    def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
+        """
+        Update existing session state in database.
+        
+        Args:
+            session_id: Unique session identifier
+            session_data: Updated session data dictionary
+        """
+        query = update(self.sessions_table).where(
+            self.sessions_table.c.session_id == session_id
+        ).values(
+            user_id=session_data["user_id"],
+            quiz_id=session_data["quiz_id"],
+            current_question_id=session_data["current_question_id"],
+            scores=session_data["scores"],
+            answers=session_data["answers"],
+            completed=str(session_data["completed"]),
+            created_at=session_data["created_at"],
+            updated_at=session_data["updated_at"]
+        )
+        self._execute(query)
+        self.logger.debug(f"Updated session state for session {session_id}")
+
+    def delete_session_state(self, session_id: str) -> None:
+        """
+        Delete session state from database.
+        
+        Args:
+            session_id: Unique session identifier
+        """
+        query = delete(self.sessions_table).where(
+            self.sessions_table.c.session_id == session_id
+        )
+        self._execute(query)
+        self.logger.info(f"Deleted session state for session {session_id}")

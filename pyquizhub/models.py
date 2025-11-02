@@ -65,12 +65,19 @@ class AnswerRequestModel(BaseModel):
     answer: dict[str, str | int | float | list | None]
 
 
+# Question Models
+class QuestionModel(BaseModel):
+    id: int | None
+    data: dict[str, Any] | None
+    error: Optional[str] = None
+
+
 class SubmitAnswerResponseModel(BaseModel):
     quiz_id: str
     user_id: str
     session_id: str
     title: str
-    question: 'QuestionModel'
+    question: Optional[QuestionModel] = None
 
 
 # Result Models
@@ -85,13 +92,6 @@ class QuizResultDetailModel(BaseModel):
 
 class QuizResultResponseModel(BaseModel):
     results: dict[str, dict[str, QuizResultDetailModel]]
-
-
-# Question Models
-class QuestionModel(BaseModel):
-    id: int | None
-    data: dict[str, Any] | None
-    error: Optional[str] = None
 
 
 class NextQuestionResponseModel(BaseModel):

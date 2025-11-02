@@ -33,79 +33,88 @@ test_quiz_files = [f for f in os.listdir(
 
 
 def test_complex_quiz_flow():
-    """Test the flow of the complex quiz."""
+    """Test the flow of the complex quiz with stateless engine."""
     from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(os.path.dirname(
         __file__), "test_quiz_jsons", "complex_quiz.json"))
     engine = QuizEngine(quiz_data)
 
-    # Start the quiz for a user
-    user_id = "user2"
-    session_id = str(uuid.uuid4())
-    engine.start_quiz(session_id)
+    # Start the quiz (no session_id parameter)
+    state = engine.start_quiz()
 
     # Check initial question
-    assert engine.get_current_question(session_id)["id"] == 1
+    current_question = engine.get_current_question(state)
+    assert current_question["id"] == 1
 
     # Check initial scores
-    assert engine.sessions[session_id]["scores"]["fruits"] == 0
-    assert engine.sessions[session_id]["scores"]["apples"] == 0
-    assert engine.sessions[session_id]["scores"]["pears"] == 0
+    assert state["scores"]["fruits"] == 0
+    assert state["scores"]["apples"] == 0
+    assert state["scores"]["pears"] == 0
 
-    # Answer the first question
-    result = engine.answer_question(session_id, "yes")
-    assert engine.sessions[session_id]["scores"]["fruits"] == 1
-    assert engine.sessions[session_id]["scores"]["apples"] == 2
-    assert engine.sessions[session_id]["scores"]["pears"] == 0
+    # Answer the first question (returns new state)
+    new_state = engine.answer_question(state, "yes")
+    assert new_state["scores"]["fruits"] == 1
+    assert new_state["scores"]["apples"] == 2
+    assert new_state["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    result = engine.answer_question(session_id, "yes")
-    assert result["id"] is None
-    assert result["data"]["type"] == "final_message"
+    new_state = engine.answer_question(new_state, "yes")
+    assert new_state["completed"] is True
+    assert new_state["current_question_id"] is None
+
+    # Verify next question is None
+    next_question = engine.get_current_question(new_state)
+    assert next_question is None
 
     # Final check of the results
-    results = engine.get_results(session_id)
-    expected_results = {'scores': {'fruits': 2, 'apples': 2, 'pears': 2}, 'answers': [
-        {'question_id': 1, 'answer': 'yes'}, {'question_id': 2, 'answer': 'yes'}]}
-    assert results == expected_results
+    expected_scores = {'fruits': 2, 'apples': 2, 'pears': 2}
+    assert new_state["scores"] == expected_scores
+    assert len(new_state["answers"]) == 2
+    assert new_state["answers"][0]["question_id"] == 1
+    assert new_state["answers"][0]["answer"] == "yes"
+    assert new_state["answers"][1]["question_id"] == 2
+    assert new_state["answers"][1]["answer"] == "yes"
 
 
 def test_complex_quiz_loop_flow():
-    """Test the flow of the complex quiz."""
+    """Test the flow of the complex quiz with loop (stateless engine)."""
     from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(os.path.dirname(
         __file__), "test_quiz_jsons", "complex_quiz.json"))
     engine = QuizEngine(quiz_data)
 
-    # Start the quiz for a user
-    user_id = "user2"
-    session_id = str(uuid.uuid4())
-    engine.start_quiz(session_id)
+    # Start the quiz (no session_id parameter)
+    state = engine.start_quiz()
 
     # Check initial question
-    assert engine.get_current_question(session_id)["id"] == 1
+    current_question = engine.get_current_question(state)
+    assert current_question["id"] == 1
 
     # Check initial scores
-    assert engine.sessions[session_id]["scores"]["fruits"] == 0
-    assert engine.sessions[session_id]["scores"]["apples"] == 0
-    assert engine.sessions[session_id]["scores"]["pears"] == 0
+    assert state["scores"]["fruits"] == 0
+    assert state["scores"]["apples"] == 0
+    assert state["scores"]["pears"] == 0
 
-    # Answer the first question
-    result = engine.answer_question(session_id, "no")
-    assert engine.sessions[session_id]["scores"]["fruits"] == 0
-    assert engine.sessions[session_id]["scores"]["apples"] == -1
-    assert engine.sessions[session_id]["scores"]["pears"] == 0
+    # Answer the first question with "no"
+    state = engine.answer_question(state, "no")
+    assert state["scores"]["fruits"] == 0
+    assert state["scores"]["apples"] == -1
+    assert state["scores"]["pears"] == 0
 
-    # Answer the first question again
-    result = engine.answer_question(session_id, "yes")
-    assert engine.sessions[session_id]["scores"]["fruits"] == 1
-    assert engine.sessions[session_id]["scores"]["apples"] == 1
-    assert engine.sessions[session_id]["scores"]["pears"] == 0
+    # Answer the first question again with "yes" (looped back)
+    state = engine.answer_question(state, "yes")
+    assert state["scores"]["fruits"] == 1
+    assert state["scores"]["apples"] == 1
+    assert state["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    result = engine.answer_question(session_id, "yes")
-    assert result["id"] is None
-    assert result["data"]["type"] == "final_message"
+    state = engine.answer_question(state, "yes")
+    assert state["completed"] is True
+    assert state["current_question_id"] is None
+    
+    # Verify next question is None
+    next_question = engine.get_current_question(state)
+    assert next_question is None
 
 
 def test_invalid_score_updates():
@@ -132,7 +141,7 @@ def test_invalid_transitions():
 
 @pytest.mark.parametrize("quiz_file", test_quiz_files)
 def test_quiz_types(quiz_file):
-    """Test the flow of various quiz types."""
+    """Test the flow of various quiz types with stateless engine."""
     from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(jsons_dir, quiz_file))
     engine = QuizEngine(quiz_data)
@@ -141,10 +150,9 @@ def test_quiz_types(quiz_file):
     answer = extract_answer(quiz_data)
     assert answer is not None, f"Correct answer not found in metadata for {quiz_file}"
 
-    # Start the quiz for a user
-    session_id = str(uuid.uuid4())
-    engine.start_quiz(session_id)
+    # Start the quiz (no session_id parameter)
+    state = engine.start_quiz()
 
     # Answer the question
-    result = engine.answer_question(session_id, answer)
-    assert engine.sessions[session_id]["scores"]["score_a"] == 1
+    new_state = engine.answer_question(state, answer)
+    assert new_state["scores"]["score_a"] == 1
