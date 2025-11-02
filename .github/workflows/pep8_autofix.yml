@@ -1,0 +1,49 @@
+name: PEP8 Auto-fix on Main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.py'
+
+jobs:
+  autofix-formatting:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
+
+    - name: Install autopep8
+      run: pip install autopep8
+
+    - name: Auto-fix formatting
+      run: |
+        FILES=$(find . -name "*.py")
+        echo "Auto-fixing formatting for Python files..."
+        for file in $FILES; do
+            autopep8 --in-place --aggressive --aggressive $file
+        done
+
+    - name: Check for changes
+      id: verify_diff
+      run: |
+        git diff --quiet . || echo "changed=true" >> $GITHUB_OUTPUT
+
+    - name: Commit and push changes
+      if: steps.verify_diff.outputs.changed == 'true'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add -A
+        git commit -m "style: auto-fix PEP8 formatting [skip ci]"
+        git push
