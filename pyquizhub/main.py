@@ -13,25 +13,19 @@ from fastapi.middleware import Middleware
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, Depends, HTTPException
+from contextlib import asynccontextmanager
 
-
-app = FastAPI()
 
 # Configure logging
 logger = get_logger(__name__)
 logger.debug("Loaded main.py")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI()
 
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     logger.debug("Starting up the application")
     config = load_config()
     app.state.config = config
@@ -48,19 +42,25 @@ async def startup_event():
 
     logger.info("Application startup complete")
 
+    yield
 
-@app.on_event("shutdown")
-async def shutdown_event():
+    # Shutdown
     logger.debug("Shutting down the application")
     if hasattr(app.state, "storage_manager"):
         storage_manager: StorageManager = app.state.storage_manager
         # storage_manager.close()
     logger.info("Application shutdown complete")
 
-# Include routers
-app.include_router(admin_router, prefix="/admin", tags=["admin"])
-app.include_router(creator_router, prefix="/creator", tags=["creator"])
-app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
+
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -80,6 +80,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "message": "Invalid input received. Please check your request and try again."}
     )
+
+# Include routers
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(creator_router, prefix="/creator", tags=["creator"])
+app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
+
 
 if __name__ == "__main__":
     import uvicorn
