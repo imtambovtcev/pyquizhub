@@ -113,16 +113,16 @@ class QuizEngine:
         question_id = state["current_question_id"]
         if question_id is None:
             return None  # Quiz is complete
-        
+
         question = next(
             (q for q in self.quiz.get("questions", [])
              if q.get("id") == question_id),
             None
         )
-        
+
         if not question:
             raise ValueError(f"Question with ID {question_id} not found.")
-        
+
         self.logger.debug(f"Retrieved question {question_id}")
         return question
 
@@ -155,10 +155,10 @@ class QuizEngine:
         current_question = self.get_current_question(state)
         if current_question is None:
             raise ValueError("Quiz already completed")
-        
+
         # Validate answer format
         self._validate_answer(current_question, answer)
-        
+
         # Create new state (don't mutate input)
         new_state = {
             "current_question_id": state["current_question_id"],
@@ -166,7 +166,7 @@ class QuizEngine:
             "answers": state["answers"].copy(),
             "completed": state["completed"]
         }
-        
+
         # Update scores based on conditional logic
         score_updates = current_question.get("score_updates", [])
         for condition_group in score_updates:
@@ -176,30 +176,30 @@ class QuizEngine:
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
                         expr, new_state["scores"]
                     )
-        
+
         # Record answer with timestamp
         new_state["answers"].append({
             "question_id": new_state["current_question_id"],
             "answer": answer,
             "timestamp": datetime.now().isoformat()
         })
-        
+
         # Determine next question
         next_question_id = self._get_next_question(
             new_state["current_question_id"],
             new_state["scores"]
         )
-        
+
         new_state["current_question_id"] = next_question_id
         new_state["completed"] = (next_question_id is None)
-        
+
         self.logger.debug(
             f"Processed answer for question {current_question['id']}, "
             f"next question: {next_question_id}"
         )
-        
+
         return new_state
-    
+
     def _validate_answer(self, question: dict, answer: any) -> None:
         """
         Validate answer format based on question type.
@@ -216,23 +216,20 @@ class QuizEngine:
         try:
             if question_type == "integer":
                 int(answer)  # Validate can convert to int
+            elif question_type == "float":
+                float(answer)  # Validate can convert to float
             elif question_type == "multiple_select":
                 if not isinstance(answer, list):
                     raise ValueError(
-                        "Answer must be a list of selected options."
-                    )
-                valid_options = [
-                    opt["value"]
-                    for opt in question["data"]["options"]
-                ]
+                        "Answer must be a list of selected options.")
+                valid_options = [opt["value"]
+                                 for opt in question["data"]["options"]]
                 for option in answer:
                     if option not in valid_options:
                         raise ValueError(f"Invalid option selected: {option}")
             elif question_type == "multiple_choice":
-                valid_options = [
-                    opt["value"]
-                    for opt in question["data"]["options"]
-                ]
+                valid_options = [opt["value"]
+                                 for opt in question["data"]["options"]]
                 if answer not in valid_options:
                     raise ValueError(f"Invalid option selected: {answer}")
         except (ValueError, TypeError) as e:

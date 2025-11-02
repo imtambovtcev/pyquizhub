@@ -440,12 +440,10 @@ class FileStorageManager(StorageManager):
             session_id: Unique session identifier
         """
         filepath = os.path.join(
-            self.base_dir, "sessions", f"{session_id}.json"
-        )
+            self.base_dir, "sessions", f"{session_id}.json")
         if os.path.exists(filepath):
             os.remove(filepath)
             self.logger.info(f"Deleted session state for session {session_id}")
         else:
             self.logger.warning(
-                f"Attempted to delete non-existent session {session_id}"
-            )
+                f"Attempted to delete non-existent session {session_id}")

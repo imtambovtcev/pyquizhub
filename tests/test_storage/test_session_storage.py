@@ -32,22 +32,19 @@ def sql_storage():
     os.unlink(db_path)
 
 
-def create_sample_session_data(session_id: str = "session-123") -> dict:
+def create_sample_session_data(session_id="test-session-123"):
     """Create sample session data for testing."""
     return {
         "session_id": session_id,
-        "quiz_id": "quiz-abc",
-        "user_id": "user-1",
+        "user_id": "test_user",
+        "quiz_id": "test_quiz",
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
         "current_question_id": 1,
         "scores": {"fruits": 5, "apples": 3},
         "answers": [
-            {
-                "question_id": 1,
-                "answer": "yes",
-                "timestamp": datetime.now().isoformat()
-            }
+            {"question_id": 1, "answer": "yes",
+                "timestamp": datetime.now().isoformat()}
         ],
         "completed": False
     }
@@ -181,7 +178,7 @@ class TestSessionStorage:
         session_data["scores"]["fruits"] = 5
         session_data["answers"].append({
             "question_id": 2,
-            "answer": "no",
+            "answer": "yes",
             "timestamp": datetime.now().isoformat()
         })
         storage.update_session_state(session_data["session_id"], session_data)
@@ -191,7 +188,7 @@ class TestSessionStorage:
         session_data["scores"]["fruits"] = 10
         session_data["answers"].append({
             "question_id": 3,
-            "answer": ["a", "b"],
+            "answer": "no",
             "timestamp": datetime.now().isoformat()
         })
         storage.update_session_state(session_data["session_id"], session_data)
@@ -219,16 +216,21 @@ class TestSessionStorage:
         # Create session with complex data
         session_data = create_sample_session_data()
         session_data["scores"] = {
-            "nested": {
-                "level1": {
-                    "level2": 5
-                }
-            }
+            "category_a": 10,
+            "category_b": 20,
+            "category_c": 0,
+            "nested": {"level1": {"level2": 5}}
         }
         session_data["answers"] = [
             {
                 "question_id": 1,
-                "answer": ["opt1", "opt3", "opt4"],
+                "answer": ["option1", "option2", "option3"],
+                "timestamp": datetime.now().isoformat(),
+                "metadata": {"confidence": 0.9}
+            },
+            {
+                "question_id": 2,
+                "answer": {"text": "complex answer", "selected": [1, 2, 3]},
                 "timestamp": datetime.now().isoformat()
             }
         ]
@@ -239,3 +241,5 @@ class TestSessionStorage:
         # Verify complex structures are preserved
         assert loaded_session["scores"]["nested"]["level1"]["level2"] == 5
         assert len(loaded_session["answers"][0]["answer"]) == 3
+        assert loaded_session["answers"][1]["answer"]["text"] == "complex answer"
+        assert loaded_session["answers"][0]["metadata"]["confidence"] == 0.9

@@ -59,12 +59,18 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     Creates a new stateless engine instance, generates initial state,
     and persists the session to storage.
 
+    Args:
+        request: StartQuizRequestModel containing token and user ID
+        req: FastAPI Request object containing application state
+
     Returns:
-        StartQuizResponseModel: Session details and first question
+        StartQuizResponseModel: Initial quiz session data and first question
+
+    Raises:
+        HTTPException: If token is invalid or quiz not found
     """
     logger.debug(
-        f"Starting quiz with token: {request.token} for user: {request.user_id}"
-    )
+        f"Starting quiz with token: {request.token} for user: {request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -113,8 +119,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     storage_manager.save_session_state(session_data)
 
     logger.info(
-        f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}"
-    )
+        f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
 
     return StartQuizResponseModel(
         quiz_id=quiz_id,
@@ -133,12 +138,19 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     Loads session state, creates stateless engine, processes answer,
     updates and persists the new state.
 
+    Args:
+        quiz_id: ID of the active quiz
+        request: AnswerRequestModel containing answer data
+        req: FastAPI Request object containing application state
+
     Returns:
-        SubmitAnswerResponseModel: Updated state and next question
+        SubmitAnswerResponseModel: Next question or quiz completion status
+
+    Raises:
+        HTTPException: If session not found or answer invalid
     """
     logger.debug(
-        f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}"
-    )
+        f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -156,8 +168,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # Verify quiz_id matches (security check)
     if session_data["quiz_id"] != quiz_id:
         logger.error(
-            f"Quiz ID mismatch: expected {session_data['quiz_id']}, got {quiz_id}"
-        )
+            f"Quiz ID mismatch: expected {session_data['quiz_id']}, got {quiz_id}")
         raise HTTPException(status_code=400, detail="Quiz ID mismatch")
 
     # Extract engine state (without metadata)
@@ -199,8 +210,10 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # If completed, save final results and clean up session
     if new_engine_state["completed"]:
         storage_manager.add_results(
-            quiz_id,
-            {
+            user_id=user_id,
+            quiz_id=quiz_id,
+            session_id=session_id,
+            results={
                 "scores": new_engine_state["scores"],
                 "answers": new_engine_state["answers"],
                 "timestamp": datetime.now().isoformat()
@@ -208,8 +221,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
         )
         storage_manager.delete_session_state(session_id)
         logger.info(
-            f"Completed quiz session {session_id} for user {user_id} on quiz {quiz_id}"
-        )
+            f"Completed quiz session {session_id} for user {user_id} on quiz {quiz_id}")
 
     return SubmitAnswerResponseModel(
         quiz_id=quiz_id,
