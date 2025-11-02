@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     logger.debug("Starting up the application")
     config_manager = get_config_manager()
     config_manager.load()  # Ensure config is loaded
-    
+
     app.state.config_manager = config_manager
     storage_type = config_manager.storage_type
     if storage_type == "file":
@@ -92,4 +92,5 @@ if __name__ == "__main__":
     import uvicorn
     config_manager = get_config_manager()
     config_manager.load()
-    uvicorn.run(app, host=config_manager.api_host, port=config_manager.api_port)
+    uvicorn.run(app, host=config_manager.api_host,
+                port=config_manager.api_port)

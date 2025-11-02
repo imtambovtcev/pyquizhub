@@ -56,7 +56,7 @@ fixture:
 
     # Reset ConfigManager after tests
     ConfigManager.reset_instance()
-    
+
     if original_config_path:
         os.environ["PYQUIZHUB_CONFIG_PATH"] = original_config_path
     else:
