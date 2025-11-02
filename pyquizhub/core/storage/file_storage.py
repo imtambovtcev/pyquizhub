@@ -43,6 +43,7 @@ class FileStorageManager(StorageManager):
         os.makedirs(self.base_dir, exist_ok=True)
         os.makedirs(os.path.join(self.base_dir, "quizzes"), exist_ok=True)
         os.makedirs(os.path.join(self.base_dir, "results"), exist_ok=True)
+        os.makedirs(os.path.join(self.base_dir, "sessions"), exist_ok=True)
 
         # Initialize default files
         if not os.path.exists(os.path.join(self.base_dir, "users.json")):
@@ -387,3 +388,62 @@ class FileStorageManager(StorageManager):
         self.logger.debug(
             f"Fetching sessions for quiz ID: {quiz_id} and user ID: {user_id}")
         return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
+
+    def save_session_state(self, session_data: Dict[str, Any]) -> None:
+        """
+        Save complete session state to filesystem.
+
+        Args:
+            session_data: Dictionary containing session metadata and engine state
+        """
+        session_id = session_data["session_id"]
+        filepath = f"sessions/{session_id}.json"
+        self._write_json(filepath, session_data)
+        self.logger.info(f"Saved session state for session {session_id}")
+
+    def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Load session state from filesystem.
+
+        Args:
+            session_id: Unique session identifier
+
+        Returns:
+            Session data dictionary or None if not found
+        """
+        filepath = f"sessions/{session_id}.json"
+        try:
+            session_data = self._read_json(filepath)
+            self.logger.debug(f"Loaded session state for session {session_id}")
+            return session_data
+        except FileNotFoundError:
+            self.logger.warning(f"Session {session_id} not found")
+            return None
+
+    def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
+        """
+        Update existing session state in filesystem.
+
+        Args:
+            session_id: Unique session identifier
+            session_data: Updated session data dictionary
+        """
+        # For file storage, update is the same as save
+        self.save_session_state(session_data)
+        self.logger.debug(f"Updated session state for session {session_id}")
+
+    def delete_session_state(self, session_id: str) -> None:
+        """
+        Delete session state file.
+
+        Args:
+            session_id: Unique session identifier
+        """
+        filepath = os.path.join(
+            self.base_dir, "sessions", f"{session_id}.json")
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            self.logger.info(f"Deleted session state for session {session_id}")
+        else:
+            self.logger.warning(
+                f"Attempted to delete non-existent session {session_id}")

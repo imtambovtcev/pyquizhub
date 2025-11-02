@@ -140,8 +140,9 @@ class TestQuizEngine:
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
 
-        assert "question" in data, "Response should include next question"
-        assert data["question"]['id'] is None
+        assert "question" in data, "Response should include question field"
+        # When quiz is completed, question is None
+        assert data["question"] is None, "Question should be None when quiz is completed"
 
     def test_get_participated_users(self, api_client: TestClient):
         """Test retrieving participated users for the quiz."""

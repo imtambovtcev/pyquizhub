@@ -136,7 +136,56 @@ class StorageManager(ABC):
         """Fetch all quizzes."""
         pass
 
-    def add_result(self, user_id: str, quiz_id: str, session_id: str, result: dict):
-        """Add or update a result."""
-        result["timestamp"] = datetime.now().isoformat()
-        # ...existing code...
+    # Session State Management (for stateless engine)
+    @abstractmethod
+    def save_session_state(self, session_data: Dict[str, Any]) -> None:
+        """
+        Save complete session state including engine state and metadata.
+
+        Args:
+            session_data: Dictionary containing:
+                - session_id (str): Unique session identifier
+                - user_id (str): User identifier
+                - quiz_id (str): Quiz identifier
+                - created_at (str): ISO format timestamp
+                - updated_at (str): ISO format timestamp
+                - current_question_id: Current question ID (engine state)
+                - scores (dict): Current scores (engine state)
+                - answers (list): List of answers (engine state)
+                - completed (bool): Completion status (engine state)
+        """
+        pass
+
+    @abstractmethod
+    def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Load session state by session ID.
+
+        Args:
+            session_id: Unique session identifier
+
+        Returns:
+            Session data dictionary or None if not found
+        """
+        pass
+
+    @abstractmethod
+    def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
+        """
+        Update existing session state.
+
+        Args:
+            session_id: Unique session identifier
+            session_data: Updated session data dictionary
+        """
+        pass
+
+    @abstractmethod
+    def delete_session_state(self, session_id: str) -> None:
+        """
+        Delete session state (e.g., after quiz completion).
+
+        Args:
+            session_id: Unique session identifier
+        """
+        pass
