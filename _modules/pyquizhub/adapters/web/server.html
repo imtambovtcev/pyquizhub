@@ -78,7 +78,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">flask_cors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CORS</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyquizhub.config.config_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_token_from_config</span><span class="p">,</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyquizhub.config.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_config_manager</span><span class="p">,</span> <span class="n">get_logger</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -86,22 +86,11 @@
 <span class="n">CORS</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
 
 <span class="c1"># Load config and get API URL and token</span>
+<span class="n">config_manager</span> <span class="o">=</span> <span class="n">get_config_manager</span><span class="p">()</span>
+<span class="n">config_manager</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="load_config">
-<a class="viewcode-back" href="../../../../adapters/web/server.html#pyquizhub.adapters.web.server.load_config">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">():</span>
-    <span class="n">config_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;PYQUIZHUB_CONFIG_PATH&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;../../config/config.yaml&quot;</span><span class="p">)))</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
-        <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
-
-
-
-<span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">()</span>
-<span class="n">API_BASE_URL</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">][</span><span class="s2">&quot;base_url&quot;</span><span class="p">]</span>
-<span class="n">USER_TOKEN</span> <span class="o">=</span> <span class="n">get_token_from_config</span><span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">)</span>
+<span class="n">API_BASE_URL</span> <span class="o">=</span> <span class="n">config_manager</span><span class="o">.</span><span class="n">api_base_url</span>
+<span class="n">USER_TOKEN</span> <span class="o">=</span> <span class="n">config_manager</span><span class="o">.</span><span class="n">get_token</span><span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="proxy_request">
