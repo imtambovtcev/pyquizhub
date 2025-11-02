@@ -13,6 +13,7 @@ import pytest
 import os
 from fastapi.testclient import TestClient
 from pyquizhub.config.config_utils import load_config
+from pyquizhub.config.settings import ConfigManager
 
 
 @pytest.fixture(scope="module")
@@ -49,8 +50,14 @@ fixture:
     config_path: {str(config_path)}
 """)
 
+    # Reset ConfigManager to ensure clean state for tests
+    ConfigManager.reset_instance()
+
     yield
 
+    # Reset ConfigManager after tests
+    ConfigManager.reset_instance()
+    
     if original_config_path:
         os.environ["PYQUIZHUB_CONFIG_PATH"] = original_config_path
     else:

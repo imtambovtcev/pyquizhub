@@ -25,7 +25,7 @@ from pyquizhub.models import (
     QuizResultResponseModel
 )
 from datetime import datetime
-from pyquizhub.config.config_utils import get_token_from_config, get_logger
+from pyquizhub.config.config_utils import get_logger
 
 logger = get_logger(__name__)
 logger.debug("Loaded router_admin.py")
@@ -42,8 +42,10 @@ def creator_token_dependency(request: Request):
     Raises:
         HTTPException: If creator token is invalid
     """
+    from pyquizhub.config.settings import get_config_manager
     token = request.headers.get("Authorization")
-    expected_token = get_token_from_config("creator")
+    config_manager = get_config_manager()
+    expected_token = config_manager.get_token("creator")
     if token != expected_token:
         raise HTTPException(status_code=403, detail="Invalid creator token")
 

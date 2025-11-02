@@ -33,9 +33,10 @@ class ConfigManager:
     
     def __init__(self):
         """Initialize ConfigManager. Should not be called directly."""
-        if ConfigManager._instance is not None:
-            raise RuntimeError("Use ConfigManager.get_instance() instead")
-        
+        # Only initialize if not already initialized
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+            
         self._config: Optional[Dict[str, Any]] = None
         self._config_path: Optional[str] = None
         self._initialized = False

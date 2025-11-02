@@ -24,8 +24,7 @@ from pyquizhub.models import (
 )
 from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic, get_quiz_logic, get_participated_users_logic, get_results_by_quiz_logic
 import os
-import yaml
-from pyquizhub.config.config_utils import get_token_from_config, get_logger
+from pyquizhub.config.config_utils import get_logger
 from pyquizhub.core.storage.storage_manager import StorageManager
 
 logger = get_logger(__name__)
@@ -43,8 +42,10 @@ def admin_token_dependency(request: Request):
     Raises:
         HTTPException: If admin token is invalid
     """
+    from pyquizhub.config.settings import get_config_manager
     token = request.headers.get("Authorization")
-    expected_token = get_token_from_config("admin")
+    config_manager = get_config_manager()
+    expected_token = config_manager.get_token("admin")
     if token != expected_token:
         raise HTTPException(status_code=403, detail="Invalid admin token")
 
@@ -123,14 +124,15 @@ def admin_get_config(req: Request):
     Raises:
         HTTPException: If config file is not found or access denied
     """
-    config_path = os.getenv("PYQUIZHUB_CONFIG_PATH", "config.yaml")
     try:
-        with open(config_path, "r") as f:
-            config_data = yaml.safe_load(f)
+        from pyquizhub.config.settings import get_config_manager
+        config_manager = get_config_manager()
+        config_path = config_manager.get_config_path()
+        config_data = config_manager.get_config()
+        return ConfigPathResponseModel(config_path=config_path, config_data=config_data)
     except FileNotFoundError:
-        logger.error(f"Config file not found at path: {config_path}")
+        logger.error(f"Config file not found")
         raise HTTPException(status_code=404, detail="Config not found")
-    return ConfigPathResponseModel(config_path=config_path, config_data=config_data)
 
 
 @router.post("/create_quiz", response_model=QuizCreationResponseModel, dependencies=[Depends(admin_token_dependency)])

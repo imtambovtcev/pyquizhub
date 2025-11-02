@@ -1,29 +1,24 @@
 import os
-import yaml
 from sqlalchemy import create_engine, MetaData
+from pyquizhub.config.settings import get_config_manager
 
 
 def initialize_system():
     """Initialize the pyquizhub system based on the configuration."""
-    # Load configuration
-    config_path = os.path.abspath("config.yaml")
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(
-            f"Configuration file '{config_path}' not found.")
-
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
+    # Get configuration manager
+    config_manager = get_config_manager()
+    config_manager.load()  # Ensure config is loaded
 
     # Handle storage initialization
-    storage_type = config.get("storage", {}).get("type", "file")
+    storage_type = config_manager.storage_type
     if storage_type == "file":
-        base_dir = config["storage"]["file"]["base_dir"]
+        base_dir = config_manager.storage_file_base_dir
         os.makedirs(base_dir, exist_ok=True)
         os.makedirs(os.path.join(base_dir, "quizzes"), exist_ok=True)
         os.makedirs(os.path.join(base_dir, "results"), exist_ok=True)
         print(f"File-based storage initialized at {base_dir}.")
     elif storage_type == "sql":
-        connection_string = config["storage"]["sql"]["connection_string"]
+        connection_string = config_manager.storage_sql_connection_string
         engine = create_engine(connection_string)
         metadata = MetaData()
 
