@@ -141,6 +141,18 @@
             <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
             <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">)</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="s2">&quot;sessions&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;session_id&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">,</span> <span class="n">JSON</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="n">JSON</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;answers&quot;</span><span class="p">,</span> <span class="n">JSON</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;completed&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="c1"># Create tables if they don&#39;t exist</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span></div>
@@ -547,6 +559,105 @@
         <span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">_mapping</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">result</span><span class="p">]</span></div>
+
+
+    <span class="c1"># Session State Management (for stateless engine)</span>
+<div class="viewcode-block" id="SQLStorageManager.save_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.save_session_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save complete session state to database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_data: Dictionary containing session metadata and engine state</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">]</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">insert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+            <span class="n">user_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+            <span class="n">quiz_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">],</span>
+            <span class="n">current_question_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
+            <span class="n">scores</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+            <span class="n">answers</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">],</span>
+            <span class="n">completed</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]),</span>
+            <span class="n">created_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span>
+            <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
+            <span class="c1"># Session already exists, update instead</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_session_state</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">session_data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SQLStorageManager.load_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.load_session_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load session state from database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Unique session identifier</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Session data dictionary or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">session_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>
+        <span class="c1"># Convert &#39;completed&#39; from string back to boolean</span>
+        <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;True&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">session_data</span></div>
+
+
+<div class="viewcode-block" id="SQLStorageManager.update_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.update_session_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">session_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update existing session state in database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Unique session identifier</span>
+<span class="sd">            session_data: Updated session data dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="n">user_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+            <span class="n">quiz_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">],</span>
+            <span class="n">current_question_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
+            <span class="n">scores</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+            <span class="n">answers</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">],</span>
+            <span class="n">completed</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]),</span>
+            <span class="n">created_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span>
+            <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SQLStorageManager.delete_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.delete_session_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete session state from database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Unique session identifier</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

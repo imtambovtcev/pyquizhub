@@ -78,7 +78,7 @@
 <div class="genindex-jumpbox">
  <a href="#_"><strong>_</strong></a>
  | <a href="#A"><strong>A</strong></a>
- | <a href="#E"><strong>E</strong></a>
+ | <a href="#D"><strong>D</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
@@ -104,15 +104,17 @@
       </ul></li>
       <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager._execute">_execute() (pyquizhub.core.storage.sql_storage.SQLStorageManager method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine._get_next_question">_get_next_question() (pyquizhub.core.engine.engine.QuizEngine method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager._load">_load() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 </li>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager._read_json">_read_json() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 </li>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager._save">_save() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
+</li>
+      <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine._validate_answer">_validate_answer() (pyquizhub.core.engine.engine.QuizEngine method)</a>
 </li>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager._write_json">_write_json() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 </li>
@@ -130,8 +132,6 @@
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.add_quiz">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
 </li>
       </ul></li>
-      <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.add_result">add_result() (pyquizhub.core.storage.storage_manager.StorageManager method)</a>
-</li>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_results">add_results() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
@@ -140,8 +140,6 @@
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.add_results">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_tokens">add_tokens() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
@@ -150,6 +148,8 @@
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.add_tokens">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_users">add_users() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
@@ -165,11 +165,17 @@
   </ul></td>
 </tr></table>
 
-<h2 id="E">E</h2>
+<h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine.end_quiz">end_quiz() (pyquizhub.core.engine.engine.QuizEngine method)</a>
+      <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.delete_session_state">delete_session_state() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
+
+      <ul>
+        <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.delete_session_state">(pyquizhub.core.storage.sql_storage.SQLStorageManager method)</a>
 </li>
+        <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.delete_session_state">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -218,8 +224,6 @@
       </ul></li>
       <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine.get_current_question">get_current_question() (pyquizhub.core.engine.engine.QuizEngine method)</a>
 </li>
-      <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine.get_current_question_id_and_data">get_current_question_id_and_data() (pyquizhub.core.engine.engine.QuizEngine method)</a>
-</li>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_participated_users">get_participated_users() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
@@ -244,11 +248,9 @@
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.get_quiz_id_by_token">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
 </li>
       </ul></li>
-      <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine.get_results">get_results() (pyquizhub.core.engine.engine.QuizEngine method)</a>
+      <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results">get_results() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
-        <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results">(pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
-</li>
         <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.get_results">(pyquizhub.core.storage.sql_storage.SQLStorageManager method)</a>
 </li>
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.get_results">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
@@ -262,8 +264,6 @@
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.get_results_by_quiz">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results_by_quiz_and_user">get_results_by_quiz_and_user() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
@@ -272,6 +272,8 @@
         <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.get_results_by_quiz_and_user">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results_by_user">get_results_by_user() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 
       <ul>
@@ -364,6 +366,14 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine.load_quiz">load_quiz() (pyquizhub.core.engine.engine.QuizEngine method)</a>
 </li>
+      <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.load_session_state">load_session_state() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
+
+      <ul>
+        <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.load_session_state">(pyquizhub.core.storage.sql_storage.SQLStorageManager method)</a>
+</li>
+        <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.load_session_state">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -442,16 +452,24 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.save_session_state">save_session_state() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
+
+      <ul>
+        <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.save_session_state">(pyquizhub.core.storage.sql_storage.SQLStorageManager method)</a>
+</li>
+        <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.save_session_state">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
+</li>
+      </ul></li>
       <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager">SQLStorageManager (class in pyquizhub.core.storage.sql_storage)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="adapters/web/server.html#pyquizhub.adapters.web.server.start_quiz">start_quiz() (in module pyquizhub.adapters.web.server)</a>
 
       <ul>
         <li><a href="core/engine.html#pyquizhub.core.engine.engine.QuizEngine.start_quiz">(pyquizhub.core.engine.engine.QuizEngine method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager">StorageManager (class in pyquizhub.core.storage.storage_manager)</a>
 </li>
       <li><a href="adapters/web/server.html#pyquizhub.adapters.web.server.style">style() (in module pyquizhub.adapters.web.server)</a>
@@ -463,6 +481,16 @@
 
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.update_session_state">update_session_state() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
+
+      <ul>
+        <li><a href="core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.update_session_state">(pyquizhub.core.storage.sql_storage.SQLStorageManager method)</a>
+</li>
+        <li><a href="core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.update_session_state">(pyquizhub.core.storage.storage_manager.StorageManager method)</a>
+</li>
+      </ul></li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.user_has_permission_for_quiz_creation">user_has_permission_for_quiz_creation() (pyquizhub.core.storage.file_storage.FileStorageManager method)</a>
 

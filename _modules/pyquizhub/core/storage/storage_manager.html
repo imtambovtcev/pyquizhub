@@ -286,14 +286,72 @@
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="StorageManager.add_result">
-<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.add_result">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add or update a result.&quot;&quot;&quot;</span>
-        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span></div>
+    <span class="c1"># Session State Management (for stateless engine)</span>
+<div class="viewcode-block" id="StorageManager.save_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.save_session_state">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save complete session state including engine state and metadata.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_data: Dictionary containing:</span>
+<span class="sd">                - session_id (str): Unique session identifier</span>
+<span class="sd">                - user_id (str): User identifier</span>
+<span class="sd">                - quiz_id (str): Quiz identifier</span>
+<span class="sd">                - created_at (str): ISO format timestamp</span>
+<span class="sd">                - updated_at (str): ISO format timestamp</span>
+<span class="sd">                - current_question_id: Current question ID (engine state)</span>
+<span class="sd">                - scores (dict): Current scores (engine state)</span>
+<span class="sd">                - answers (list): List of answers (engine state)</span>
+<span class="sd">                - completed (bool): Completion status (engine state)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="StorageManager.load_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.load_session_state">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load session state by session ID.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Unique session identifier</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Session data dictionary or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="StorageManager.update_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.update_session_state">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">session_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update existing session state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Unique session identifier</span>
+<span class="sd">            session_data: Updated session data dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="StorageManager.delete_session_state">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.storage_manager.StorageManager.delete_session_state">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete session state (e.g., after quiz completion).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Unique session identifier</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
 </div>
 
-        <span class="c1"># ...existing code...</span>
 </pre></div>
 
            </div>
