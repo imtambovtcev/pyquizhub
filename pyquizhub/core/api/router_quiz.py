@@ -26,7 +26,7 @@ import uuid
 from datetime import datetime
 from typing import Dict
 import os
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_logger
 
 logger = get_logger(__name__)
 logger.debug("Loaded router_quiz.py")

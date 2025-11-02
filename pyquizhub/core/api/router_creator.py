@@ -25,7 +25,7 @@ from pyquizhub.models import (
     QuizResultResponseModel
 )
 from datetime import datetime
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_logger
 
 logger = get_logger(__name__)
 logger.debug("Loaded router_admin.py")

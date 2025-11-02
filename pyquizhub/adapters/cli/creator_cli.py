@@ -2,8 +2,7 @@ import click
 import requests
 import json
 import os
-from pyquizhub.config.settings import get_config_manager
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_config_manager, get_logger
 from pyquizhub.models import CreateQuizRequestModel, QuizCreationResponseModel, TokenRequestModel, TokenResponseModel, QuizResultResponseModel
 
 logger = get_logger(__name__)

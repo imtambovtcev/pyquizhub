@@ -3,7 +3,7 @@ import json
 import tempfile
 import os
 from fastapi.testclient import TestClient
-from pyquizhub.config.config_utils import get_token_from_config, load_config
+from pyquizhub.config.settings import get_config_manager
 
 
 # Fixture to provide quiz data for tests
@@ -26,9 +26,10 @@ def invalid_quiz_data():
 
 @pytest.fixture(scope="module")
 def user_headers(config_path):
-    config = load_config(str(config_path))
+    config_manager = get_config_manager()
+    config_manager.load(str(config_path))
     headers = {"Content-Type": "application/json"}
-    token = get_token_from_config("user")
+    token = config_manager.get_token("user")
     if token:
         headers["Authorization"] = token
     return headers
@@ -36,9 +37,10 @@ def user_headers(config_path):
 
 @pytest.fixture(scope="module")
 def admin_headers(config_path):
-    config = load_config(str(config_path))
+    config_manager = get_config_manager()
+    config_manager.load(str(config_path))
     headers = {"Content-Type": "application/json"}
-    token = get_token_from_config("admin")
+    token = config_manager.get_token("admin")
     if token:
         headers["Authorization"] = token
     return headers

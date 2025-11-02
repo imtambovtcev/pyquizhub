@@ -12,8 +12,7 @@ This module provides pytest fixtures for setting up test environments, including
 import pytest
 import os
 from fastapi.testclient import TestClient
-from pyquizhub.config.config_utils import load_config
-from pyquizhub.config.settings import ConfigManager
+from pyquizhub.config.settings import ConfigManager, get_config_manager
 
 
 @pytest.fixture(scope="module")
@@ -101,8 +100,9 @@ logging:
     with open(config_path, "a") as f:
         f.write(config_content)
 
-    config = load_config(str(config_path))
-    LogManager.get_instance(config.get('logging', {}))
+    config_manager = get_config_manager()
+    config_manager.load(str(config_path))
+    LogManager.get_instance(config_manager.logging_config)
 
 
 @pytest.fixture(scope="module")

@@ -2,8 +2,7 @@ from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-from pyquizhub.config.settings import get_config_manager
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_config_manager, get_logger
 
 logger = get_logger(__name__)
 

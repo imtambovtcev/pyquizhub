@@ -249,3 +249,18 @@ def get_config_manager() -> ConfigManager:
         ConfigManager instance
     """
     return ConfigManager.get_instance()
+
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Get a configured logger instance.
+    
+    Args:
+        name: Name for the logger
+    
+    Returns:
+        Configured logger instance
+    """
+    config_manager = get_config_manager()
+    from pyquizhub.logging.log_manager import LogManager
+    return LogManager.get_instance(config_manager.logging_config).get_logger(name)

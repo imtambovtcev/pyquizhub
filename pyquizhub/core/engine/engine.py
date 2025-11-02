@@ -12,7 +12,7 @@ This module provides the main quiz engine functionality including:
 import json
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
-from pyquizhub.config.config_utils import get_logger
+from pyquizhub.config.settings import get_logger
 
 
 class QuizEngine:
