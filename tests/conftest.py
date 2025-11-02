@@ -20,7 +20,7 @@ from pyquizhub.config.settings import ConfigManager, get_config_manager
 def clear_env_vars():
     """
     Clear PYQUIZHUB environment variables at session start.
-    
+
     This ensures that environment variables from .env files don't interfere
     with test isolation, especially when running tests from VSCode which
     automatically loads .env files.
@@ -33,16 +33,16 @@ def clear_env_vars():
         "PYQUIZHUB_API__HOST",
         "PYQUIZHUB_API__PORT",
     ]
-    
+
     # Store original values
     original_values = {}
     for var in env_vars_to_clear:
         if var in os.environ:
             original_values[var] = os.environ[var]
             del os.environ[var]
-    
+
     yield
-    
+
     # Restore original values after all tests complete
     for var, value in original_values.items():
         os.environ[var] = value

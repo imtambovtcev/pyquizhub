@@ -382,17 +382,17 @@ class TestPydanticModels:
         settings = SecuritySettings()
         assert settings.use_tokens is True
         assert settings.admin_token_env == "PYQUIZHUB_ADMIN_TOKEN"
-    
+
     def test_app_settings_serialization(self, valid_config):
         """Test AppSettings can be serialized back to dict."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             yaml.dump(valid_config, f)
             config_path = f.name
-        
+
         try:
             settings = AppSettings.from_yaml(config_path)
             config_dict = settings.model_dump()
-            
+
             assert isinstance(config_dict, dict)
             assert 'storage' in config_dict
             assert 'api' in config_dict
