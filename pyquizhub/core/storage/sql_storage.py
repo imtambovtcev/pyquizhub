@@ -403,7 +403,7 @@ class SQLStorageManager(StorageManager):
     def save_session_state(self, session_data: Dict[str, Any]) -> None:
         """
         Save complete session state to database.
-        
+
         Args:
             session_data: Dictionary containing session metadata and engine state
         """
@@ -429,10 +429,10 @@ class SQLStorageManager(StorageManager):
     def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
         Load session state from database.
-        
+
         Args:
             session_id: Unique session identifier
-            
+
         Returns:
             Session data dictionary or None if not found
         """
@@ -443,7 +443,7 @@ class SQLStorageManager(StorageManager):
         if not result:
             self.logger.warning(f"Session {session_id} not found")
             return None
-        
+
         session_data = dict(result._mapping)
         # Convert 'completed' from string back to boolean
         session_data["completed"] = session_data["completed"] == "True"
@@ -453,7 +453,7 @@ class SQLStorageManager(StorageManager):
     def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
         """
         Update existing session state in database.
-        
+
         Args:
             session_id: Unique session identifier
             session_data: Updated session data dictionary
@@ -476,7 +476,7 @@ class SQLStorageManager(StorageManager):
     def delete_session_state(self, session_id: str) -> None:
         """
         Delete session state from database.
-        
+
         Args:
             session_id: Unique session identifier
         """

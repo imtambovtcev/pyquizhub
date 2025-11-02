@@ -111,7 +111,7 @@ def test_complex_quiz_loop_flow():
     state = engine.answer_question(state, "yes")
     assert state["completed"] is True
     assert state["current_question_id"] is None
-    
+
     # Verify next question is None
     next_question = engine.get_current_question(state)
     assert next_question is None

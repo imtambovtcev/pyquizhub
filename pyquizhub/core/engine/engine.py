@@ -23,22 +23,22 @@ from pyquizhub.config.settings import get_logger
 class QuizEngine:
     """
     Pure quiz engine - only handles quiz logic.
-    
+
     The engine is stateless and operates as a pure transformation:
     (quiz_definition, current_state, answer) → new_state
-    
+
     It has no awareness of:
     - User IDs
     - Session IDs
     - Persistence
     - HTTP/networking
-    
+
     This class handles:
     - Quiz data validation and loading
     - Question progression logic
     - Score calculation
     - Answer validation
-    
+
     Attributes:
         quiz (dict): The loaded and validated quiz data
         logger: Logger instance for engine events
@@ -79,7 +79,7 @@ class QuizEngine:
     def start_quiz(self) -> dict:
         """
         Create initial quiz state.
-        
+
         Returns:
             dict: Initial state dictionary containing:
                 - current_question_id: ID of the first question
@@ -99,14 +99,14 @@ class QuizEngine:
     def get_current_question(self, state: dict) -> Optional[dict]:
         """
         Get current question from state.
-        
+
         Args:
             state: Current session state dict containing at minimum:
                 - current_question_id: ID of current question
-        
+
         Returns:
             Question data dictionary or None if quiz is completed
-            
+
         Raises:
             ValueError: If question ID in state is not found in quiz
         """
@@ -129,10 +129,10 @@ class QuizEngine:
     def answer_question(self, state: dict, answer: any) -> dict:
         """
         Process answer and return NEW state (pure function).
-        
+
         This method does NOT mutate the input state. It creates and returns
         a new state dictionary with the updated values.
-        
+
         Args:
             state: Current session state dict containing:
                 - current_question_id: ID of current question
@@ -140,14 +140,14 @@ class QuizEngine:
                 - answers: List of previous answers
                 - completed: Boolean completion status
             answer: User's answer to the current question
-            
+
         Returns:
             New state dictionary with:
                 - Updated scores based on conditional logic
                 - Answer recorded in answers list
                 - Updated current_question_id
                 - Updated completed status
-                
+
         Raises:
             ValueError: If quiz is already completed or answer is invalid
         """
@@ -203,31 +203,36 @@ class QuizEngine:
     def _validate_answer(self, question: dict, answer: any) -> None:
         """
         Validate answer format based on question type.
-        
+
         Args:
             question: Question dictionary containing type and validation rules
             answer: User's answer to validate
-            
+
         Raises:
             ValueError: If answer format is invalid for the question type
         """
         question_type = question["data"]["type"]
-        
+
         try:
             if question_type == "integer":
                 int(answer)  # Validate can convert to int
-            elif question_type == "float":
-                float(answer)  # Validate can convert to float
             elif question_type == "multiple_select":
                 if not isinstance(answer, list):
                     raise ValueError(
-                        "Answer must be a list of selected options.")
-                valid_options = [opt["value"] for opt in question["data"]["options"]]
+                        "Answer must be a list of selected options."
+                    )
+                valid_options = [
+                    opt["value"]
+                    for opt in question["data"]["options"]
+                ]
                 for option in answer:
                     if option not in valid_options:
                         raise ValueError(f"Invalid option selected: {option}")
             elif question_type == "multiple_choice":
-                valid_options = [opt["value"] for opt in question["data"]["options"]]
+                valid_options = [
+                    opt["value"]
+                    for opt in question["data"]["options"]
+                ]
                 if answer not in valid_options:
                     raise ValueError(f"Invalid option selected: {answer}")
         except (ValueError, TypeError) as e:
@@ -238,11 +243,11 @@ class QuizEngine:
     def _get_next_question(self, current_question_id: int, scores: dict) -> Optional[int]:
         """
         Determine next question based on transitions and scores.
-        
+
         Args:
             current_question_id: ID of the current question
             scores: Dictionary of current score values
-            
+
         Returns:
             ID of next question or None if quiz should end
         """

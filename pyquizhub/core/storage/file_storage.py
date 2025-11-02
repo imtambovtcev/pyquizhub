@@ -392,7 +392,7 @@ class FileStorageManager(StorageManager):
     def save_session_state(self, session_data: Dict[str, Any]) -> None:
         """
         Save complete session state to filesystem.
-        
+
         Args:
             session_data: Dictionary containing session metadata and engine state
         """
@@ -404,10 +404,10 @@ class FileStorageManager(StorageManager):
     def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
         Load session state from filesystem.
-        
+
         Args:
             session_id: Unique session identifier
-            
+
         Returns:
             Session data dictionary or None if not found
         """
@@ -423,7 +423,7 @@ class FileStorageManager(StorageManager):
     def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
         """
         Update existing session state in filesystem.
-        
+
         Args:
             session_id: Unique session identifier
             session_data: Updated session data dictionary
@@ -435,13 +435,17 @@ class FileStorageManager(StorageManager):
     def delete_session_state(self, session_id: str) -> None:
         """
         Delete session state file.
-        
+
         Args:
             session_id: Unique session identifier
         """
-        filepath = os.path.join(self.base_dir, "sessions", f"{session_id}.json")
+        filepath = os.path.join(
+            self.base_dir, "sessions", f"{session_id}.json"
+        )
         if os.path.exists(filepath):
             os.remove(filepath)
             self.logger.info(f"Deleted session state for session {session_id}")
         else:
-            self.logger.warning(f"Attempted to delete non-existent session {session_id}")
+            self.logger.warning(
+                f"Attempted to delete non-existent session {session_id}"
+            )

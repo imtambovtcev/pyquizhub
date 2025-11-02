@@ -141,7 +141,7 @@ class StorageManager(ABC):
     def save_session_state(self, session_data: Dict[str, Any]) -> None:
         """
         Save complete session state including engine state and metadata.
-        
+
         Args:
             session_data: Dictionary containing:
                 - session_id (str): Unique session identifier
@@ -160,10 +160,10 @@ class StorageManager(ABC):
     def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
         Load session state by session ID.
-        
+
         Args:
             session_id: Unique session identifier
-            
+
         Returns:
             Session data dictionary or None if not found
         """
@@ -173,7 +173,7 @@ class StorageManager(ABC):
     def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
         """
         Update existing session state.
-        
+
         Args:
             session_id: Unique session identifier
             session_data: Updated session data dictionary
@@ -184,7 +184,7 @@ class StorageManager(ABC):
     def delete_session_state(self, session_id: str) -> None:
         """
         Delete session state (e.g., after quiz completion).
-        
+
         Args:
             session_id: Unique session identifier
         """
