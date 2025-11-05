@@ -15,6 +15,39 @@ from fastapi.testclient import TestClient
 from pyquizhub.config.settings import ConfigManager, get_config_manager
 
 
+# Session-level fixture to clear environment variables before any tests run
+@pytest.fixture(scope="session", autouse=True)
+def clear_env_vars():
+    """
+    Clear PYQUIZHUB environment variables at session start.
+
+    This ensures that environment variables from .env files don't interfere
+    with test isolation, especially when running tests from VSCode which
+    automatically loads .env files.
+    """
+    env_vars_to_clear = [
+        "PYQUIZHUB_STORAGE__TYPE",
+        "PYQUIZHUB_STORAGE__SQL__CONNECTION_STRING",
+        "PYQUIZHUB_STORAGE__FILE__BASE_DIR",
+        "PYQUIZHUB_API__BASE_URL",
+        "PYQUIZHUB_API__HOST",
+        "PYQUIZHUB_API__PORT",
+    ]
+
+    # Store original values
+    original_values = {}
+    for var in env_vars_to_clear:
+        if var in os.environ:
+            original_values[var] = os.environ[var]
+            del os.environ[var]
+
+    yield
+
+    # Restore original values after all tests complete
+    for var, value in original_values.items():
+        os.environ[var] = value
+
+
 @pytest.fixture(scope="module")
 def test_project_dir(tmp_path_factory, request):
     """Creates a unique test project directory for each test module."""

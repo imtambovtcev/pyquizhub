@@ -1,5 +1,6 @@
 from fastapi.middleware.cors import CORSMiddleware
-from pyquizhub.config.settings import get_config_manager, get_logger
+from pyquizhub.config.settings import get_config_manager
+from pyquizhub.logging.setup import setup_logging, get_logger
 from pydantic import ValidationError
 import os
 from pyquizhub.core.storage.sql_storage import SQLStorageManager
@@ -13,30 +14,44 @@ from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, Depends, HTTPException
 from contextlib import asynccontextmanager
+import logging
 
 
-# Configure logging
+# Use basic logging before config is loaded
+_basic_logger = logging.getLogger(__name__)
+
+# Configure application config and logging at module level
+_config_manager = get_config_manager()
+try:
+    _config_manager.load()
+    _basic_logger.info("Configuration loaded successfully")
+except Exception as e:
+    _basic_logger.error(f"Failed to load configuration: {e}")
+    raise
+
+# Now setup custom logging
+setup_logging(_config_manager.logging_config)
+
+# Get configured logger after setup
 logger = get_logger(__name__)
 logger.debug("Loaded main.py")
-
-app = FastAPI()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.debug("Starting up the application")
-    config_manager = get_config_manager()
-    config_manager.load()  # Ensure config is loaded
-
-    app.state.config_manager = config_manager
-    storage_type = config_manager.storage_type
+    
+    # Config is already loaded at module level, just store reference
+    app.state.config_manager = _config_manager
+    
+    storage_type = _config_manager.storage_type
     if storage_type == "file":
         app.state.storage_manager = FileStorageManager(
-            config_manager.storage_file_base_dir)
+            _config_manager.storage_file_base_dir)
     elif storage_type == "sql":
         app.state.storage_manager = SQLStorageManager(
-            config_manager.storage_sql_connection_string)
+            _config_manager.storage_sql_connection_string)
     else:
         logger.error(f"Unsupported storage type: {storage_type}")
         raise ValueError(f"Unsupported storage type: {storage_type}")
@@ -90,7 +105,6 @@ app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
 
 if __name__ == "__main__":
     import uvicorn
-    config_manager = get_config_manager()
-    config_manager.load()
-    uvicorn.run(app, host=config_manager.api_host,
-                port=config_manager.api_port)
+    # Config already loaded at module level
+    uvicorn.run(app, host=_config_manager.api_host,
+                port=_config_manager.api_port)
