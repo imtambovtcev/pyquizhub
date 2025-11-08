@@ -18,7 +18,9 @@ def sql_storage(tmpdir):
     return SQLStorageManager(connection_string)
 
 
-def test_storage_consistency_users(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
+def test_storage_consistency_users(
+        file_storage: FileStorageManager,
+        sql_storage: SQLStorageManager):
     """Test consistency of user data between file and SQL storage."""
     users = {
         "user1": {"permissions": ["create"]},
@@ -33,7 +35,9 @@ def test_storage_consistency_users(file_storage: FileStorageManager, sql_storage
     assert file_users == sql_users
 
 
-def test_storage_consistency_quiz(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
+def test_storage_consistency_quiz(
+        file_storage: FileStorageManager,
+        sql_storage: SQLStorageManager):
     """Test consistency of quiz data between file and SQL storage."""
     quiz_data = {
         "title": "Sample Quiz",
@@ -58,7 +62,9 @@ def test_storage_consistency_quiz(file_storage: FileStorageManager, sql_storage:
     assert file_quiz == sql_quiz
 
 
-def test_storage_consistency_results(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
+def test_storage_consistency_results(
+        file_storage: FileStorageManager,
+        sql_storage: SQLStorageManager):
     """Test consistency of user results between file and SQL storage."""
     results = {
         "scores": {"math": 10},
@@ -82,7 +88,9 @@ def test_storage_consistency_results(file_storage: FileStorageManager, sql_stora
     assert set(file_sessions) == set(sql_sessions)
 
 
-def test_storage_consistency_tokens(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
+def test_storage_consistency_tokens(
+        file_storage: FileStorageManager,
+        sql_storage: SQLStorageManager):
     """Test consistency of tokens between file and SQL storage."""
     tokens = [{"token": "abc123", "quiz_id": "quiz-001", "type": "single-use"}]
     file_storage.add_tokens(tokens)
@@ -94,7 +102,9 @@ def test_storage_consistency_tokens(file_storage: FileStorageManager, sql_storag
     assert file_tokens == sql_tokens
 
 
-def test_storage_consistency_participated_users(file_storage: FileStorageManager, sql_storage: SQLStorageManager):
+def test_storage_consistency_participated_users(
+        file_storage: FileStorageManager,
+        sql_storage: SQLStorageManager):
     """Test consistency of participated users between file and SQL storage."""
     results = {
         "scores": {"math": 10},

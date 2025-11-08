@@ -66,12 +66,14 @@ class StorageManager(ABC):
 
     # Results
     @abstractmethod
-    def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, user_id: str, quiz_id: str,
+                    session_id: str) -> Optional[Dict[str, Any]]:
         """Fetch results for a specific user, quiz, and session."""
         pass
 
     @abstractmethod
-    def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
+    def add_results(self, user_id: str, quiz_id: str,
+                    session_id: str, results: Dict[str, Any]) -> None:
         """Add or update results."""
         pass
 
@@ -91,7 +93,8 @@ class StorageManager(ABC):
         pass
 
     @abstractmethod
-    def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_quiz_and_user(
+            self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
         """Fetch results for a specific quiz and user."""
         pass
 
@@ -112,7 +115,8 @@ class StorageManager(ABC):
         pass
 
     @abstractmethod
-    def get_sessions_by_quiz_and_user(self, quiz_id: str, user_id: str) -> List[str]:
+    def get_sessions_by_quiz_and_user(
+            self, quiz_id: str, user_id: str) -> List[str]:
         """Fetch sessions for a specific quiz and user."""
         pass
 
@@ -170,7 +174,8 @@ class StorageManager(ABC):
         pass
 
     @abstractmethod
-    def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
+    def update_session_state(self, session_id: str,
+                             session_data: Dict[str, Any]) -> None:
         """
         Update existing session state.
 

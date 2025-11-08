@@ -50,7 +50,9 @@ def admin_token_dependency(request: Request):
         raise HTTPException(status_code=403, detail="Invalid admin token")
 
 
-@router.get("/quiz/{quiz_id}", response_model=QuizDetailResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.get("/quiz/{quiz_id}",
+            response_model=QuizDetailResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
 def admin_get_quiz(quiz_id: str, req: Request):
     """
     Retrieve details of a specific quiz.
@@ -70,7 +72,9 @@ def admin_get_quiz(quiz_id: str, req: Request):
     return get_quiz_logic(storage_manager, quiz_id)
 
 
-@router.get("/results/{quiz_id}", response_model=QuizResultResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.get("/results/{quiz_id}",
+            response_model=QuizResultResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
 def admin_get_results_by_quiz(quiz_id: str, req: Request):
     """
     Retrieve quiz results by quiz ID.
@@ -90,7 +94,9 @@ def admin_get_results_by_quiz(quiz_id: str, req: Request):
     return get_results_by_quiz_logic(storage_manager, quiz_id)
 
 
-@router.get("/participated_users/{quiz_id}", response_model=ParticipatedUsersResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.get("/participated_users/{quiz_id}",
+            response_model=ParticipatedUsersResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
 def admin_participated_users(quiz_id: str, req: Request):
     """
     Retrieve users who participated in a quiz.
@@ -110,7 +116,8 @@ def admin_participated_users(quiz_id: str, req: Request):
     return get_participated_users_logic(storage_manager, quiz_id)
 
 
-@router.get("/config", response_model=ConfigPathResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.get("/config", response_model=ConfigPathResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
 def admin_get_config(req: Request):
     """
     Retrieve the current system configuration.
@@ -129,13 +136,17 @@ def admin_get_config(req: Request):
         config_manager = get_config_manager()
         config_path = config_manager.get_config_path()
         config_data = config_manager.get_config()
-        return ConfigPathResponseModel(config_path=config_path, config_data=config_data)
+        return ConfigPathResponseModel(
+            config_path=config_path,
+            config_data=config_data)
     except FileNotFoundError:
         logger.error(f"Config file not found")
         raise HTTPException(status_code=404, detail="Config not found")
 
 
-@router.post("/create_quiz", response_model=QuizCreationResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.post("/create_quiz",
+             response_model=QuizCreationResponseModel,
+             dependencies=[Depends(admin_token_dependency)])
 def admin_create_quiz(request: CreateQuizRequestModel, req: Request):
     """
     Create a new quiz using the provided request data.
@@ -156,7 +167,8 @@ def admin_create_quiz(request: CreateQuizRequestModel, req: Request):
     return create_quiz_logic(storage_manager, request)
 
 
-@router.post("/generate_token", response_model=TokenResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.post("/generate_token", response_model=TokenResponseModel,
+             dependencies=[Depends(admin_token_dependency)])
 def admin_generate_token(request: TokenRequestModel, req: Request):
     """
     Generate a token for a specific quiz.
@@ -176,7 +188,8 @@ def admin_generate_token(request: TokenRequestModel, req: Request):
     return generate_token_logic(storage_manager, request)
 
 
-@router.get("/all_quizzes", response_model=AllQuizzesResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.get("/all_quizzes", response_model=AllQuizzesResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
 def admin_get_all_quizzes(req: Request):
     """
     Retrieve all quizzes in the system.
@@ -197,7 +210,8 @@ def admin_get_all_quizzes(req: Request):
     return AllQuizzesResponseModel(quizzes=all_quizzes)
 
 
-@router.get("/all_tokens", response_model=AllTokensResponseModel, dependencies=[Depends(admin_token_dependency)])
+@router.get("/all_tokens", response_model=AllTokensResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
 def admin_get_all_tokens(req: Request):
     """
     Retrieve all tokens in the system.

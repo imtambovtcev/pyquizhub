@@ -53,7 +53,8 @@ def create_sample_session_data(session_id="test-session-123"):
 class TestSessionStorage:
     """Test session storage operations for both storage backends."""
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_save_and_load_session(self, storage_fixture, request):
         """Test saving and loading a session."""
         storage = request.getfixturevalue(storage_fixture)
@@ -75,7 +76,8 @@ class TestSessionStorage:
         assert len(loaded_session["answers"]) == len(session_data["answers"])
         assert loaded_session["completed"] == session_data["completed"]
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_load_nonexistent_session(self, storage_fixture, request):
         """Test loading a session that doesn't exist returns None."""
         storage = request.getfixturevalue(storage_fixture)
@@ -84,7 +86,8 @@ class TestSessionStorage:
 
         assert loaded_session is None
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_update_session_state(self, storage_fixture, request):
         """Test updating an existing session."""
         storage = request.getfixturevalue(storage_fixture)
@@ -112,7 +115,8 @@ class TestSessionStorage:
         assert loaded_session["scores"]["fruits"] == 10
         assert len(loaded_session["answers"]) == 2
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_delete_session_state(self, storage_fixture, request):
         """Test deleting a session."""
         storage = request.getfixturevalue(storage_fixture)
@@ -132,7 +136,8 @@ class TestSessionStorage:
         loaded_session = storage.load_session_state(session_data["session_id"])
         assert loaded_session is None
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_multiple_sessions(self, storage_fixture, request):
         """Test handling multiple sessions simultaneously."""
         storage = request.getfixturevalue(storage_fixture)
@@ -162,7 +167,8 @@ class TestSessionStorage:
         assert storage.load_session_state("session-2") is None
         assert storage.load_session_state("session-3") is not None
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_session_completion_workflow(self, storage_fixture, request):
         """Test the complete workflow: create, update multiple times, complete, delete."""
         storage = request.getfixturevalue(storage_fixture)
@@ -208,7 +214,8 @@ class TestSessionStorage:
         storage.delete_session_state(session_data["session_id"])
         assert storage.load_session_state(session_data["session_id"]) is None
 
-    @pytest.mark.parametrize("storage_fixture", ["file_storage", "sql_storage"])
+    @pytest.mark.parametrize("storage_fixture",
+                             ["file_storage", "sql_storage"])
     def test_session_with_complex_data(self, storage_fixture, request):
         """Test session storage with complex nested data structures."""
         storage = request.getfixturevalue(storage_fixture)

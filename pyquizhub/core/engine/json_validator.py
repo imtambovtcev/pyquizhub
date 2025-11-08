@@ -2,7 +2,7 @@
 Quiz JSON schema validation module.
 
 This module provides validation capabilities for quiz JSON structures to ensure:
-- Required fields are present 
+- Required fields are present
 - Data types are correct
 - Expressions and conditions are valid
 - Quiz flow is properly defined
@@ -114,38 +114,48 @@ class QuizJSONValidator:
                 current_answer_type = str
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "integer":
                 current_answer_type = int
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "float":
                 current_answer_type = float
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
                 if not isinstance(score_updates, list):
                     errors.append(
-                        f"Score updates must be a list in question {question['id']}.")
+                        f"Score updates must be a list in question {
+                            question['id']}.")
                     continue
                 for update in score_updates:
                     if not isinstance(update, dict):
                         errors.append(
-                            f"Score update must be a dictionary in question {question['id']}.")
+                            f"Score update must be a dictionary in question {
+                                question['id']}.")
                         continue
-                    if not all(key in update for key in ["condition", "update"]):
+                    if not all(
+                        key in update for key in [
+                            "condition",
+                            "update"]):
                         errors.append(
-                            f"Invalid score update format in question {question['id']}: {update}")
+                            f"Invalid score update format in question {
+                                question['id']}: {update}")
                         continue
                     # Validate conditions and updates
                     try:
 
                         allowed_variables = {
-                            **default_variables, "answer": current_answer_type()} if current_answer_type else default_variables
+                            **default_variables,
+                            "answer": current_answer_type()} if current_answer_type else default_variables
                         SafeEvaluator.eval_expr(
                             update["condition"], allowed_variables)
                         for expr in update["update"].values():
@@ -153,7 +163,8 @@ class QuizJSONValidator:
                                 expr, allowed_variables)
                     except Exception as e:
                         errors.append(
-                            f"Invalid score update condition or expression in question {question['id']}: {e}")
+                            f"Invalid score update condition or expression in question {
+                                question['id']}: {e}")
 
         # Validate transitions
         transitions = quiz_data.get("transitions", {})
@@ -180,7 +191,8 @@ class QuizJSONValidator:
                 # Validate condition expression
                 try:
                     SafeEvaluator.eval_expr(
-                        expression, {**default_variables, "answer": current_answer_type()})
+                        expression, {
+                            **default_variables, "answer": current_answer_type()})
                 except Exception as e:
                     errors.append(
                         f"Invalid transition expression in question {question_id}: {e}")
@@ -191,19 +203,16 @@ class QuizJSONValidator:
                     trivial_condition_found = True
                 elif trivial_condition_found:
                     warnings.append(
-                        f"Non-trivial condition after trivial condition in question {question_id}."
-                    )
+                        f"Non-trivial condition after trivial condition in question {question_id}.")
 
                 # Warn if there's no trivial condition at the end
                 if idx == len(conditions) - 1 and expression != "true":
                     warnings.append(
-                        f"Last condition in transitions for question {question_id} is not trivial, which may result in unexpected quiz termination."
-                    )
+                        f"Last condition in transitions for question {question_id} is not trivial, which may result in unexpected quiz termination.")
 
                 # Validate next_question_id
                 if next_question_id is not None and next_question_id not in question_ids:
                     errors.append(
-                        f"Invalid next_question_id in question {question_id}: {next_question_id} does not exist."
-                    )
+                        f"Invalid next_question_id in question {question_id}: {next_question_id} does not exist.")
 
         return {"errors": errors, "warnings": warnings}

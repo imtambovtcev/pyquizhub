@@ -2,13 +2,13 @@
 Quiz API Router for PyQuizHub.
 
 This module provides API endpoints for quiz-taking functionality including:
-- Starting quiz sessions 
+- Starting quiz sessions
 - Processing answers
 - Handling quiz flow
 - Managing quiz state
 - Token validation
 
-The router handles quiz session management and interaction between users and 
+The router handles quiz session management and interaction between users and
 quiz engine instances.
 """
 
@@ -51,7 +51,8 @@ def user_token_dependency(request: Request):
         raise HTTPException(status_code=403, detail="Invalid user token")
 
 
-@router.post("/start_quiz", response_model=StartQuizResponseModel, dependencies=[Depends(user_token_dependency)])
+@router.post("/start_quiz", response_model=StartQuizResponseModel,
+             dependencies=[Depends(user_token_dependency)])
 def start_quiz(request: StartQuizRequestModel, req: Request):
     """
     Start a new quiz session for a user.
@@ -70,7 +71,9 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         HTTPException: If token is invalid or quiz not found
     """
     logger.debug(
-        f"Starting quiz with token: {request.token} for user: {request.user_id}")
+        f"Starting quiz with token: {
+            request.token} for user: {
+            request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -119,7 +122,8 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     storage_manager.save_session_state(session_data)
 
     logger.info(
-        f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
+        f"Started quiz session {session_id} for user {
+            request.user_id} on quiz {quiz_id}")
 
     return StartQuizResponseModel(
         quiz_id=quiz_id,
@@ -130,7 +134,9 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     )
 
 
-@router.post("/submit_answer/{quiz_id}", response_model=SubmitAnswerResponseModel, dependencies=[Depends(user_token_dependency)])
+@router.post("/submit_answer/{quiz_id}",
+             response_model=SubmitAnswerResponseModel,
+             dependencies=[Depends(user_token_dependency)])
 def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     """
     Submit an answer and get the next question.
@@ -150,7 +156,8 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
         HTTPException: If session not found or answer invalid
     """
     logger.debug(
-        f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
+        f"Submitting answer for quiz_id: {quiz_id}, user_id: {
+            request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -168,7 +175,8 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # Verify quiz_id matches (security check)
     if session_data["quiz_id"] != quiz_id:
         logger.error(
-            f"Quiz ID mismatch: expected {session_data['quiz_id']}, got {quiz_id}")
+            f"Quiz ID mismatch: expected {
+                session_data['quiz_id']}, got {quiz_id}")
         raise HTTPException(status_code=400, detail="Quiz ID mismatch")
 
     # Extract engine state (without metadata)

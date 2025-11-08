@@ -53,7 +53,10 @@ def start(ctx, user_id, token):
                              response_data.session_id, response_data)
         else:
             click.echo(
-                f"Failed to start quiz: {response.json().get('detail', 'Unknown error')}")
+                f"Failed to start quiz: {
+                    response.json().get(
+                        'detail',
+                        'Unknown error')}")
             click.echo(response.json().get("errors", ""))
     except Exception as e:
         click.echo(f"Error: {e}")
@@ -90,8 +93,10 @@ def handle_question(question):
             click.echo(f"  {idx + 1}: {option['label']}")
         answer = click.prompt(
             "Enter the numbers of your choices separated by commas", type=str)
-        selected_options = [question.data["options"]
-                            [int(idx) - 1]["value"] for idx in answer.split(",")]
+        selected_options = [
+            question.data["options"][
+                int(idx) -
+                1]["value"] for idx in answer.split(",")]
         return {"answer": selected_options}
     elif question.data["type"] == "integer":
         click.echo(f"Question {question.id}: {question.data['text']}")
@@ -132,7 +137,10 @@ def submit_answer(ctx, quiz_id, user_id, session_id, answer):
             return SubmitAnswerResponseModel(**response.json())
         else:
             click.echo(
-                f"Failed to submit answer: {response.json().get('detail', 'Unknown error')}")
+                f"Failed to submit answer: {
+                    response.json().get(
+                        'detail',
+                        'Unknown error')}")
             return None
     except json.JSONDecodeError as e:
         click.echo(f"JSON decode error: {e}")

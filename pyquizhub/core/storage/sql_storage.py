@@ -98,7 +98,8 @@ class SQLStorageManager(StorageManager):
         self.logger.debug("Fetching all users")
         query = select(self.users_table)
         result = self._execute(query)
-        return {row._mapping["id"]: row._mapping["permissions"] for row in result}
+        return {row._mapping["id"]: row._mapping["permissions"]
+                for row in result}
 
     def add_users(self, users: Dict[str, Any]) -> None:
         """Add or update users."""
@@ -124,7 +125,11 @@ class SQLStorageManager(StorageManager):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return result._mapping["data"]
 
-    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any], creator_id: str) -> None:
+    def add_quiz(self,
+                 quiz_id: str,
+                 quiz_data: Dict[str,
+                                 Any],
+                 creator_id: str) -> None:
         """Add or update a quiz."""
         self.logger.debug(f"Adding quiz with ID: {quiz_id}")
         query = insert(self.quizzes_table).values(
@@ -137,7 +142,8 @@ class SQLStorageManager(StorageManager):
             ).values(creator_id=creator_id, data=quiz_data)
             self._execute(query)
 
-    def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, user_id: str, quiz_id: str,
+                    session_id: str) -> Optional[Dict[str, Any]]:
         """Fetch results for a specific user, quiz, and session."""
         self.logger.debug(
             f"Fetching results for user {user_id}, quiz {quiz_id}, session {session_id}")
@@ -149,23 +155,31 @@ class SQLStorageManager(StorageManager):
         result = self._execute(query).fetchone()
         return dict(result._mapping) if result else None
 
-    def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
+    def add_results(self, user_id: str, quiz_id: str,
+                    session_id: str, results: Dict[str, Any]) -> None:
         """Add or update results."""
         self.logger.debug(
             f"Adding results for user {user_id}, quiz {quiz_id}, session {session_id}")
         results["timestamp"] = datetime.now().isoformat()
-        query = insert(self.results_table).values(
-            user_id=user_id, quiz_id=quiz_id, session_id=session_id, scores=results[
-                "scores"], answers=results["answers"], timestamp=results["timestamp"]
-        )
+        query = insert(
+            self.results_table).values(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            session_id=session_id,
+            scores=results["scores"],
+            answers=results["answers"],
+            timestamp=results["timestamp"])
         try:
             self._execute(query)
         except IntegrityError:
-            query = update(self.results_table).where(
+            query = update(
+                self.results_table).where(
                 self.results_table.c.user_id == user_id,
                 self.results_table.c.quiz_id == quiz_id,
-                self.results_table.c.session_id == session_id
-            ).values(scores=results["scores"], answers=results["answers"], timestamp=results["timestamp"])
+                self.results_table.c.session_id == session_id).values(
+                scores=results["scores"],
+                answers=results["answers"],
+                timestamp=results["timestamp"])
             self._execute(query)
 
     def get_tokens(self) -> List[Dict[str, Any]]:
@@ -324,7 +338,8 @@ class SQLStorageManager(StorageManager):
             }
         return results_by_quiz
 
-    def get_results_by_user_and_quiz(self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_user_and_quiz(
+            self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
         """Fetch results for a specific quiz and user."""
         self.logger.debug(
             f"Fetching results by user ID: {user_id} and quiz ID: {quiz_id}")
@@ -333,9 +348,12 @@ class SQLStorageManager(StorageManager):
             self.results_table.c.quiz_id == quiz_id
         )
         result = self._execute(query)
-        return {row._mapping["session_id"]: dict(row._mapping) for row in result}
+        return {
+            row._mapping["session_id"]: dict(
+                row._mapping) for row in result}
 
-    def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_quiz_and_user(
+            self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
         """Fetch results for a specific quiz and user."""
         self.logger.debug(
             f"Fetching results by quiz ID: {quiz_id} and user ID: {user_id}")
@@ -344,9 +362,12 @@ class SQLStorageManager(StorageManager):
             self.results_table.c.user_id == user_id
         )
         result = self._execute(query)
-        return {row._mapping["session_id"]: dict(row._mapping) for row in result}
+        return {
+            row._mapping["session_id"]: dict(
+                row._mapping) for row in result}
 
-    def get_session_ids_by_user_and_quiz(self, user_id: str, quiz_id: str) -> List[str]:
+    def get_session_ids_by_user_and_quiz(
+            self, user_id: str, quiz_id: str) -> List[str]:
         """Fetch session IDs for a specific user and quiz."""
         self.logger.debug(
             f"Fetching session IDs by user ID: {user_id} and quiz ID: {quiz_id}")
@@ -388,7 +409,8 @@ class SQLStorageManager(StorageManager):
         result = self._execute(query)
         return [row._mapping["session_id"] for row in result]
 
-    def get_sessions_by_quiz_and_user(self, quiz_id: str, user_id: str) -> List[str]:
+    def get_sessions_by_quiz_and_user(
+            self, quiz_id: str, user_id: str) -> List[str]:
         """Fetch sessions for a specific quiz and user."""
         self.logger.debug(
             f"Fetching sessions by quiz ID: {quiz_id} and user ID: {user_id}")
@@ -450,7 +472,8 @@ class SQLStorageManager(StorageManager):
         self.logger.debug(f"Loaded session state for session {session_id}")
         return session_data
 
-    def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
+    def update_session_state(self, session_id: str,
+                             session_data: Dict[str, Any]) -> None:
         """
         Update existing session state in database.
 
