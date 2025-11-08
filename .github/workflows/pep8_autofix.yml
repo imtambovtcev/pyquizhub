@@ -1,4 +1,4 @@
-name: PEP8 Auto-fix on Main
+name: PEP8 Auto-fix via PR
 
 on:
   push:
@@ -11,59 +11,66 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: auto-format
+  cancel-in-progress: false
+
 jobs:
   autofix-formatting:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.x
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
 
-    - name: Install autopep8
-      run: pip install autopep8
+      - name: Install autopep8
+        run: pip install autopep8
 
-    # ✅ Create/update auto-format branch BEFORE formatting
-    - name: Create auto-format branch
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+      # Run the formatter directly on the workspace (currently on main)
+      - name: Auto-fix formatting
+        run: |
+          FILES=$(git ls-files '*.py')
+          if [ -z "$FILES" ]; then
+            echo "No Python files tracked."
+            exit 0
+          fi
+          echo "Auto-fixing formatting..."
+          for file in $FILES; do
+            autopep8 --in-place --aggressive --aggressive "$file"
+          done
 
-        git checkout main
-        git pull origin main
-        git checkout -B auto-format
+      # Only proceed if there are changes after formatting
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
-    - name: Auto-fix formatting in branch
-      run: |
-        FILES=$(find . -name "*.py")
-        echo "Auto-fixing formatting..."
-        for file in $FILES; do
-            autopep8 --in-place --aggressive --aggressive $file
-        done
-
-    - name: Check for changes
-      id: verify_diff
-      run: |
-        git diff --quiet . || echo "changed=true" >> "$GITHUB_OUTPUT"
-
-    - name: Commit and push formatted changes
-      if: steps.verify_diff.outputs.changed == 'true'
-      run: |
-        git add -A
-        git commit -m "style: auto-fix PEP8 formatting" || true
-        git push -u origin auto-format --force
-
-    - name: Open or update Pull Request
-      if: steps.verify_diff.outputs.changed == 'true'
-      uses: peter-evans/create-pull-request@v5
-      with:
-        branch: auto-format
-        base: main
-        title: "style: automated PEP8 formatting"
-        body: "This PR applies automated PEP8 formatting fixes."
+      # Let the action create/update the branch and PR. We do NOT push ourselves.
+      - name: Create or update PR with formatting changes
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-format              # fixed branch so PR is updated each run
+          base: main
+          title: "style: automated PEP8 formatting"
+          body: |
+            This PR applies automated PEP8 formatting fixes.
+            - Tool: autopep8 (aggressive x2)
+            - Trigger: push to main affecting *.py
+          commit-message: "style: auto-fix PEP8 formatting"
+          committer: GitHub <noreply@github.com>
+          author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          signoff: false
+          draft: false
+          delete-branch: false
