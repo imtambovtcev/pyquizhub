@@ -48,7 +48,7 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        # Ensure we're based on main
+        # Ensure we're based on latest main
         git checkout main
         git pull origin main
 
@@ -56,7 +56,9 @@ jobs:
         git checkout -B auto-format
         git add -A
         git commit -m "style: auto-fix PEP8 formatting" || true
-        git push -u origin auto-format
+
+        # Force-push because auto-format is always regenerated
+        git push -u origin auto-format --force
 
     - name: Open or update Pull Request
       if: steps.verify_diff.outputs.changed == 'true'
