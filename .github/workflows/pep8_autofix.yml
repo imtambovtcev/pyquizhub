@@ -14,6 +14,7 @@ permissions:
 jobs:
   autofix-formatting:
     runs-on: ubuntu-latest
+
     steps:
     - name: Check out code
       uses: actions/checkout@v4
@@ -46,9 +47,15 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Ensure we're based on main
+        git checkout main
+        git pull origin main
+
+        # Create or update formatting branch
         git checkout -B auto-format
         git add -A
-        git commit -m "style: auto-fix PEP8 formatting"
+        git commit -m "style: auto-fix PEP8 formatting" || true
         git push -u origin auto-format
 
     - name: Open or update Pull Request
@@ -56,6 +63,6 @@ jobs:
       uses: peter-evans/create-pull-request@v5
       with:
         branch: auto-format
+        base: main
         title: "style: automated PEP8 formatting"
         body: "This PR applies automated PEP8 formatting fixes."
-
