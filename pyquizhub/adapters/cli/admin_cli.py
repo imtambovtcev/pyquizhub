@@ -30,7 +30,10 @@ def admin_cli(ctx):
 
 
 @admin_cli.command()
-@click.option("--file", required=True, type=click.Path(exists=True), help="Path to the quiz JSON file")
+@click.option("--file",
+              required=True,
+              type=click.Path(exists=True),
+              help="Path to the quiz JSON file")
 @click.option("--creator-id", default="-1", help="Creator ID (default: -1)")
 @click.pass_context
 def add(ctx, file, creator_id):
@@ -55,7 +58,10 @@ def add(ctx, file, creator_id):
             click.echo(f"Quiz ID: {response_data.quiz_id}")
         else:
             click.echo(
-                f"Failed to add quiz: {response.json().get('detail', 'Unknown error')}")
+                f"Failed to add quiz: {
+                    response.json().get(
+                        'detail',
+                        'Unknown error')}")
             click.echo(response.json().get("errors", ""))
     except FileNotFoundError:
         click.echo("Error: File not found.")
@@ -65,7 +71,8 @@ def add(ctx, file, creator_id):
 
 @admin_cli.command()
 @click.option("--quiz-id", required=True, help="Quiz ID")
-@click.option("--token-type", required=True, type=click.Choice(["permanent", "single-use"]), help="Token type")
+@click.option("--token-type", required=True,
+              type=click.Choice(["permanent", "single-use"]), help="Token type")
 @click.pass_context
 def token(ctx, quiz_id, token_type):
     """Generate a token for a quiz."""
@@ -75,14 +82,18 @@ def token(ctx, quiz_id, token_type):
 
         request_data = TokenRequestModel(quiz_id=quiz_id, type=token_type)
         response = requests.post(
-            f"{base_url}/admin/generate_token", json=request_data.dict(), headers=get_headers()
-        )
+            f"{base_url}/admin/generate_token",
+            json=request_data.dict(),
+            headers=get_headers())
         if response.status_code == 200:
             response_data = TokenResponseModel(**response.json())
             click.echo(f"Token generated successfully: {response_data.token}")
         else:
             click.echo(
-                f"Failed to generate token: {response.json().get('detail', 'Unknown error')}")
+                f"Failed to generate token: {
+                    response.json().get(
+                        'detail',
+                        'Unknown error')}")
     except Exception as e:
         click.echo(f"Error: {e}")
 
@@ -109,7 +120,10 @@ def results(ctx, quiz_id):
                     click.echo(f"    Answers: {result.answers}")
         else:
             click.echo(
-                f"Failed to fetch results: {response.json().get('detail', 'Unknown error')}")
+                f"Failed to fetch results: {
+                    response.json().get(
+                        'detail',
+                        'Unknown error')}")
     except Exception as e:
         click.echo(f"Error: {e}")
 
@@ -127,7 +141,10 @@ def check(ctx):
             click.echo("API is working correctly.")
         else:
             click.echo(
-                f"API check failed: {response.json().get('detail', 'Unknown error')}")
+                f"API check failed: {
+                    response.json().get(
+                        'detail',
+                        'Unknown error')}")
     except Exception as e:
         click.echo(f"Error: {e}")
 

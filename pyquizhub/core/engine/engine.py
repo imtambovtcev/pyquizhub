@@ -3,7 +3,7 @@ Core quiz engine implementation.
 
 This module provides the main quiz engine functionality including:
 - Quiz logic processing (stateless)
-- Question flow control 
+- Question flow control
 - Score calculation
 - Answer validation
 - Question transitions
@@ -171,8 +171,11 @@ class QuizEngine:
         score_updates = current_question.get("score_updates", [])
         for condition_group in score_updates:
             condition = condition_group.get("condition", "true")
-            if SafeEvaluator.eval_expr(condition, {"answer": answer, **new_state["scores"]}):
-                for score_key, expr in condition_group.get("update", {}).items():
+            if SafeEvaluator.eval_expr(
+                condition, {
+                    "answer": answer, **new_state["scores"]}):
+                for score_key, expr in condition_group.get(
+                        "update", {}).items():
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
                         expr, new_state["scores"]
                     )
@@ -237,7 +240,10 @@ class QuizEngine:
                 f"Invalid answer for question {question['id']}: {e}")
             raise ValueError(f"Invalid answer: {str(e)}")
 
-    def _get_next_question(self, current_question_id: int, scores: dict) -> Optional[int]:
+    def _get_next_question(
+            self,
+            current_question_id: int,
+            scores: dict) -> Optional[int]:
         """
         Determine next question based on transitions and scores.
 

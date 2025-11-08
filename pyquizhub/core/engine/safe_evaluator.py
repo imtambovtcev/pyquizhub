@@ -61,7 +61,7 @@ class SafeEvaluator:
         Examples:
             >>> SafeEvaluator.eval_expr("2 + 2", {})
             4
-            >>> SafeEvaluator.eval_expr("score > 10", {"score": 15}) 
+            >>> SafeEvaluator.eval_expr("score > 10", {"score": 15})
             True
         """
         logger.debug(
@@ -71,12 +71,14 @@ class SafeEvaluator:
             if isinstance(node, ast.BinOp):
                 left = _eval(node.left)
                 right = _eval(node.right)
-                return SafeEvaluator.ALLOWED_OPERATORS[type(node.op)](left, right)
+                return SafeEvaluator.ALLOWED_OPERATORS[type(
+                    node.op)](left, right)
             elif isinstance(node, ast.Compare):
                 left = _eval(node.left)
                 # Only single comparisons are allowed
                 right = _eval(node.comparators[0])
-                return SafeEvaluator.ALLOWED_OPERATORS[type(node.ops[0])](left, right)
+                return SafeEvaluator.ALLOWED_OPERATORS[type(
+                    node.ops[0])](left, right)
             elif isinstance(node, ast.Num):  # For Python 3.8 and earlier
                 return node.n
             elif isinstance(node, ast.Constant):  # For Python 3.9+

@@ -41,10 +41,10 @@ logger.debug("Loaded main.py")
 async def lifespan(app: FastAPI):
     # Startup
     logger.debug("Starting up the application")
-    
+
     # Config is already loaded at module level, just store reference
     app.state.config_manager = _config_manager
-    
+
     storage_type = _config_manager.storage_type
     if storage_type == "file":
         app.state.storage_manager = FileStorageManager(
@@ -87,7 +87,9 @@ def read_root():
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+        request: Request,
+        exc: RequestValidationError):
     error_details = exc.errors()
     for error in error_details:
         logger.error(f"Validation error: {error}, request: {request}")

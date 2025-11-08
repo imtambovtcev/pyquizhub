@@ -149,7 +149,11 @@ class FileStorageManager(StorageManager):
             raise FileNotFoundError(f"Quiz {quiz_id} not found.")
         return self._read_json(filepath)
 
-    def add_quiz(self, quiz_id: str, quiz_data: Dict[str, Any], creator_id: str) -> None:
+    def add_quiz(self,
+                 quiz_id: str,
+                 quiz_data: Dict[str,
+                                 Any],
+                 creator_id: str) -> None:
         """Add or update a quiz."""
         self.logger.debug(f"Adding quiz with ID: {quiz_id}")
         quiz_data["creator_id"] = creator_id
@@ -157,7 +161,8 @@ class FileStorageManager(StorageManager):
         self._write_json(filepath, quiz_data)
 
     # Results
-    def get_results(self, user_id: str, quiz_id: str, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, user_id: str, quiz_id: str,
+                    session_id: str) -> Optional[Dict[str, Any]]:
         """Fetch results for a specific user, quiz, and session."""
         self.logger.debug(
             f"Fetching results for user {user_id}, quiz {quiz_id}, session {session_id}")
@@ -173,7 +178,8 @@ class FileStorageManager(StorageManager):
             }
         return None
 
-    def add_results(self, user_id: str, quiz_id: str, session_id: str, results: Dict[str, Any]) -> None:
+    def add_results(self, user_id: str, quiz_id: str,
+                    session_id: str, results: Dict[str, Any]) -> None:
         """Add or update results."""
         self.logger.debug(
             f"Adding results for user {user_id}, quiz {quiz_id}, session {session_id}")
@@ -247,12 +253,14 @@ class FileStorageManager(StorageManager):
                 }
         return results_by_quiz
 
-    def get_results_by_quiz_and_user(self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_quiz_and_user(
+            self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
         """Fetch results for a specific quiz and user."""
         self.logger.debug(
             f"Fetching results for quiz ID: {quiz_id} and user ID: {user_id}")
         results_by_session = {}
-        for session_id, result in self.results.get(user_id, {}).get(quiz_id, {}).items():
+        for session_id, result in self.results.get(
+                user_id, {}).get(quiz_id, {}).items():
             results_by_session[session_id] = {
                 "user_id": user_id,
                 "quiz_id": quiz_id,
@@ -343,13 +351,15 @@ class FileStorageManager(StorageManager):
                 quizzes[quiz_id] = self.get_quiz(quiz_id)
         return quizzes
 
-    def get_results_by_user_and_quiz(self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_user_and_quiz(
+            self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
         """Fetch results for a specific user and quiz."""
         self.logger.debug(
             f"Fetching results for user ID: {user_id} and quiz ID: {quiz_id}")
         return self.results.get(user_id, {}).get(quiz_id, {})
 
-    def get_session_ids_by_user_and_quiz(self, user_id: str, quiz_id: str) -> List[str]:
+    def get_session_ids_by_user_and_quiz(
+            self, user_id: str, quiz_id: str) -> List[str]:
         """Fetch session IDs for a specific user and quiz."""
         self.logger.debug(
             f"Fetching session IDs for user ID: {user_id} and quiz ID: {quiz_id}")
@@ -383,7 +393,8 @@ class FileStorageManager(StorageManager):
                 sessions.extend(quizzes[quiz_id].keys())
         return sessions
 
-    def get_sessions_by_quiz_and_user(self, quiz_id: str, user_id: str) -> List[str]:
+    def get_sessions_by_quiz_and_user(
+            self, quiz_id: str, user_id: str) -> List[str]:
         """Fetch sessions for a specific quiz and user."""
         self.logger.debug(
             f"Fetching sessions for quiz ID: {quiz_id} and user ID: {user_id}")
@@ -420,7 +431,8 @@ class FileStorageManager(StorageManager):
             self.logger.warning(f"Session {session_id} not found")
             return None
 
-    def update_session_state(self, session_id: str, session_data: Dict[str, Any]) -> None:
+    def update_session_state(self, session_id: str,
+                             session_data: Dict[str, Any]) -> None:
         """
         Update existing session state in filesystem.
 
