@@ -92,6 +92,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">.safe_evaluator</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeEvaluator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.json_validator</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuizJSONValidator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.api_integration</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIIntegrationManager</span><span class="p">,</span> <span class="n">RequestTiming</span>
@@ -101,41 +102,25 @@
 <div class="viewcode-block" id="QuizEngine">
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">QuizEngine</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Pure quiz engine - only handles quiz logic.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stateless quiz engine.</span>
 
-<span class="sd">    The engine is stateless and operates as a pure transformation:</span>
-<span class="sd">    (quiz_definition, current_state, answer) → new_state</span>
+<span class="sd">    The engine is pure/functional: it accepts quiz data at construction and</span>
+<span class="sd">    performs operations on explicit state dictionaries passed to its methods.</span>
 
-<span class="sd">    It has no awareness of:</span>
-<span class="sd">    - User IDs</span>
-<span class="sd">    - Session IDs</span>
-<span class="sd">    - Persistence</span>
-<span class="sd">    - HTTP/networking</span>
+<span class="sd">    Public contract (used by API layer):</span>
+<span class="sd">    - __init__(quiz_data): load/validate quiz</span>
+<span class="sd">    - start_quiz() -&gt; state dict: create initial state</span>
+<span class="sd">    - get_current_question(state) -&gt; question dict | None</span>
+<span class="sd">    - answer_question(state, answer) -&gt; new state dict</span>
 
-<span class="sd">    This class handles:</span>
-<span class="sd">    - Quiz data validation and loading</span>
-<span class="sd">    - Question progression logic</span>
-<span class="sd">    - Score calculation</span>
-<span class="sd">    - Answer validation</span>
-
-<span class="sd">    Attributes:</span>
-<span class="sd">        quiz (dict): The loaded and validated quiz data</span>
-<span class="sd">        logger: Logger instance for engine events</span>
+<span class="sd">    The engine will treat missing optional quiz fields (api_integrations,</span>
+<span class="sd">    questions, scores, transitions) as empty collections to be defensive.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="QuizEngine.__init__">
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialize the QuizEngine with quiz data.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            quiz_data (dict): The quiz definition data to load</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If quiz validation fails</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize engine and normalize quiz data.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_quiz</span><span class="p">(</span><span class="n">quiz_data</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span> <span class="o">=</span> <span class="n">APIIntegrationManager</span><span class="p">()</span></div>
@@ -157,9 +142,21 @@
 <span class="sd">            ValueError: If quiz validation fails</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">validation_result</span> <span class="o">=</span> <span class="n">QuizJSONValidator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">quiz_data</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">validation_result</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">validation_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;errors&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Quiz validation failed: </span><span class="si">{</span><span class="n">validation_result</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Normalize optional fields to safe defaults so engine logic</span>
+        <span class="c1"># can assume consistent types (avoid None where lists/dicts expected)</span>
+        <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;questions&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;questions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;transitions&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;transitions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
         <span class="k">return</span> <span class="n">quiz_data</span></div>
 
 
@@ -178,8 +175,12 @@
 <span class="sd">                - api_data: Dictionary for storing API responses (if quiz has API integrations)</span>
 <span class="sd">                - api_credentials: Dictionary for storing dynamic API credentials</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">first_qs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;questions&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">first_qs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Quiz has no questions&quot;</span><span class="p">)</span>
+
         <span class="n">initial_state</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;current_question_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="p">[</span><span class="s2">&quot;questions&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;current_question_id&quot;</span><span class="p">:</span> <span class="n">first_qs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
             <span class="s2">&quot;scores&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">keys</span><span class="p">()},</span>
             <span class="s2">&quot;answers&quot;</span><span class="p">:</span> <span class="p">[],</span>
             <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
@@ -214,7 +215,7 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If question ID in state is not found in quiz</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">question_id</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">]</span>
+        <span class="n">question_id</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">question_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># Quiz is complete</span>
 
@@ -271,10 +272,10 @@
 
         <span class="c1"># Create new state (don&#39;t mutate input)</span>
         <span class="n">new_state</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;current_question_id&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;scores&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-            <span class="s2">&quot;answers&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-            <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;current_question_id&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;scores&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="s2">&quot;answers&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;answers&quot;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;completed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
             <span class="s2">&quot;api_data&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
             <span class="s2">&quot;api_credentials&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_credentials&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="p">}</span>
@@ -297,11 +298,16 @@
         <span class="k">for</span> <span class="n">condition_group</span> <span class="ow">in</span> <span class="n">score_updates</span><span class="p">:</span>
             <span class="n">condition</span> <span class="o">=</span> <span class="n">condition_group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
             <span class="c1"># Add API data to evaluation context</span>
+            <span class="n">api_context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">new_state</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API context for evaluation: </span><span class="si">{</span><span class="n">api_context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Full api_data in state: </span><span class="si">{</span><span class="n">new_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;api_data&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">eval_context</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
-                <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">new_state</span><span class="p">)</span>
+                <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="n">api_context</span>
             <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Eval context: </span><span class="si">{</span><span class="n">eval_context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">eval_context</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">score_key</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">condition_group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">score_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span>
@@ -441,8 +447,8 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Updated session state with API responses</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Get API configurations from quiz</span>
-        <span class="n">api_configs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="c1"># Get API configurations from quiz (ensure iterable)</span>
+        <span class="n">api_configs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">api_config</span> <span class="ow">in</span> <span class="n">api_configs</span><span class="p">:</span>
             <span class="c1"># Check if this API call matches the timing</span>
@@ -486,10 +492,18 @@
         <span class="n">api_context</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">api_data</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="p">{})</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating API context from api_data: </span><span class="si">{</span><span class="n">api_data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
         <span class="k">for</span> <span class="n">api_id</span><span class="p">,</span> <span class="n">api_entry</span> <span class="ow">in</span> <span class="n">api_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing API </span><span class="si">{</span><span class="n">api_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">api_entry</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">api_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;success&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
                 <span class="n">api_context</span><span class="p">[</span><span class="n">api_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">api_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;response&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Added </span><span class="si">{</span><span class="n">api_id</span><span class="si">}</span><span class="s2"> to API context: </span><span class="si">{</span><span class="n">api_context</span><span class="p">[</span><span class="n">api_id</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API </span><span class="si">{</span><span class="n">api_id</span><span class="si">}</span><span class="s2"> not successful, skipping&quot;</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final API context: </span><span class="si">{</span><span class="n">api_context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">api_context</span></div>
 </div>
 

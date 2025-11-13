@@ -81,7 +81,7 @@
 <span class="sd">an SQL database for persistent storage of users, quizzes, tokens, results, and sessions.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_engine</span><span class="p">,</span> <span class="n">MetaData</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">select</span><span class="p">,</span> <span class="n">insert</span><span class="p">,</span> <span class="n">update</span><span class="p">,</span> <span class="n">delete</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_engine</span><span class="p">,</span> <span class="n">MetaData</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">select</span><span class="p">,</span> <span class="n">insert</span><span class="p">,</span> <span class="n">update</span><span class="p">,</span> <span class="n">delete</span><span class="p">,</span> <span class="n">inspect</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.exc</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntegrityError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
@@ -151,11 +151,23 @@
             <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;answers&quot;</span><span class="p">,</span> <span class="n">JSON</span><span class="p">),</span>
             <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;completed&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
             <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
-            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">)</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;updated_at&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="n">JSON</span><span class="p">)</span>
         <span class="p">)</span>
 
         <span class="c1"># Create tables if they don&#39;t exist</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+        <span class="c1"># Determine whether the sessions table actually has the api_data column</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">inspector</span> <span class="o">=</span> <span class="n">inspect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">inspector</span><span class="o">.</span><span class="n">get_columns</span><span class="p">(</span><span class="s2">&quot;sessions&quot;</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sessions_has_api_data</span> <span class="o">=</span> <span class="s2">&quot;api_data&quot;</span> <span class="ow">in</span> <span class="n">cols</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sessions_has_api_data</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Detected sessions table without &#39;api_data&#39; column; running in compatibility mode&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># If introspection fails, assume column exists (safe default)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sessions_has_api_data</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="SQLStorageManager._execute">
@@ -603,14 +615,44 @@
             <span class="n">answers</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">],</span>
             <span class="n">completed</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]),</span>
             <span class="n">created_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span>
-            <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+            <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">],</span>
+            <span class="n">api_data</span><span class="o">=</span><span class="n">session_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="p">{})</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sessions_has_api_data&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">IntegrityError</span><span class="p">:</span>
             <span class="c1"># Session already exists, update instead</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">update_session_state</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">session_data</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_session_state</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">session_data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Backwards compatibility: older databases may not have the api_data</span>
+            <span class="c1"># column. If the insert fails due to a missing column, retry without</span>
+            <span class="c1"># api_data to avoid failing the entire request.</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;api_data&quot;</span> <span class="ow">in</span> <span class="n">msg</span> <span class="ow">or</span> <span class="s2">&quot;UndefinedColumn&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;api_data column missing in sessions table; retrying insert without api_data&quot;</span><span class="p">)</span>
+                <span class="n">fallback_query</span> <span class="o">=</span> <span class="n">insert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+                    <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+                    <span class="n">user_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+                    <span class="n">quiz_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">],</span>
+                    <span class="n">current_question_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
+                    <span class="n">scores</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+                    <span class="n">answers</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">],</span>
+                    <span class="n">completed</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]),</span>
+                    <span class="n">created_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span>
+                    <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">fallback_query</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Saved session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> (without api_data)&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="c1"># Re-raise original if fallback also fails</span>
+                    <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span></div>
 
 
 <div class="viewcode-block" id="SQLStorageManager.load_session_state">
@@ -625,7 +667,23 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Session data dictionary or None if not found</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="c1"># Build select list conditionally depending on whether api_data column</span>
+        <span class="c1"># exists in the sessions table (compatibility with old DBs).</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">quiz_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">current_question_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">answers</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">updated_at</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sessions_has_api_data&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">api_data</span><span class="p">)</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">cols</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
         <span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
@@ -636,6 +694,9 @@
         <span class="n">session_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>
         <span class="c1"># Convert &#39;completed&#39; from string back to boolean</span>
         <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;True&quot;</span>
+        <span class="c1"># Ensure api_data exists in returned dict for compatibility</span>
+        <span class="k">if</span> <span class="s2">&quot;api_data&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">session_data</span><span class="p">:</span>
+            <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;api_data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">session_data</span></div>
 
@@ -651,9 +712,8 @@
 <span class="sd">            session_id: Unique session identifier</span>
 <span class="sd">            session_data: Updated session data dictionary</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+        <span class="c1"># Build update values conditionally depending on whether api_data exists</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">user_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
             <span class="n">quiz_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">],</span>
             <span class="n">current_question_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
@@ -661,10 +721,40 @@
             <span class="n">answers</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">],</span>
             <span class="n">completed</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]),</span>
             <span class="n">created_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span>
-            <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+            <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">],</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sessions_has_api_data&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">values</span><span class="p">[</span><span class="s2">&quot;api_data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">session_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="o">**</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Updated session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;api_data&quot;</span> <span class="ow">in</span> <span class="n">msg</span> <span class="ow">or</span> <span class="s2">&quot;UndefinedColumn&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;api_data column missing in sessions table; retrying update without api_data&quot;</span><span class="p">)</span>
+                <span class="n">fallback_query</span> <span class="o">=</span> <span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">session_id</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+                    <span class="n">user_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">],</span>
+                    <span class="n">quiz_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">],</span>
+                    <span class="n">current_question_id</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
+                    <span class="n">scores</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+                    <span class="n">answers</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">],</span>
+                    <span class="n">completed</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]),</span>
+                    <span class="n">created_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">],</span>
+                    <span class="n">updated_at</span><span class="o">=</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">fallback_query</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Updated session state for session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> (without api_data)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span></div>
 
 
 <div class="viewcode-block" id="SQLStorageManager.delete_session_state">

@@ -96,49 +96,29 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="pyquizhub.core.engine.engine.QuizEngine">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyquizhub.core.engine.engine.</span></span><span class="sig-name descname"><span class="pre">QuizEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/engine/engine.html#QuizEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.engine.engine.QuizEngine" title="Link to this definition"></a></dt>
-<dd><p>Pure quiz engine - only handles quiz logic.</p>
-<p>The engine is stateless and operates as a pure transformation:
-(quiz_definition, current_state, answer) → new_state</p>
-<p>It has no awareness of:
-- User IDs
-- Session IDs
-- Persistence
-- HTTP/networking</p>
-<p>This class handles:
-- Quiz data validation and loading
-- Question progression logic
-- Score calculation
-- Answer validation</p>
-<dl class="field-list simple">
-<dt class="field-odd">Variables<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>quiz</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The loaded and validated quiz data</p></li>
-<li><p><strong>logger</strong> – Logger instance for engine events</p></li>
-</ul>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
-</dd>
-</dl>
-<p>Initialize the QuizEngine with quiz data.</p>
+<dd><p>Stateless quiz engine.</p>
+<p>The engine is pure/functional: it accepts quiz data at construction and
+performs operations on explicit state dictionaries passed to its methods.</p>
+<p>Public contract (used by API layer):
+- __init__(quiz_data): load/validate quiz
+- start_quiz() -&gt; state dict: create initial state
+- get_current_question(state) -&gt; question dict | None
+- answer_question(state, answer) -&gt; new state dict</p>
+<p>The engine will treat missing optional quiz fields (api_integrations,
+questions, scores, transitions) as empty collections to be defensive.</p>
+<p>Initialize engine and normalize quiz data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The quiz definition data to load</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If quiz validation fails</p>
+<dd class="field-odd"><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyquizhub.core.engine.engine.QuizEngine.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/engine/engine.html#QuizEngine.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.engine.engine.QuizEngine.__init__" title="Link to this definition"></a></dt>
-<dd><p>Initialize the QuizEngine with quiz data.</p>
+<dd><p>Initialize engine and normalize quiz data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The quiz definition data to load</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If quiz validation fails</p>
+<dd class="field-odd"><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p>
 </dd>
 </dl>
 </dd></dl>
