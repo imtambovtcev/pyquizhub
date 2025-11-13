@@ -82,7 +82,8 @@ class QuizApp {
 
             if (!response.ok) throw new Error(data.detail || 'Failed to submit answer');
 
-            if (data.question.id === null) {
+            // Check if question is null (quiz completed) or if question.id is null
+            if (data.question === null || data.question.id === null) {
                 this.showResults(data);
             } else {
                 this.showQuiz(data.question);
@@ -121,7 +122,8 @@ class QuizApp {
     }
 
     showQuiz(question) {
-        if (question.id === null) {
+        // Handle null or completed quiz
+        if (!question || question.id === null) {
             this.showResults({ score: "Quiz completed!" });
             return;
         }
@@ -181,10 +183,15 @@ class QuizApp {
     }
 
     showResults(data) {
+        this.startScreen.style.display = 'none';
+        this.quizScreen.style.display = 'block';
+        
         this.quizScreen.innerHTML = `
             <div class="success">
                 <h2>Quiz Completed!</h2>
-                <p>Your score: ${data.score}</p>
+                <p>Thank you for completing "${data.title || 'the quiz'}"!</p>
+                <p>Your responses have been recorded.</p>
+                <button onclick="location.reload()">Take Another Quiz</button>
             </div>
         `;
     }
