@@ -121,7 +121,8 @@ def test_start_quiz(api_client, config_path, token, mock_requests):
     assert result.exit_code == 0
     assert "Starting quiz: Complex Quiz" in result.output
     assert "Question 1: Do you like apples?" in result.output
-    assert "Quiz completed!" in result.output
+    assert "Quiz Completed: Complex Quiz" in result.output
+    assert "Thank you for completing the quiz!" in result.output
 
 
 def test_check_connection(api_client, config_path, mock_requests):

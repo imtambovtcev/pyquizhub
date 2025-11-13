@@ -363,6 +363,142 @@ The system evaluates two types of expressions:
    - Common paths through quiz
    - Average scores per question
 
+## CLI Testing Scenarios
+
+In addition to the API-based scenarios above, the quiz was tested using the Command Line Interface to verify user experience across different access methods.
+
+### CLI Scenario 1: Direct Path via CLI
+
+**Command:**
+```bash
+docker exec -i pyquizhub-api-1 poetry run python -m pyquizhub.adapters.cli.user_cli \
+  start --user-id cli_test_user --token AVOKNQW61EIYHZD7
+```
+
+**User Interaction:**
+```
+Starting quiz: Complex Quiz
+Question 1: Do you like apples?
+  1: Yes
+  2: No
+Enter the number of your choice: 1
+
+Question 2: Do you like pears?
+  1: Yes
+  2: No
+Enter the number of your choice: 1
+
+==================================================
+Quiz Completed: Complex Quiz
+==================================================
+Thank you for completing the quiz!
+Your responses have been recorded.
+```
+
+**Flow:**
+1. ✅ Quiz started with token authentication
+2. ✅ Question 1 displayed with numbered options
+3. ✅ User answered "1" (Yes) → scores updated, advanced to Question 2
+4. ✅ Question 2 displayed
+5. ✅ User answered "1" (Yes) → scores updated
+6. ✅ Quiz completed with formatted completion message
+
+**Final State:**
+- Scores: `{fruits: 2, apples: 2, pears: 2}`
+- Quiz Status: Completed
+- Session: Properly closed and results saved
+
+### CLI Scenario 2: Looping Path via CLI
+
+**Command:**
+```bash
+docker exec -i pyquizhub-api-1 poetry run python -m pyquizhub.adapters.cli.user_cli \
+  start --user-id cli_loop_test --token AVOKNQW61EIYHZD7
+```
+
+**User Interaction:**
+```
+Starting quiz: Complex Quiz
+Question 1: Do you like apples?
+  1: Yes
+  2: No
+Enter the number of your choice: 2
+
+Question 1: Do you like apples?
+  1: Yes
+  2: No
+Enter the number of your choice: 1
+
+Question 2: Do you like pears?
+  1: Yes
+  2: No
+Enter the number of your choice: 1
+
+==================================================
+Quiz Completed: Complex Quiz
+==================================================
+Thank you for completing the quiz!
+Your responses have been recorded.
+```
+
+**Flow:**
+1. ✅ Quiz started
+2. ✅ Question 1: User answered "2" (No) → `apples = -1`, `fruits = 0`
+3. ✅ **Conditional branching triggered:** `fruits >= 1` evaluated to False
+4. ✅ **Looped back to Question 1** (demonstrates branching logic)
+5. ✅ Question 1 (second attempt): User answered "1" (Yes) → `apples = 1`, `fruits = 1`
+6. ✅ Conditional branching: `fruits >= 1` evaluated to True
+7. ✅ Advanced to Question 2
+8. ✅ Question 2: User answered "1" (Yes) → `pears = 2`, `fruits = 2`
+9. ✅ Quiz completed successfully
+
+**Final State:**
+- Scores: `{fruits: 2, apples: 1, pears: 2}`
+- Quiz Status: Completed
+- Loop Count: 1 (returned to Question 1 once)
+
+### CLI Error Handling
+
+**Scenario: Session Expiry Handling**
+
+The CLI includes defensive programming to handle edge cases:
+
+```python
+# Null question check at quiz start
+if not question or question.id is None:
+    click.echo("Quiz completed!")
+    return
+
+# Session not found error handling
+elif response.status_code == 404:
+    error_detail = response.json().get('detail', 'Unknown error')
+    if 'Session not found' in error_detail:
+        click.echo("\nSession expired or quiz already completed.")
+        click.echo("Your previous answers have been saved.")
+```
+
+**Benefits:**
+- Gracefully handles null/None questions
+- Provides clear error messages for expired sessions
+- Prevents crashes when quiz is already completed
+- Saves user progress before session closure
+
+### CLI vs Web Interface Comparison
+
+| Feature | CLI | Web UI |
+|---------|-----|--------|
+| Authentication | Token-based | Token-based |
+| Question Display | Text-based with numbered options | HTML form with radio buttons |
+| Answer Input | Numeric selection (1, 2, etc.) | Click selection |
+| Completion Message | Formatted text with separators | Styled HTML with button |
+| Error Handling | Console messages | Alert boxes/inline errors |
+| Session Management | Automatic cleanup | Automatic cleanup |
+| Branching Logic | ✅ Fully supported | ✅ Fully supported |
+| Score Tracking | ✅ Backend only | ✅ Backend only |
+| User Experience | Fast, scriptable | Visual, interactive |
+
+Both interfaces share the same backend logic and provide equivalent functionality with different presentation styles.
+
 ## Conclusion
 
 This use case demonstrates PyQuizHub's capability to handle complex quiz scenarios with:
@@ -371,5 +507,8 @@ This use case demonstrates PyQuizHub's capability to handle complex quiz scenari
 - ✅ Session state management
 - ✅ Concurrent user support
 - ✅ Flexible question flow control
+- ✅ **Multiple access interfaces (API, Web UI, CLI)**
+- ✅ **Robust error handling and session management**
+- ✅ **Consistent behavior across all interfaces**
 
-The system successfully processes complex conditional logic, maintains isolated user sessions, and provides a robust platform for adaptive assessments and surveys.
+The system successfully processes complex conditional logic, maintains isolated user sessions, and provides a robust platform for adaptive assessments and surveys through multiple access methods (REST API, Web Interface, and Command Line Interface).

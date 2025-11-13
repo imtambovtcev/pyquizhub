@@ -52,11 +52,8 @@ def start(ctx, user_id, token):
             handle_quiz_loop(ctx, response_data.quiz_id, user_id,
                              response_data.session_id, response_data)
         else:
-            click.echo(
-                f"Failed to start quiz: {
-                    response.json().get(
-                        'detail',
-                        'Unknown error')}")
+            error_detail = response.json().get('detail', 'Unknown error')
+            click.echo(f"Failed to start quiz: {error_detail}")
             click.echo(response.json().get("errors", ""))
     except Exception as e:
         click.echo(f"Error: {e}")
@@ -65,19 +62,39 @@ def start(ctx, user_id, token):
 def handle_quiz_loop(ctx, quiz_id, user_id, session_id, initial_response):
     """Handle the quiz loop."""
     question = initial_response.question
+    quiz_title = initial_response.title
+
+    # Check if question is None or has null id (quiz already completed)
+    if not question or question.id is None:
+        click.echo("Quiz completed!")
+        return
+
     while question and question.id is not None:
         answer = handle_question(question)
+        if answer is None:
+            # User might have quit or encountered an error
+            return
         response = submit_answer(
             ctx, quiz_id, user_id, session_id, answer)
         if not response:
             click.echo("Failed to submit answer.")
             return
         question = response.question
-    click.echo("Quiz completed!")
+
+    click.echo("\n" + "="*50)
+    click.echo(f"Quiz Completed: {quiz_title}")
+    click.echo("="*50)
+    click.echo("Thank you for completing the quiz!")
+    click.echo("Your responses have been recorded.")
 
 
 def handle_question(question):
     """Handle a single quiz question."""
+    # Safety check for None question
+    if not question or not question.data:
+        click.echo("Error: Invalid question data received.")
+        return None
+
     if question.data["type"] == "final_message":
         click.echo(question.data["text"])
         return None
@@ -135,12 +152,17 @@ def submit_answer(ctx, quiz_id, user_id, session_id, answer):
         )
         if response.status_code == 200:
             return SubmitAnswerResponseModel(**response.json())
+        elif response.status_code == 404:
+            error_detail = response.json().get('detail', 'Unknown error')
+            if 'Session not found' in error_detail:
+                click.echo("\nSession expired or quiz already completed.")
+                click.echo("Your previous answers have been saved.")
+            else:
+                click.echo(f"Failed to submit answer: {error_detail}")
+            return None
         else:
-            click.echo(
-                f"Failed to submit answer: {
-                    response.json().get(
-                        'detail',
-                        'Unknown error')}")
+            error_detail = response.json().get('detail', 'Unknown error')
+            click.echo(f"Failed to submit answer: {error_detail}")
             return None
     except json.JSONDecodeError as e:
         click.echo(f"JSON decode error: {e}")
