@@ -7,6 +7,7 @@ This module provides the main quiz engine functionality including:
 - Score calculation
 - Answer validation
 - Question transitions
+- External API integration
 
 The engine is completely stateless - it doesn't store any session data.
 All state is passed in and returned from methods.
@@ -17,6 +18,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
+from .api_integration import APIIntegrationManager, RequestTiming
 from pyquizhub.config.settings import get_logger
 
 
@@ -56,6 +58,7 @@ class QuizEngine:
         """
         self.quiz = self.load_quiz(quiz_data)
         self.logger = get_logger(__name__)
+        self.api_manager = APIIntegrationManager()
 
     def load_quiz(self, quiz_data: dict) -> dict:
         """
@@ -86,13 +89,25 @@ class QuizEngine:
                 - scores: Dictionary of score keys initialized to 0
                 - answers: Empty list for storing answers
                 - completed: False (quiz not completed)
+                - api_data: Dictionary for storing API responses (if quiz has API integrations)
+                - api_credentials: Dictionary for storing dynamic API credentials
         """
         initial_state = {
             "current_question_id": self.quiz["questions"][0]["id"],
             "scores": {key: 0 for key in self.quiz.get("scores", {}).keys()},
             "answers": [],
-            "completed": False
+            "completed": False,
+            "api_data": {},
+            "api_credentials": {}
         }
+
+        # Execute ON_QUIZ_START API calls
+        initial_state = self._execute_api_calls(
+            initial_state,
+            RequestTiming.ON_QUIZ_START,
+            context={}
+        )
+
         self.logger.info("Created initial quiz state")
         return initial_state
 
@@ -139,6 +154,8 @@ class QuizEngine:
                 - scores: Dictionary of current scores
                 - answers: List of previous answers
                 - completed: Boolean completion status
+                - api_data: Dictionary of API responses
+                - api_credentials: Dictionary of API credentials
             answer: User's answer to the current question
 
         Returns:
@@ -147,6 +164,7 @@ class QuizEngine:
                 - Answer recorded in answers list
                 - Updated current_question_id
                 - Updated completed status
+                - Updated API data
 
         Raises:
             ValueError: If quiz is already completed or answer is invalid
@@ -164,20 +182,39 @@ class QuizEngine:
             "current_question_id": state["current_question_id"],
             "scores": state["scores"].copy(),
             "answers": state["answers"].copy(),
-            "completed": state["completed"]
+            "completed": state["completed"],
+            "api_data": state.get("api_data", {}).copy(),
+            "api_credentials": state.get("api_credentials", {}).copy()
         }
+
+        # Execute AFTER_ANSWER API calls
+        context = {
+            "question_id": new_state["current_question_id"],
+            "answer": answer,
+            **new_state["scores"]
+        }
+        new_state = self._execute_api_calls(
+            new_state,
+            RequestTiming.AFTER_ANSWER,
+            context=context,
+            question_id=new_state["current_question_id"]
+        )
 
         # Update scores based on conditional logic
         score_updates = current_question.get("score_updates", [])
         for condition_group in score_updates:
             condition = condition_group.get("condition", "true")
-            if SafeEvaluator.eval_expr(
-                condition, {
-                    "answer": answer, **new_state["scores"]}):
-                for score_key, expr in condition_group.get(
-                        "update", {}).items():
+            # Add API data to evaluation context
+            eval_context = {
+                "answer": answer,
+                **new_state["scores"],
+                "api": self._create_api_context(new_state)
+            }
+            if SafeEvaluator.eval_expr(condition, eval_context):
+                for score_key, expr in condition_group.get("update", {}).items():
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
-                        expr, new_state["scores"]
+                        expr, {
+                            **new_state["scores"], "api": self._create_api_context(new_state)}
                     )
 
         # Record answer with timestamp
@@ -195,6 +232,26 @@ class QuizEngine:
 
         new_state["current_question_id"] = next_question_id
         new_state["completed"] = (next_question_id is None)
+
+        # Execute BEFORE_QUESTION API calls for next question
+        if next_question_id is not None:
+            context = {
+                "question_id": next_question_id,
+                **new_state["scores"]
+            }
+            new_state = self._execute_api_calls(
+                new_state,
+                RequestTiming.BEFORE_QUESTION,
+                context=context,
+                question_id=next_question_id
+            )
+        else:
+            # Execute ON_QUIZ_END API calls
+            new_state = self._execute_api_calls(
+                new_state,
+                RequestTiming.ON_QUIZ_END,
+                context={"final_scores": new_state["scores"]}
+            )
 
         self.logger.debug(
             f"Processed answer for question {current_question['id']}, "
@@ -263,3 +320,70 @@ class QuizEngine:
             if SafeEvaluator.eval_expr(expression, scores):
                 return next_question_id
         return None
+
+    def _execute_api_calls(
+        self,
+        state: Dict[str, Any],
+        timing: RequestTiming,
+        context: Dict[str, Any],
+        question_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute API calls for the given timing.
+
+        Args:
+            state: Current session state
+            timing: When to execute (BEFORE_QUESTION, AFTER_ANSWER, etc.)
+            context: Context data (scores, answer, etc.)
+            question_id: Question ID (for question-specific API calls)
+
+        Returns:
+            Updated session state with API responses
+        """
+        # Get API configurations from quiz
+        api_configs = self.quiz.get("api_integrations", [])
+
+        for api_config in api_configs:
+            # Check if this API call matches the timing
+            if api_config.get("timing") != timing.value:
+                continue
+
+            # Check if this is question-specific
+            if "question_id" in api_config:
+                if api_config["question_id"] != question_id:
+                    continue
+
+            # Execute the API call
+            try:
+                state = self.api_manager.execute_api_call(
+                    api_config,
+                    state,
+                    context
+                )
+            except Exception as e:
+                self.logger.error(f"API call failed: {e}")
+                # Continue with quiz even if API call fails
+
+        return state
+
+    def _create_api_context(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create API context for use in expressions.
+
+        This allows accessing API data in conditions like:
+        api.weather.temperature > 20
+
+        Args:
+            state: Current session state
+
+        Returns:
+            Dictionary of API data accessible by ID
+        """
+        api_context = {}
+        api_data = state.get("api_data", {})
+
+        for api_id, api_entry in api_data.items():
+            if api_entry.get("success", False):
+                api_context[api_id] = api_entry.get("response", {})
+
+        return api_context

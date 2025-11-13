@@ -63,6 +63,16 @@ class QuizJSONValidator:
         # Default variables for validation
         default_variables = quiz_data.get("scores", {}).copy()
 
+        # If quiz has API integrations, add mock 'api' variable for validation
+        if "api_integrations" in quiz_data and quiz_data["api_integrations"]:
+            # Create a mock api object with empty dictionaries for each API
+            api_mock = {}
+            for api_config in quiz_data["api_integrations"]:
+                if "id" in api_config:
+                    # Use placeholder values for validation - actual values will come at runtime
+                    api_mock[api_config["id"]] = 0  # Numeric placeholder
+            default_variables["api"] = api_mock
+
         # Validate scores
         if not isinstance(quiz_data["scores"], dict):
             errors.append("The 'scores' field must be a dictionary.")

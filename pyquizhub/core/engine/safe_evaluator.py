@@ -73,12 +73,36 @@ class SafeEvaluator:
                 right = _eval(node.right)
                 return SafeEvaluator.ALLOWED_OPERATORS[type(
                     node.op)](left, right)
+            elif isinstance(node, ast.BoolOp):
+                # Handle 'and' and 'or' operators
+                values = [_eval(v) for v in node.values]
+                if isinstance(node.op, ast.And):
+                    return all(values)
+                elif isinstance(node.op, ast.Or):
+                    return any(values)
+                else:
+                    raise ValueError(
+                        f"Unsupported boolean operator: {node.op}")
             elif isinstance(node, ast.Compare):
                 left = _eval(node.left)
                 # Only single comparisons are allowed
                 right = _eval(node.comparators[0])
                 return SafeEvaluator.ALLOWED_OPERATORS[type(
                     node.ops[0])](left, right)
+            elif isinstance(node, ast.Attribute):
+                # Handle attribute access like 'api.weather'
+                value = _eval(node.value)
+                if isinstance(value, dict) and node.attr in value:
+                    return value[node.attr]
+                raise ValueError(f"Invalid attribute access: {node.attr}")
+            elif isinstance(node, ast.Subscript):
+                # Handle subscript access like 'api["weather"]' or 'results[0]'
+                value = _eval(node.value)
+                if isinstance(node.slice, ast.Index):  # Python 3.8
+                    index = _eval(node.slice.value)
+                else:  # Python 3.9+
+                    index = _eval(node.slice)
+                return value[index]
             elif isinstance(node, ast.Num):  # For Python 3.8 and earlier
                 return node.n
             elif isinstance(node, ast.Constant):  # For Python 3.9+

@@ -1,0 +1,84 @@
+{
+    "metadata": {
+        "title": "AI-Powered Joke Quiz",
+        "description": "A quiz that generates jokes using an AI API and asks users to rate them",
+        "author": "API Integration Demo - Advanced",
+        "version": "1.0",
+        "requires_api": true
+    },
+    "scores": {
+        "humor_score": 0,
+        "total_ratings": 0
+    },
+    "api_integrations": [
+        {
+            "id": "joke_api",
+            "timing": "before_question",
+            "question_id": 1,
+            "url": "https://official-joke-api.appspot.com/random_joke",
+            "method": "GET",
+            "auth": {
+                "type": "none"
+            },
+            "description": "Fetch a random joke before question 1"
+        },
+        {
+            "id": "rating_submit",
+            "timing": "after_answer",
+            "question_id": 1,
+            "url": "https://httpbin.org/post",
+            "method": "POST",
+            "auth": {
+                "type": "api_key",
+                "key_name": "X-API-Key",
+                "credential": "demo-api-key-12345"
+            },
+            "body": {
+                "joke_id": "{api.joke_api.id}",
+                "rating": "{answer}",
+                "timestamp": "{timestamp}"
+            },
+            "description": "Submit joke rating to analytics API"
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Here's a joke:\n\nSetup: {api.joke_api.setup}\nPunchline: {api.joke_api.punchline}\n\nHow funny is this joke? (1-5)",
+                "type": "integer",
+                "min": 1,
+                "max": 5
+            },
+            "score_updates": [
+                {
+                    "condition": "answer >= 1 and answer <= 5",
+                    "update": {
+                        "humor_score": "humor_score + answer",
+                        "total_ratings": "total_ratings + 1"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "data": {
+                "text": "Would you like to hear another joke?",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "yes", "label": "Yes, tell me another!"},
+                    {"value": "no", "label": "No, that's enough"}
+                ]
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": 2}
+        ],
+        "2": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

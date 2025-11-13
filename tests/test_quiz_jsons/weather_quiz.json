@@ -1,0 +1,83 @@
+{
+    "metadata": {
+        "title": "Weather Quiz",
+        "description": "A quiz that uses real-time weather data from an external API",
+        "author": "API Integration Demo",
+        "version": "1.0",
+        "requires_api": true
+    },
+    "scores": {
+        "correct_answers": 0
+    },
+    "api_integrations": [
+        {
+            "id": "weather",
+            "timing": "on_quiz_start",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
+            "method": "GET",
+            "auth": {
+                "type": "none"
+            },
+            "response_path": "current.temperature_2m",
+            "description": "Fetch current temperature in Berlin"
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What is the current temperature in Berlin (°C)? Guess within ±5°C to earn a point!",
+                "type": "float",
+                "hint": "Check the weather forecast online if you need help!"
+            },
+            "score_updates": [
+                {
+                    "condition": "answer >= (api.weather - 5) and answer <= (api.weather + 5)",
+                    "update": {
+                        "correct_answers": "correct_answers + 1"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "data": {
+                "text": "Based on the temperature, would you say it's cold (< 10°C), mild (10-20°C), or warm (> 20°C)?",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "cold", "label": "Cold (< 10°C)"},
+                    {"value": "mild", "label": "Mild (10-20°C)"},
+                    {"value": "warm", "label": "Warm (> 20°C)"}
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'cold' and api.weather < 10",
+                    "update": {
+                        "correct_answers": "correct_answers + 1"
+                    }
+                },
+                {
+                    "condition": "answer == 'mild' and api.weather >= 10 and api.weather <= 20",
+                    "update": {
+                        "correct_answers": "correct_answers + 1"
+                    }
+                },
+                {
+                    "condition": "answer == 'warm' and api.weather > 20",
+                    "update": {
+                        "correct_answers": "correct_answers + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": 2}
+        ],
+        "2": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}
