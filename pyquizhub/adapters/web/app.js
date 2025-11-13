@@ -86,6 +86,7 @@ class QuizApp {
             if (data.question === null || data.question.id === null) {
                 this.showResults(data);
             } else {
+                this.currentQuiz.question = data.question;  // Update current question
                 this.showQuiz(data.question);
             }
         } catch (error) {
@@ -102,10 +103,12 @@ class QuizApp {
             case 'multiple_select':
                 return this.getSelectedCheckboxValues();
             case 'text':
-            case 'number':
-            case 'integer':
-            case 'float':
                 return document.getElementById('answer-input').value;
+            case 'number':
+            case 'float':
+                return parseFloat(document.getElementById('answer-input').value);
+            case 'integer':
+                return parseInt(document.getElementById('answer-input').value, 10);
             default:
                 throw new Error(`Unsupported question type: ${questionType}`);
         }

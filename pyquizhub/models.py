@@ -16,6 +16,7 @@ class QuizModel(BaseModel):
     scores: dict[str, float]
     questions: list[dict]
     transitions: dict[str, list[dict]]
+    api_integrations: Optional[list[dict]] = None
 
 
 class QuizContentModel(BaseModel):
@@ -109,7 +110,7 @@ class ParticipatedUsersResponseModel(BaseModel):
 
 # Config Models
 class ConfigPathResponseModel(BaseModel):
-    config_path: str
+    config_path: Optional[str] = None
     config_data: dict[str, Any]
 
 

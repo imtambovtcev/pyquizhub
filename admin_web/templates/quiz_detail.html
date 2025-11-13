@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Detail - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="quiz-detail">
+    <div class="page-header">
+        <h2>Quiz Detail: <span id="quiz-title">{{ quiz_id }}</span></h2>
+        <a href="/quizzes" class="btn btn-secondary">Back to Quizzes</a>
+    </div>
+    
+    <div id="quiz-content" class="loading">
+        <p>Loading quiz details...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const quizId = "{{ quiz_id }}";
+
+async function loadQuizDetail() {
+    try {
+        const res = await fetch(`/api/quiz/${quizId}`);
+        const data = await res.json();
+        
+        if (res.ok) {
+            displayQuiz(data.quiz);
+        } else {
+            showMessage('Error loading quiz', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error loading quiz', 'error');
+    }
+}
+
+function displayQuiz(quiz) {
+    document.getElementById('quiz-title').textContent = quiz.metadata.title;
+    const content = document.getElementById('quiz-content');
+    content.innerHTML = `<pre>${escapeHtml(JSON.stringify(quiz, null, 2))}</pre>`;
+}
+
+document.addEventListener('DOMContentLoaded', loadQuizDetail);
+</script>
+{% endblock %}

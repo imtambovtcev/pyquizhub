@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Create Quiz - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="create-quiz">
+    <div class="page-header">
+        <h2>Create New Quiz</h2>
+        <a href="/quizzes" class="btn btn-secondary">Back to Quizzes</a>
+    </div>
+
+    <div class="editor-tabs">
+        <button class="tab-btn active" onclick="switchTab('visual')">Visual Editor</button>
+        <button class="tab-btn" onclick="switchTab('json')">JSON Editor</button>
+    </div>
+
+    <div id="visual-editor" class="editor-panel active">
+        <p class="info-message">Visual editor coming soon! For now, use the JSON editor.</p>
+    </div>
+
+    <div id="json-editor" class="editor-panel">
+        <div class="editor-toolbar">
+            <button onclick="validateQuiz()" class="btn btn-secondary">Validate</button>
+            <button onclick="loadTemplate()" class="btn btn-secondary">Load Template</button>
+            <button onclick="createQuiz()" class="btn btn-primary">Create Quiz</button>
+        </div>
+        
+        <textarea id="quiz-json" class="json-editor" rows="25" placeholder="Paste your quiz JSON here..."></textarea>
+        
+        <div id="validation-results" class="validation-results" style="display: none;">
+            <h4>Validation Results</h4>
+            <div id="validation-content"></div>
+        </div>
+    </div>
+
+    <div id="result-message"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentTab = 'visual';
+
+function switchTab(tab) {
+    currentTab = tab;
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update panels
+    document.getElementById('visual-editor').classList.toggle('active', tab === 'visual');
+    document.getElementById('json-editor').classList.toggle('active', tab === 'json');
+}
+
+function loadTemplate() {
+    const template = {
+        "metadata": {
+            "title": "My Quiz",
+            "description": "A sample quiz",
+            "author": "Admin",
+            "version": "1.0"
+        },
+        "scores": {
+            "correct": 0
+        },
+        "questions": [
+            {
+                "id": 1,
+                "data": {
+                    "text": "What is 2 + 2?",
+                    "type": "integer"
+                },
+                "score_updates": [
+                    {
+                        "condition": "answer == 4",
+                        "update": {
+                            "correct": "correct + 1"
+                        }
+                    }
+                ]
+            }
+        ],
+        "transitions": {
+            "1": [
+                {
+                    "expression": "true",
+                    "next_question_id": null
+                }
+            ]
+        }
+    };
+    
+    document.getElementById('quiz-json').value = JSON.stringify(template, null, 2);
+    showMessage('Template loaded', 'success');
+}
+
+async function validateQuiz() {
+    const jsonText = document.getElementById('quiz-json').value.trim();
+    
+    if (!jsonText) {
+        showMessage('Please enter quiz JSON', 'error');
+        return;
+    }
+    
+    let quizData;
+    try {
+        quizData = JSON.parse(jsonText);
+    } catch (error) {
+        showMessage('Invalid JSON: ' + error.message, 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/validate-quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(quizData)
+        });
+        
+        const result = await res.json();
+        displayValidation(result);
+        
+    } catch (error) {
+        console.error('Validation error:', error);
+        showMessage('Error validating quiz', 'error');
+    }
+}
+
+function displayValidation(result) {
+    const container = document.getElementById('validation-content');
+    const resultsDiv = document.getElementById('validation-results');
+    
+    let html = '';
+    
+    if (result.errors && result.errors.length > 0) {
+        html += '<div class="validation-errors"><h5>Errors:</h5><ul>';
+        result.errors.forEach(err => {
+            html += `<li class="error-item">${escapeHtml(err)}</li>`;
+        });
+        html += '</ul></div>';
+    }
+    
+    if (result.warnings && result.warnings.length > 0) {
+        html += '<div class="validation-warnings"><h5>Warnings:</h5><ul>';
+        result.warnings.forEach(warn => {
+            html += `<li class="warning-item">${escapeHtml(warn)}</li>`;
+        });
+        html += '</ul></div>';
+    }
+    
+    if (result.errors.length === 0 && result.warnings.length === 0) {
+        html = '<p class="validation-success">✓ Quiz is valid!</p>';
+    }
+    
+    container.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
+async function createQuiz() {
+    const jsonText = document.getElementById('quiz-json').value.trim();
+    
+    if (!jsonText) {
+        showMessage('Please enter quiz JSON', 'error');
+        return;
+    }
+    
+    let quizData;
+    try {
+        quizData = JSON.parse(jsonText);
+    } catch (error) {
+        showMessage('Invalid JSON: ' + error.message, 'error');
+        return;
+    }
+    
+    const creatorId = prompt('Enter creator ID:', 'admin');
+    if (!creatorId) return;
+    
+    try {
+        const res = await fetch('/api/quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                quiz: quizData,
+                creator_id: creatorId
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+            showMessage(`Quiz created successfully! ID: ${result.quiz_id}`, 'success');
+            
+            // Ask if user wants to generate a token
+            if (confirm('Quiz created! Generate a token now?')) {
+                const type = confirm('Generate permanent token? (Cancel for single-use)') ? 
+                    'permanent' : 'single-use';
+                
+                const tokenRes = await fetch('/api/token/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        quiz_id: result.quiz_id,
+                        type: type
+                    })
+                });
+                
+                const tokenData = await tokenRes.json();
+                if (tokenRes.ok) {
+                    prompt('Token generated! Copy this token:', tokenData.token);
+                }
+            }
+            
+            // Clear editor
+            document.getElementById('quiz-json').value = '';
+            document.getElementById('validation-results').style.display = 'none';
+            
+        } else {
+            const errors = result.detail || result.error || 'Unknown error';
+            if (Array.isArray(errors)) {
+                displayValidation({errors: errors, warnings: []});
+            } else {
+                showMessage('Error: ' + errors, 'error');
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error creating quiz:', error);
+        showMessage('Error creating quiz', 'error');
+    }
+}
+
+// Auto-save to localStorage
+document.getElementById('quiz-json')?.addEventListener('input', (e) => {
+    localStorage.setItem('quiz-draft', e.target.value);
+});
+
+// Restore draft on load
+document.addEventListener('DOMContentLoaded', () => {
+    const draft = localStorage.getItem('quiz-draft');
+    if (draft && confirm('Restore previous draft?')) {
+        document.getElementById('quiz-json').value = draft;
+    }
+});
+</script>
+{% endblock %}

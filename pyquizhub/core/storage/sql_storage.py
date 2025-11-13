@@ -5,7 +5,7 @@ This module provides an implementation of the StorageManager interface using
 an SQL database for persistent storage of users, quizzes, tokens, results, and sessions.
 """
 
-from sqlalchemy import create_engine, MetaData, Table, Column, String, JSON, select, insert, update, delete
+from sqlalchemy import create_engine, MetaData, Table, Column, String, JSON, select, insert, update, delete, inspect
 from sqlalchemy.exc import IntegrityError
 from typing import Any, Dict, List, Optional
 from datetime import datetime
@@ -71,11 +71,23 @@ class SQLStorageManager(StorageManager):
             Column("answers", JSON),
             Column("completed", String),
             Column("created_at", String),
-            Column("updated_at", String)
+            Column("updated_at", String),
+            Column("api_data", JSON)
         )
 
         # Create tables if they don't exist
         self.metadata.create_all(self.engine)
+        # Determine whether the sessions table actually has the api_data column
+        try:
+            inspector = inspect(self.engine)
+            cols = [c["name"] for c in inspector.get_columns("sessions")]
+            self._sessions_has_api_data = "api_data" in cols
+            if not self._sessions_has_api_data:
+                self.logger.info(
+                    "Detected sessions table without 'api_data' column; running in compatibility mode")
+        except Exception:
+            # If introspection fails, assume column exists (safe default)
+            self._sessions_has_api_data = True
 
     def _execute(self, query):
         """
@@ -439,7 +451,9 @@ class SQLStorageManager(StorageManager):
             answers=session_data["answers"],
             completed=str(session_data["completed"]),
             created_at=session_data["created_at"],
-            updated_at=session_data["updated_at"]
+            updated_at=session_data["updated_at"],
+            api_data=session_data.get("api_data", {}) if getattr(
+                self, "_sessions_has_api_data", True) else None
         )
         try:
             self._execute(query)
@@ -447,6 +461,34 @@ class SQLStorageManager(StorageManager):
         except IntegrityError:
             # Session already exists, update instead
             self.update_session_state(session_id, session_data)
+        except Exception as e:
+            # Backwards compatibility: older databases may not have the api_data
+            # column. If the insert fails due to a missing column, retry without
+            # api_data to avoid failing the entire request.
+            msg = str(e)
+            if "api_data" in msg or "UndefinedColumn" in msg:
+                self.logger.warning(
+                    "api_data column missing in sessions table; retrying insert without api_data")
+                fallback_query = insert(self.sessions_table).values(
+                    session_id=session_id,
+                    user_id=session_data["user_id"],
+                    quiz_id=session_data["quiz_id"],
+                    current_question_id=session_data["current_question_id"],
+                    scores=session_data["scores"],
+                    answers=session_data["answers"],
+                    completed=str(session_data["completed"]),
+                    created_at=session_data["created_at"],
+                    updated_at=session_data["updated_at"]
+                )
+                try:
+                    self._execute(fallback_query)
+                    self.logger.info(
+                        f"Saved session state for session {session_id} (without api_data)")
+                except Exception:
+                    # Re-raise original if fallback also fails
+                    raise
+            else:
+                raise
 
     def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -458,7 +500,23 @@ class SQLStorageManager(StorageManager):
         Returns:
             Session data dictionary or None if not found
         """
-        query = select(self.sessions_table).where(
+        # Build select list conditionally depending on whether api_data column
+        # exists in the sessions table (compatibility with old DBs).
+        cols = [
+            self.sessions_table.c.session_id,
+            self.sessions_table.c.user_id,
+            self.sessions_table.c.quiz_id,
+            self.sessions_table.c.current_question_id,
+            self.sessions_table.c.scores,
+            self.sessions_table.c.answers,
+            self.sessions_table.c.completed,
+            self.sessions_table.c.created_at,
+            self.sessions_table.c.updated_at,
+        ]
+        if getattr(self, "_sessions_has_api_data", True):
+            cols.append(self.sessions_table.c.api_data)
+
+        query = select(*cols).where(
             self.sessions_table.c.session_id == session_id
         )
         result = self._execute(query).fetchone()
@@ -469,6 +527,9 @@ class SQLStorageManager(StorageManager):
         session_data = dict(result._mapping)
         # Convert 'completed' from string back to boolean
         session_data["completed"] = session_data["completed"] == "True"
+        # Ensure api_data exists in returned dict for compatibility
+        if "api_data" not in session_data:
+            session_data["api_data"] = {}
         self.logger.debug(f"Loaded session state for session {session_id}")
         return session_data
 
@@ -481,9 +542,8 @@ class SQLStorageManager(StorageManager):
             session_id: Unique session identifier
             session_data: Updated session data dictionary
         """
-        query = update(self.sessions_table).where(
-            self.sessions_table.c.session_id == session_id
-        ).values(
+        # Build update values conditionally depending on whether api_data exists
+        values = dict(
             user_id=session_data["user_id"],
             quiz_id=session_data["quiz_id"],
             current_question_id=session_data["current_question_id"],
@@ -491,10 +551,40 @@ class SQLStorageManager(StorageManager):
             answers=session_data["answers"],
             completed=str(session_data["completed"]),
             created_at=session_data["created_at"],
-            updated_at=session_data["updated_at"]
+            updated_at=session_data["updated_at"],
         )
-        self._execute(query)
-        self.logger.debug(f"Updated session state for session {session_id}")
+        if getattr(self, "_sessions_has_api_data", True):
+            values["api_data"] = session_data.get("api_data", {})
+
+        query = update(self.sessions_table).where(
+            self.sessions_table.c.session_id == session_id
+        ).values(**values)
+        try:
+            self._execute(query)
+            self.logger.debug(
+                f"Updated session state for session {session_id}")
+        except Exception as e:
+            msg = str(e)
+            if "api_data" in msg or "UndefinedColumn" in msg:
+                self.logger.warning(
+                    "api_data column missing in sessions table; retrying update without api_data")
+                fallback_query = update(self.sessions_table).where(
+                    self.sessions_table.c.session_id == session_id
+                ).values(
+                    user_id=session_data["user_id"],
+                    quiz_id=session_data["quiz_id"],
+                    current_question_id=session_data["current_question_id"],
+                    scores=session_data["scores"],
+                    answers=session_data["answers"],
+                    completed=str(session_data["completed"]),
+                    created_at=session_data["created_at"],
+                    updated_at=session_data["updated_at"]
+                )
+                self._execute(fallback_query)
+                self.logger.debug(
+                    f"Updated session state for session {session_id} (without api_data)")
+            else:
+                raise
 
     def delete_session_state(self, session_id: str) -> None:
         """

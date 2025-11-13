@@ -230,3 +230,34 @@ def admin_get_all_tokens(req: Request):
     all_tokens = storage_manager.get_all_tokens()
     logger.info("Admin retrieved all tokens")
     return AllTokensResponseModel(tokens=all_tokens)
+
+
+@router.delete("/token/{token}",
+               dependencies=[Depends(admin_token_dependency)])
+def admin_delete_token(token: str, req: Request):
+    """
+    Delete a specific token.
+
+    Args:
+        token: Token string to delete
+        req: FastAPI Request object containing application state
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If token not found or deletion fails
+    """
+    logger.debug(f"Admin deleting token: {token}")
+    storage_manager: StorageManager = req.app.state.storage_manager
+
+    try:
+        storage_manager.remove_token(token)
+        logger.info(f"Admin deleted token: {token}")
+        return {"message": f"Token {token} deleted successfully"}
+    except Exception as e:
+        logger.error(f"Failed to delete token {token}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete token: {str(e)}"
+        )

@@ -16,6 +16,7 @@ All state is passed in and returned from methods.
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
+
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
 from .api_integration import APIIntegrationManager, RequestTiming
@@ -23,39 +24,23 @@ from pyquizhub.config.settings import get_logger
 
 
 class QuizEngine:
-    """
-    Pure quiz engine - only handles quiz logic.
+    """Stateless quiz engine.
 
-    The engine is stateless and operates as a pure transformation:
-    (quiz_definition, current_state, answer) → new_state
+    The engine is pure/functional: it accepts quiz data at construction and
+    performs operations on explicit state dictionaries passed to its methods.
 
-    It has no awareness of:
-    - User IDs
-    - Session IDs
-    - Persistence
-    - HTTP/networking
+    Public contract (used by API layer):
+    - __init__(quiz_data): load/validate quiz
+    - start_quiz() -> state dict: create initial state
+    - get_current_question(state) -> question dict | None
+    - answer_question(state, answer) -> new state dict
 
-    This class handles:
-    - Quiz data validation and loading
-    - Question progression logic
-    - Score calculation
-    - Answer validation
-
-    Attributes:
-        quiz (dict): The loaded and validated quiz data
-        logger: Logger instance for engine events
+    The engine will treat missing optional quiz fields (api_integrations,
+    questions, scores, transitions) as empty collections to be defensive.
     """
 
     def __init__(self, quiz_data: dict):
-        """
-        Initialize the QuizEngine with quiz data.
-
-        Args:
-            quiz_data (dict): The quiz definition data to load
-
-        Raises:
-            ValueError: If quiz validation fails
-        """
+        """Initialize engine and normalize quiz data."""
         self.quiz = self.load_quiz(quiz_data)
         self.logger = get_logger(__name__)
         self.api_manager = APIIntegrationManager()
@@ -74,9 +59,21 @@ class QuizEngine:
             ValueError: If quiz validation fails
         """
         validation_result = QuizJSONValidator.validate(quiz_data)
-        if validation_result["errors"]:
+        if validation_result.get("errors"):
             raise ValueError(
                 f"Quiz validation failed: {validation_result['errors']}")
+
+        # Normalize optional fields to safe defaults so engine logic
+        # can assume consistent types (avoid None where lists/dicts expected)
+        if quiz_data.get("api_integrations") is None:
+            quiz_data["api_integrations"] = []
+        if quiz_data.get("scores") is None:
+            quiz_data["scores"] = {}
+        if quiz_data.get("questions") is None:
+            quiz_data["questions"] = []
+        if quiz_data.get("transitions") is None:
+            quiz_data["transitions"] = {}
+
         return quiz_data
 
     def start_quiz(self) -> dict:
@@ -92,8 +89,12 @@ class QuizEngine:
                 - api_data: Dictionary for storing API responses (if quiz has API integrations)
                 - api_credentials: Dictionary for storing dynamic API credentials
         """
+        first_qs = self.quiz.get("questions", [])
+        if not first_qs:
+            raise ValueError("Quiz has no questions")
+
         initial_state = {
-            "current_question_id": self.quiz["questions"][0]["id"],
+            "current_question_id": first_qs[0]["id"],
             "scores": {key: 0 for key in self.quiz.get("scores", {}).keys()},
             "answers": [],
             "completed": False,
@@ -125,7 +126,7 @@ class QuizEngine:
         Raises:
             ValueError: If question ID in state is not found in quiz
         """
-        question_id = state["current_question_id"]
+        question_id = state.get("current_question_id")
         if question_id is None:
             return None  # Quiz is complete
 
@@ -179,10 +180,10 @@ class QuizEngine:
 
         # Create new state (don't mutate input)
         new_state = {
-            "current_question_id": state["current_question_id"],
-            "scores": state["scores"].copy(),
-            "answers": state["answers"].copy(),
-            "completed": state["completed"],
+            "current_question_id": state.get("current_question_id"),
+            "scores": state.get("scores", {}).copy(),
+            "answers": state.get("answers", []).copy(),
+            "completed": state.get("completed", False),
             "api_data": state.get("api_data", {}).copy(),
             "api_credentials": state.get("api_credentials", {}).copy()
         }
@@ -205,11 +206,16 @@ class QuizEngine:
         for condition_group in score_updates:
             condition = condition_group.get("condition", "true")
             # Add API data to evaluation context
+            api_context = self._create_api_context(new_state)
+            self.logger.debug(f"API context for evaluation: {api_context}")
+            self.logger.debug(
+                f"Full api_data in state: {new_state.get('api_data', {})}")
             eval_context = {
                 "answer": answer,
                 **new_state["scores"],
-                "api": self._create_api_context(new_state)
+                "api": api_context
             }
+            self.logger.debug(f"Eval context: {eval_context}")
             if SafeEvaluator.eval_expr(condition, eval_context):
                 for score_key, expr in condition_group.get("update", {}).items():
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
@@ -340,8 +346,8 @@ class QuizEngine:
         Returns:
             Updated session state with API responses
         """
-        # Get API configurations from quiz
-        api_configs = self.quiz.get("api_integrations", [])
+        # Get API configurations from quiz (ensure iterable)
+        api_configs = self.quiz.get("api_integrations") or []
 
         for api_config in api_configs:
             # Check if this API call matches the timing
@@ -382,8 +388,16 @@ class QuizEngine:
         api_context = {}
         api_data = state.get("api_data", {})
 
+        self.logger.debug(f"Creating API context from api_data: {api_data}")
+
         for api_id, api_entry in api_data.items():
+            self.logger.debug(f"Processing API {api_id}: {api_entry}")
             if api_entry.get("success", False):
                 api_context[api_id] = api_entry.get("response", {})
+                self.logger.debug(
+                    f"Added {api_id} to API context: {api_context[api_id]}")
+            else:
+                self.logger.warning(f"API {api_id} not successful, skipping")
 
+        self.logger.debug(f"Final API context: {api_context}")
         return api_context

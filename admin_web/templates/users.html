@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="user-management">
+    <div class="page-header">
+        <h2>User Management</h2>
+    </div>
+    
+    <div id="user-list" class="loading">
+        <p>Loading users...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        
+        const userList = document.getElementById('user-list');
+        userList.innerHTML = '<p>User management coming soon!</p>';
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error loading users', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+{% endblock %}

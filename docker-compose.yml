@@ -24,6 +24,21 @@ services:
     networks:
       - pyquizhub-network
 
+  admin-web:
+    build:
+      context: .
+      dockerfile: admin_web/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - PYQUIZHUB_API_URL=http://api:8000
+      - PYQUIZHUB_ADMIN_TOKEN=${PYQUIZHUB_ADMIN_TOKEN}
+      - ADMIN_PORT=8081
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+
   db:
     image: postgres:15-alpine
     env_file:

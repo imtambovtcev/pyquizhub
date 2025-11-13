@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Token Management - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>🎫 Token Management</h1>
+        <p class="subtitle">View, copy, and delete all active tokens</p>
+    </div>
+    <div id="tokens-table-container">
+        <table class="admin-table" id="tokens-table">
+            <thead>
+                <tr>
+                    <th>Token</th>
+                    <th>Quiz</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tokens-tbody">
+                <tr><td colspan="5" class="loading">Loading tokens...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div id="message-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', loadTokens);
+
+async function loadTokens() {
+    const tbody = document.getElementById('tokens-tbody');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading tokens...</td></tr>';
+    try {
+        const res = await fetch('/api/tokens');
+        const data = await res.json();
+        const tokens = data.tokens || {};
+        let rows = '';
+        let count = 0;
+        Object.entries(tokens).forEach(([quizId, tokenList]) => {
+            tokenList.forEach(tokenInfo => {
+                count++;
+                const typeLabel = tokenInfo.type === 'permanent' ? '♾️ Permanent' : '1️⃣ Single-use';
+                const usedLabel = tokenInfo.used ? '✅ Used' : '⏳ Unused';
+                rows += `
+                    <tr>
+                        <td><code>${tokenInfo.token}</code></td>
+                        <td>${quizId}</td>
+                        <td><span class="badge badge-${tokenInfo.type === 'permanent' ? 'primary' : 'secondary'}">${typeLabel}</span></td>
+                        <td><span class="badge badge-${tokenInfo.used ? 'success' : 'warning'}">${usedLabel}</span></td>
+                        <td>
+                            <button onclick="copyToken('${tokenInfo.token}')" class="btn btn-small btn-secondary">📋 Copy</button>
+                            <button onclick="deleteToken('${tokenInfo.token}')" class="btn btn-small btn-danger">🗑️ Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+        tbody.innerHTML = rows || '<tr><td colspan="5" class="empty">No tokens found.</td></tr>';
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="error">Error loading tokens</td></tr>`;
+    }
+}
+
+function copyToken(token) {
+    navigator.clipboard.writeText(token).then(() => {
+        showMessage('Token copied to clipboard!', 'success');
+    }).catch(err => {
+        showMessage('Failed to copy token', 'error');
+    });
+}
+
+async function deleteToken(token) {
+    if (!confirm(`Delete token ${token}?`)) return;
+    try {
+        const res = await fetch(`/api/token/${token}`, {method: 'DELETE'});
+        if (res.ok) {
+            showMessage('Token deleted successfully', 'success');
+            loadTokens();
+        } else {
+            showMessage('Failed to delete token', 'error');
+        }
+    } catch (error) {
+        showMessage('Error deleting token', 'error');
+    }
+}
+</script>
+<style>
+.admin-table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
+.admin-table th, .admin-table td { padding: 0.75rem; border-bottom: 1px solid #eee; text-align: left; }
+.admin-table th { background: #f8f8f8; }
+.admin-table td code { font-family: 'Courier New', monospace; background: #f5f5f5; padding: 0.25rem 0.5rem; border-radius: 3px; }
+.badge { padding: 0.25em 0.5em; border-radius: 3px; font-size: 0.9em; }
+.badge-primary { background: #007bff; color: #fff; }
+.badge-secondary { background: #6c757d; color: #fff; }
+.badge-success { background: #28a745; color: #fff; }
+.badge-warning { background: #ffc107; color: #212529; }
+.loading, .empty, .error { text-align: center; color: #888; font-style: italic; }
+</style>
+{% endblock %}

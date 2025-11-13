@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="sessions">
+    <div class="page-header">
+        <h2>Active Sessions</h2>
+    </div>
+    
+    <div id="sessions-content" class="loading">
+        <p>Loading sessions...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadSessions() {
+    try {
+        const res = await fetch('/api/sessions');
+        const data = await res.json();
+        
+        const content = document.getElementById('sessions-content');
+        content.innerHTML = '<p>Session monitoring coming soon!</p>';
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error loading sessions', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadSessions);
+</script>
+{% endblock %}

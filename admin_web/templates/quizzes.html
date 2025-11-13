@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Management - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="quiz-management">
+    <div class="page-header">
+        <h2>Quiz Management</h2>
+        <a href="/quiz/create" class="btn btn-primary">Create New Quiz</a>
+    </div>
+
+    <div class="quiz-list" id="quiz-list">
+        <p class="loading">Loading quizzes...</p>
+    </div>
+</div>
+
+<div id="message-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-close:hover {
+    color: #000;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Token list styles */
+.tokens-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.token-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.token-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.token-value {
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    display: inline-block;
+}
+
+.token-meta {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.token-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.no-tokens {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+}
+</style>
+
+<script>
+async function loadQuizzes() {
+    try {
+        const res = await fetch('/api/quizzes');
+        const data = await res.json();
+        
+        const quizList = document.getElementById('quiz-list');
+        quizList.innerHTML = '';
+        
+        const quizzes = data.quizzes || {};
+        const quizIds = Object.keys(quizzes);
+        
+        if (quizIds.length === 0) {
+            quizList.innerHTML = '<p class="empty-state">No quizzes found. Create your first quiz!</p>';
+            return;
+        }
+        
+        quizIds.forEach(quizId => {
+            const quiz = quizzes[quizId];
+            const card = createQuizCard(quizId, quiz);
+            quizList.appendChild(card);
+        });
+        
+    } catch (error) {
+        console.error('Error loading quizzes:', error);
+        showMessage('Error loading quizzes', 'error');
+    }
+}
+
+function createQuizCard(quizId, quiz) {
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+    
+    // Handle nested data structure (quiz.data.metadata)
+    const quizData = quiz.data || quiz;
+    const metadata = quizData.metadata || {};
+    const questionCount = (quizData.questions || []).length;
+    const hasApi = quizData.api_integrations && quizData.api_integrations.length > 0;
+    
+    card.innerHTML = `
+        <div class="quiz-card-header">
+            <h3>${escapeHtml(metadata.title || quizId)}</h3>
+            <span class="quiz-id">ID: ${quizId}</span>
+        </div>
+        <div class="quiz-card-body">
+            <p class="quiz-description">${escapeHtml(metadata.description || 'No description')}</p>
+            <div class="quiz-meta">
+                <span>📝 ${questionCount} question${questionCount !== 1 ? 's' : ''}</span>
+                <span>👤 ${escapeHtml(metadata.author || 'Unknown')}</span>
+                ${hasApi ? '<span class="api-badge">🔌 API Integration</span>' : ''}
+            </div>
+        </div>
+        <div class="quiz-card-actions">
+            <a href="/quiz/${quizId}" class="btn btn-small btn-secondary">View Details</a>
+            <button onclick="viewTokens('${quizId}')" class="btn btn-small btn-info">View Tokens</button>
+            <button onclick="generateToken('${quizId}')" class="btn btn-small btn-primary">Generate Token</button>
+            <button onclick="deleteQuiz('${quizId}')" class="btn btn-small btn-danger">Delete</button>
+        </div>
+    `;
+    
+    return card;
+}
+
+async function generateToken(quizId) {
+    const type = confirm('Generate permanent token? (Cancel for single-use)') ? 'permanent' : 'single-use';
+    
+    try {
+        const res = await fetch('/api/token/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({quiz_id: quizId, type: type})
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            prompt('Token generated successfully! Copy this token:', data.token);
+            showMessage(`${type} token generated for quiz ${quizId}`, 'success');
+        } else {
+            showMessage(`Error: ${data.detail || 'Token generation failed'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error generating token:', error);
+        showMessage('Error generating token', 'error');
+    }
+}
+
+async function deleteQuiz(quizId) {
+    if (!confirm(`Are you sure you want to delete quiz ${quizId}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/quiz/${quizId}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            showMessage(`Quiz ${quizId} deleted successfully`, 'success');
+            loadQuizzes(); // Reload list
+        } else {
+            const data = await res.json();
+            showMessage(`Error: ${data.detail || 'Delete failed'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting quiz:', error);
+        showMessage('Error deleting quiz', 'error');
+    }
+}
+
+async function viewTokens(quizId) {
+    try {
+        const res = await fetch('/api/tokens');
+        const data = await res.json();
+
+        if (!res.ok) {
+            showMessage(`Error loading tokens: ${data.error || 'Unknown error'}`, 'error');
+            return;
+        }
+
+        // Get tokens for this quiz - data.tokens is structured as {quiz_id: [token_list]}
+        const tokenList = data.tokens[quizId] || [];
+
+        // Convert to array of [token_string, info] tuples for compatibility with showTokensModal
+        const quizTokens = tokenList.map(tokenInfo => [tokenInfo.token, tokenInfo]);
+
+        showTokensModal(quizId, quizTokens);
+
+    } catch (error) {
+        console.error('Error loading tokens:', error);
+        showMessage('Error loading tokens', 'error');
+    }
+}
+
+function showTokensModal(quizId, tokens) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('tokens-modal');
+    if (existingModal) existingModal.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'tokens-modal';
+    modal.className = 'modal';
+    
+    let tokensHtml = '';
+    if (tokens.length === 0) {
+        tokensHtml = '<p class="no-tokens">No tokens generated for this quiz yet.</p>';
+    } else {
+        tokensHtml = '<div class="tokens-list">';
+        tokens.forEach(([token, info]) => {
+            const typeLabel = info.type === 'permanent' ? '♾️ Permanent' : '1️⃣ Single-use';
+            const usedLabel = info.used ? '✅ Used' : '⏳ Unused';
+            
+            tokensHtml += `
+                <div class="token-item">
+                    <div class="token-info">
+                        <code class="token-value">${token}</code>
+                        <div class="token-meta">
+                            <span class="badge badge-${info.type === 'permanent' ? 'primary' : 'secondary'}">${typeLabel}</span>
+                            <span class="badge badge-${info.used ? 'success' : 'warning'}">${usedLabel}</span>
+                        </div>
+                    </div>
+                    <div class="token-actions">
+                        <button onclick="copyToken('${token}')" class="btn btn-small btn-secondary">📋 Copy</button>
+                        <button onclick="deleteToken('${token}', '${quizId}')" class="btn btn-small btn-danger">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        tokensHtml += '</div>';
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎫 Tokens for Quiz ${quizId}</h2>
+                <button onclick="closeTokensModal()" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                ${tokensHtml}
+            </div>
+            <div class="modal-footer">
+                <button onclick="generateToken('${quizId}')" class="btn btn-primary">➕ Generate New Token</button>
+                <button onclick="closeTokensModal()" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+}
+
+function closeTokensModal() {
+    const modal = document.getElementById('tokens-modal');
+    if (modal) modal.remove();
+}
+
+function copyToken(token) {
+    navigator.clipboard.writeText(token).then(() => {
+        showMessage('Token copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy token:', err);
+        showMessage('Failed to copy token', 'error');
+    });
+}
+
+async function deleteToken(token, quizId) {
+    if (!confirm(`Delete token ${token}?`)) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/token/${token}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            showMessage('Token deleted successfully', 'success');
+            closeTokensModal();
+            // Optionally reload tokens modal
+            setTimeout(() => viewTokens(quizId), 500);
+        } else {
+            const data = await res.json();
+            showMessage(`Error: ${data.error || 'Delete failed'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting token:', error);
+        showMessage('Error deleting token', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadQuizzes);
+</script>
+{% endblock %}

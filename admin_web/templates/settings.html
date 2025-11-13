@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings - PyQuizHub Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>⚙️ System Settings</h1>
+        <p class="subtitle">View current system configuration and status</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="card">
+        <p>Loading system settings...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="card error-card" style="display: none;">
+        <h3>⚠️ Error Loading Settings</h3>
+        <p id="error-message"></p>
+        <button onclick="loadSettings()" class="btn btn-primary">
+            🔄 Retry
+        </button>
+    </div>
+
+    <!-- Settings Content -->
+    <div id="settings-content" style="display: none;">
+        
+        <!-- Database Settings -->
+        <div class="card">
+            <h2>🗄️ Database Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <span class="setting-label">Storage Type:</span>
+                    <span id="storage-type" class="setting-value badge"></span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Connection:</span>
+                    <span id="db-connection" class="setting-value"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Settings -->
+        <div class="card">
+            <h2>🌐 API Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <span class="setting-label">Host:</span>
+                    <span id="api-host" class="setting-value mono"></span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Port:</span>
+                    <span id="api-port" class="setting-value mono"></span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Full URL:</span>
+                    <span id="api-url" class="setting-value mono"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logging Settings -->
+        <div class="card">
+            <h2>📝 Logging Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <span class="setting-label">Log Level:</span>
+                    <span id="log-level" class="setting-value badge"></span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Log Format:</span>
+                    <span id="log-format" class="setting-value mono"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="card">
+            <h2>ℹ️ System Information</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <span class="setting-label">Config File Path:</span>
+                    <span id="config-path" class="setting-value mono"></span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Admin Web Port:</span>
+                    <span id="admin-port" class="setting-value mono">8081</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Configuration (Collapsed) -->
+        <div class="card">
+            <h2>📋 Full Configuration</h2>
+            <details>
+                <summary style="cursor: pointer; padding: 10px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 10px;">
+                    <strong>Click to view full configuration JSON</strong>
+                </summary>
+                <pre id="full-config" class="code-block" style="max-height: 500px; overflow-y: auto;"></pre>
+            </details>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <h2>🔧 Actions</h2>
+            <div class="btn-group">
+                <button onclick="loadSettings()" class="btn btn-primary">
+                    🔄 Reload Settings
+                </button>
+                <button onclick="exportConfig()" class="btn btn-secondary">
+                    💾 Export Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.settings-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.setting-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.setting-value {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.setting-value.mono {
+    font-family: 'Courier New', monospace;
+    background: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+}
+
+.code-block {
+    background: var(--bg-primary);
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.btn-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.error-card {
+    background: #fff5f5;
+    border-left: 4px solid #e53e3e;
+}
+</style>
+
+<script>
+let currentSettings = null;
+
+async function loadSettings() {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const content = document.getElementById('settings-content');
+    
+    // Show loading state
+    loading.style.display = 'block';
+    error.style.display = 'none';
+    content.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/settings');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        currentSettings = await response.json();
+        displaySettings(currentSettings);
+        
+        // Show content
+        loading.style.display = 'none';
+        content.style.display = 'block';
+        
+    } catch (err) {
+        console.error('Failed to load settings:', err);
+        document.getElementById('error-message').textContent = err.message;
+        loading.style.display = 'none';
+        error.style.display = 'block';
+    }
+}
+
+function displaySettings(settings) {
+    // Database settings
+    const storageType = settings.database?.type || 'unknown';
+    document.getElementById('storage-type').textContent = storageType;
+    document.getElementById('storage-type').className = 
+        `setting-value badge badge-${storageType === 'sql' ? 'primary' : 'secondary'}`;
+    
+    const connection = settings.database?.connection_string || 
+                      (storageType === 'file' ? 'File-based storage' : 'Not configured');
+    document.getElementById('db-connection').textContent = connection;
+    
+    // API settings
+    document.getElementById('api-host').textContent = settings.api?.host || '0.0.0.0';
+    document.getElementById('api-port').textContent = settings.api?.port || '8000';
+    document.getElementById('api-url').textContent = 
+        `http://${settings.api?.host || '0.0.0.0'}:${settings.api?.port || '8000'}`;
+    
+    // Logging settings
+    const logLevel = settings.logging?.level || 'INFO';
+    document.getElementById('log-level').textContent = logLevel;
+    document.getElementById('log-level').className = 
+        `setting-value badge badge-${logLevel.toLowerCase() === 'debug' ? 'warning' : 'info'}`;
+    document.getElementById('log-format').textContent = settings.logging?.format || 'json';
+    
+    // System info
+    document.getElementById('config-path').textContent = settings.config_path || 'unknown';
+    
+    // Full configuration
+    document.getElementById('full-config').textContent = 
+        JSON.stringify(settings.full_config, null, 2);
+}
+
+function exportConfig() {
+    if (!currentSettings) {
+        showMessage('No configuration loaded', 'error');
+        return;
+    }
+    
+    const dataStr = JSON.stringify(currentSettings.full_config, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'pyquizhub-config.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showMessage('Configuration exported successfully', 'success');
+}
+
+// Load settings on page load
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}

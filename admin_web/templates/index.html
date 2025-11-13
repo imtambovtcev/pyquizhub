@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - PyQuizHub{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Admin Dashboard</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Quizzes</h3>
+            <p class="stat-number" id="quiz-count">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Active Tokens</h3>
+            <p class="stat-number" id="token-count">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <p class="stat-number" id="user-count">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Active Sessions</h3>
+            <p class="stat-number" id="session-count">-</p>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="/quiz/create" class="btn btn-primary">Create New Quiz</a>
+            <a href="/quizzes" class="btn btn-secondary">Manage Quizzes</a>
+            <a href="/tokens" class="btn btn-secondary">Manage Tokens</a>
+            <a href="/results" class="btn btn-secondary">View Results</a>
+        </div>
+    </div>
+
+    <div class="system-status">
+        <h3>System Status</h3>
+        <div id="status-display">
+            <p><strong>Admin Web:</strong> <span id="admin-status" class="status-indicator">Checking...</span></p>
+            <p><strong>API Connection:</strong> <span id="api-status" class="status-indicator">Checking...</span></p>
+            <p><strong>API URL:</strong> <span id="api-url">-</span></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load dashboard stats
+async function loadDashboardStats() {
+    try {
+        // Load quizzes
+        const quizzesRes = await fetch('/api/quizzes');
+        const quizzes = await quizzesRes.json();
+        document.getElementById('quiz-count').textContent = 
+            Object.keys(quizzes.quizzes || {}).length;
+
+        // Load tokens
+        const tokensRes = await fetch('/api/tokens');
+        const tokens = await tokensRes.json();
+        let tokenCount = 0;
+        Object.values(tokens.tokens || {}).forEach(arr => tokenCount += arr.length);
+        document.getElementById('token-count').textContent = tokenCount;
+
+        // Load users
+        const usersRes = await fetch('/api/users');
+        const users = await usersRes.json();
+        document.getElementById('user-count').textContent = 
+            Object.keys(users.users || {}).length;
+
+        // Load sessions
+        const sessionsRes = await fetch('/api/sessions');
+        const sessions = await sessionsRes.json();
+        let sessionCount = 0;
+        Object.values(sessions.sessions || {}).forEach(arr => sessionCount += arr.length);
+        document.getElementById('session-count').textContent = sessionCount;
+
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+        showMessage('Error loading statistics', 'error');
+    }
+}
+
+// Check system health
+async function checkHealth() {
+    try {
+        const res = await fetch('/api/health');
+        const health = await res.json();
+        
+        document.getElementById('admin-status').textContent = '✓ Healthy';
+        document.getElementById('admin-status').className = 'status-indicator status-healthy';
+        
+        if (health.api_connection === 'healthy') {
+            document.getElementById('api-status').textContent = '✓ Connected';
+            document.getElementById('api-status').className = 'status-indicator status-healthy';
+        } else {
+            document.getElementById('api-status').textContent = '✗ Disconnected';
+            document.getElementById('api-status').className = 'status-indicator status-error';
+        }
+        
+        document.getElementById('api-url').textContent = health.api_url || 'Unknown';
+    } catch (error) {
+        console.error('Health check failed:', error);
+        document.getElementById('admin-status').textContent = '✗ Error';
+        document.getElementById('admin-status').className = 'status-indicator status-error';
+    }
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboardStats();
+    checkHealth();
+    
+    // Refresh stats every 30 seconds
+    setInterval(loadDashboardStats, 30000);
+    setInterval(checkHealth, 60000);
+});
+</script>
+{% endblock %}
