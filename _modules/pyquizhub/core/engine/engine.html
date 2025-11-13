@@ -83,6 +83,7 @@
 <span class="sd">- Score calculation</span>
 <span class="sd">- Answer validation</span>
 <span class="sd">- Question transitions</span>
+<span class="sd">- External API integration</span>
 
 <span class="sd">The engine is completely stateless - it doesn&#39;t store any session data.</span>
 <span class="sd">All state is passed in and returned from methods.</span>
@@ -93,6 +94,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.safe_evaluator</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeEvaluator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.json_validator</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuizJSONValidator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.api_integration</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIIntegrationManager</span><span class="p">,</span> <span class="n">RequestTiming</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyquizhub.config.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
 
 
@@ -135,7 +137,8 @@
 <span class="sd">            ValueError: If quiz validation fails</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_quiz</span><span class="p">(</span><span class="n">quiz_data</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span> <span class="o">=</span> <span class="n">APIIntegrationManager</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="QuizEngine.load_quiz">
@@ -172,13 +175,25 @@
 <span class="sd">                - scores: Dictionary of score keys initialized to 0</span>
 <span class="sd">                - answers: Empty list for storing answers</span>
 <span class="sd">                - completed: False (quiz not completed)</span>
+<span class="sd">                - api_data: Dictionary for storing API responses (if quiz has API integrations)</span>
+<span class="sd">                - api_credentials: Dictionary for storing dynamic API credentials</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">initial_state</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;current_question_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="p">[</span><span class="s2">&quot;questions&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
             <span class="s2">&quot;scores&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">keys</span><span class="p">()},</span>
             <span class="s2">&quot;answers&quot;</span><span class="p">:</span> <span class="p">[],</span>
-            <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="kc">False</span>
+            <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;api_data&quot;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s2">&quot;api_credentials&quot;</span><span class="p">:</span> <span class="p">{}</span>
         <span class="p">}</span>
+
+        <span class="c1"># Execute ON_QUIZ_START API calls</span>
+        <span class="n">initial_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+            <span class="n">initial_state</span><span class="p">,</span>
+            <span class="n">RequestTiming</span><span class="o">.</span><span class="n">ON_QUIZ_START</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="p">{}</span>
+        <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created initial quiz state&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">initial_state</span></div>
 
@@ -231,6 +246,8 @@
 <span class="sd">                - scores: Dictionary of current scores</span>
 <span class="sd">                - answers: List of previous answers</span>
 <span class="sd">                - completed: Boolean completion status</span>
+<span class="sd">                - api_data: Dictionary of API responses</span>
+<span class="sd">                - api_credentials: Dictionary of API credentials</span>
 <span class="sd">            answer: User&#39;s answer to the current question</span>
 
 <span class="sd">        Returns:</span>
@@ -239,6 +256,7 @@
 <span class="sd">                - Answer recorded in answers list</span>
 <span class="sd">                - Updated current_question_id</span>
 <span class="sd">                - Updated completed status</span>
+<span class="sd">                - Updated API data</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If quiz is already completed or answer is invalid</span>
@@ -256,20 +274,39 @@
             <span class="s2">&quot;current_question_id&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
             <span class="s2">&quot;scores&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
             <span class="s2">&quot;answers&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;answers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-            <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]</span>
+            <span class="s2">&quot;completed&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;api_data&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="s2">&quot;api_credentials&quot;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_credentials&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="p">}</span>
+
+        <span class="c1"># Execute AFTER_ANSWER API calls</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;question_id&quot;</span><span class="p">:</span> <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+            <span class="n">new_state</span><span class="p">,</span>
+            <span class="n">RequestTiming</span><span class="o">.</span><span class="n">AFTER_ANSWER</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+            <span class="n">question_id</span><span class="o">=</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
 
         <span class="c1"># Update scores based on conditional logic</span>
         <span class="n">score_updates</span> <span class="o">=</span> <span class="n">current_question</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;score_updates&quot;</span><span class="p">,</span> <span class="p">[])</span>
         <span class="k">for</span> <span class="n">condition_group</span> <span class="ow">in</span> <span class="n">score_updates</span><span class="p">:</span>
             <span class="n">condition</span> <span class="o">=</span> <span class="n">condition_group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span>
-                <span class="n">condition</span><span class="p">,</span> <span class="p">{</span>
-                    <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span> <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]}):</span>
-                <span class="k">for</span> <span class="n">score_key</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">condition_group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                        <span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Add API data to evaluation context</span>
+            <span class="n">eval_context</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">new_state</span><span class="p">)</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">eval_context</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">score_key</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">condition_group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">score_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span>
-                        <span class="n">expr</span><span class="p">,</span> <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+                        <span class="n">expr</span><span class="p">,</span> <span class="p">{</span>
+                            <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span> <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">new_state</span><span class="p">)}</span>
                     <span class="p">)</span>
 
         <span class="c1"># Record answer with timestamp</span>
@@ -287,6 +324,26 @@
 
         <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_question_id</span>
         <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;completed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">next_question_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># Execute BEFORE_QUESTION API calls for next question</span>
+        <span class="k">if</span> <span class="n">next_question_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;question_id&quot;</span><span class="p">:</span> <span class="n">next_question_id</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+            <span class="p">}</span>
+            <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+                <span class="n">new_state</span><span class="p">,</span>
+                <span class="n">RequestTiming</span><span class="o">.</span><span class="n">BEFORE_QUESTION</span><span class="p">,</span>
+                <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+                <span class="n">question_id</span><span class="o">=</span><span class="n">next_question_id</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Execute ON_QUIZ_END API calls</span>
+            <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+                <span class="n">new_state</span><span class="p">,</span>
+                <span class="n">RequestTiming</span><span class="o">.</span><span class="n">ON_QUIZ_END</span><span class="p">,</span>
+                <span class="n">context</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;final_scores&quot;</span><span class="p">:</span> <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]}</span>
+            <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Processed answer for question </span><span class="si">{</span><span class="n">current_question</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
@@ -361,6 +418,79 @@
             <span class="k">if</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">next_question_id</span>
         <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="QuizEngine._execute_api_calls">
+<a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine._execute_api_calls">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_execute_api_calls</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">timing</span><span class="p">:</span> <span class="n">RequestTiming</span><span class="p">,</span>
+        <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">question_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute API calls for the given timing.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state: Current session state</span>
+<span class="sd">            timing: When to execute (BEFORE_QUESTION, AFTER_ANSWER, etc.)</span>
+<span class="sd">            context: Context data (scores, answer, etc.)</span>
+<span class="sd">            question_id: Question ID (for question-specific API calls)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Updated session state with API responses</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get API configurations from quiz</span>
+        <span class="n">api_configs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+        <span class="k">for</span> <span class="n">api_config</span> <span class="ow">in</span> <span class="n">api_configs</span><span class="p">:</span>
+            <span class="c1"># Check if this API call matches the timing</span>
+            <span class="k">if</span> <span class="n">api_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;timing&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">timing</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Check if this is question-specific</span>
+            <span class="k">if</span> <span class="s2">&quot;question_id&quot;</span> <span class="ow">in</span> <span class="n">api_config</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">api_config</span><span class="p">[</span><span class="s2">&quot;question_id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">question_id</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+            <span class="c1"># Execute the API call</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span><span class="o">.</span><span class="n">execute_api_call</span><span class="p">(</span>
+                    <span class="n">api_config</span><span class="p">,</span>
+                    <span class="n">state</span><span class="p">,</span>
+                    <span class="n">context</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API call failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Continue with quiz even if API call fails</span>
+
+        <span class="k">return</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="QuizEngine._create_api_context">
+<a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine._create_api_context">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_api_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create API context for use in expressions.</span>
+
+<span class="sd">        This allows accessing API data in conditions like:</span>
+<span class="sd">        api.weather.temperature &gt; 20</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state: Current session state</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary of API data accessible by ID</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">api_context</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">api_data</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_data&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="k">for</span> <span class="n">api_id</span><span class="p">,</span> <span class="n">api_entry</span> <span class="ow">in</span> <span class="n">api_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">api_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;success&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">api_context</span><span class="p">[</span><span class="n">api_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">api_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;response&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="k">return</span> <span class="n">api_context</span></div>
 </div>
 
 </pre></div>
