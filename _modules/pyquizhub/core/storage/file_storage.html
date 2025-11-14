@@ -268,6 +268,56 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_write_json</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="FileStorageManager.update_quiz">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.update_quiz">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update an existing quiz.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updating quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check if quiz exists</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;quizzes&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Preserve creator_id if it exists</span>
+        <span class="n">existing_quiz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_json</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;quizzes/</span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;creator_id&quot;</span> <span class="ow">in</span> <span class="n">existing_quiz</span><span class="p">:</span>
+            <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;creator_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">existing_quiz</span><span class="p">[</span><span class="s2">&quot;creator_id&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Update the quiz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_json</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;quizzes/</span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FileStorageManager.delete_quiz">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.delete_quiz">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete a quiz and all associated tokens and sessions.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleting quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Delete quiz file</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;quizzes&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+        <span class="c1"># Remove associated tokens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">quiz_id</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_json</span><span class="p">(</span><span class="s2">&quot;tokens.json&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span><span class="p">)</span>
+
+        <span class="c1"># Remove associated sessions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">sid</span><span class="p">:</span> <span class="n">sdata</span> <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">sdata</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">sdata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">quiz_id</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_json</span><span class="p">(</span><span class="s2">&quot;sessions.json&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> and all associated data&quot;</span><span class="p">)</span></div>
+
+
     <span class="c1"># Results</span>
 <div class="viewcode-block" id="FileStorageManager.get_results">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results">[docs]</a>

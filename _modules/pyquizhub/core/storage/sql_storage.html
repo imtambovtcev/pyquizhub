@@ -250,6 +250,58 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="SQLStorageManager.update_quiz">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.update_quiz">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update an existing quiz.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updating quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check if quiz exists</span>
+        <span class="n">check_query</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">quiz_id</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">check_query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update the quiz data</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">quiz_id</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">quiz_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SQLStorageManager.delete_quiz">
+<a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.delete_quiz">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete a quiz and all associated tokens and sessions.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleting quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Delete associated tokens first (foreign key constraint)</span>
+        <span class="n">delete_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens_table</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tokens_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">quiz_id</span> <span class="o">==</span> <span class="n">quiz_id</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">delete_tokens</span><span class="p">)</span>
+
+        <span class="c1"># Delete associated sessions</span>
+        <span class="n">delete_sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">quiz_id</span> <span class="o">==</span> <span class="n">quiz_id</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">delete_sessions</span><span class="p">)</span>
+
+        <span class="c1"># Delete the quiz itself</span>
+        <span class="n">delete_quiz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">quiz_id</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">delete_quiz</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> and all associated data&quot;</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="SQLStorageManager.get_results">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.get_results">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>

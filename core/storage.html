@@ -165,6 +165,37 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pyquizhub.core.storage.storage_manager.StorageManager.update_quiz">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_quiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiz_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/storage_manager.html#StorageManager.update_quiz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.storage_manager.StorageManager.update_quiz" title="Link to this definition"></a></dt>
+<dd><p>Update an existing quiz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>quiz_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyquizhub.core.storage.storage_manager.StorageManager.delete_quiz">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">delete_quiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/storage_manager.html#StorageManager.delete_quiz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.storage_manager.StorageManager.delete_quiz" title="Link to this definition"></a></dt>
+<dd><p>Delete a quiz by its ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>quiz_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pyquizhub.core.storage.storage_manager.StorageManager.get_tokens">
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_tokens</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/storage_manager.html#StorageManager.get_tokens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.storage_manager.StorageManager.get_tokens" title="Link to this definition"></a></dt>
 <dd><p>Fetch all tokens.</p>
@@ -676,6 +707,37 @@ retrieving quiz-related data.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pyquizhub.core.storage.file_storage.FileStorageManager.update_quiz">
+<span class="sig-name descname"><span class="pre">update_quiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiz_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/file_storage.html#FileStorageManager.update_quiz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.file_storage.FileStorageManager.update_quiz" title="Link to this definition"></a></dt>
+<dd><p>Update an existing quiz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>quiz_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyquizhub.core.storage.file_storage.FileStorageManager.delete_quiz">
+<span class="sig-name descname"><span class="pre">delete_quiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/file_storage.html#FileStorageManager.delete_quiz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.file_storage.FileStorageManager.delete_quiz" title="Link to this definition"></a></dt>
+<dd><p>Delete a quiz and all associated tokens and sessions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>quiz_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pyquizhub.core.storage.file_storage.FileStorageManager.get_results">
 <span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/file_storage.html#FileStorageManager.get_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.file_storage.FileStorageManager.get_results" title="Link to this definition"></a></dt>
 <dd><p>Fetch results for a specific user, quiz, and session.</p>
@@ -1147,6 +1209,37 @@ retrieving quiz-related data.</p>
 <li><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
 <li><p><strong>creator_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyquizhub.core.storage.sql_storage.SQLStorageManager.update_quiz">
+<span class="sig-name descname"><span class="pre">update_quiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiz_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/sql_storage.html#SQLStorageManager.update_quiz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.sql_storage.SQLStorageManager.update_quiz" title="Link to this definition"></a></dt>
+<dd><p>Update an existing quiz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>quiz_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>quiz_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyquizhub.core.storage.sql_storage.SQLStorageManager.delete_quiz">
+<span class="sig-name descname"><span class="pre">delete_quiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quiz_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/storage/sql_storage.html#SQLStorageManager.delete_quiz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.storage.sql_storage.SQLStorageManager.delete_quiz" title="Link to this definition"></a></dt>
+<dd><p>Delete a quiz and all associated tokens and sessions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>quiz_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
 </dd>
 </dl>
 </dd></dl>
