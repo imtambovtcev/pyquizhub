@@ -8,11 +8,105 @@
         <h2>Quiz Detail: <span id="quiz-title">{{ quiz_id }}</span></h2>
         <a href="/quizzes" class="btn btn-secondary">Back to Quizzes</a>
     </div>
-    
+
+    <div id="quiz-info" class="quiz-info-header" style="display: none;">
+        <h3 id="info-title"></h3>
+        <div class="quiz-meta-info">
+            <div class="meta-item">
+                <span class="meta-label">Quiz ID</span>
+                <span class="meta-value" id="info-quiz-id"></span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Creator</span>
+                <span class="meta-value" id="info-creator"></span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Author</span>
+                <span class="meta-value" id="info-author"></span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Version</span>
+                <span class="meta-value" id="info-version"></span>
+            </div>
+        </div>
+        <div id="info-description" style="margin-top: 1rem; color: var(--secondary-color);"></div>
+    </div>
+
     <div id="quiz-content" class="loading">
         <p>Loading quiz details...</p>
     </div>
 </div>
+
+<style>
+.quiz-detail {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.json-display {
+    background-color: #1e293b;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    overflow-x: auto;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.json-display pre {
+    margin: 0;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+    white-space: pre;
+    text-align: left;
+}
+
+.quiz-info-header {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+}
+
+.quiz-info-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.quiz-meta-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.meta-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.meta-value {
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+.section-header {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -23,9 +117,9 @@ async function loadQuizDetail() {
     try {
         const res = await fetch(`/api/quiz/${quizId}`);
         const data = await res.json();
-        
+
         if (res.ok) {
-            displayQuiz(data.quiz);
+            displayQuiz(data);
         } else {
             showMessage('Error loading quiz', 'error');
         }
@@ -35,10 +129,34 @@ async function loadQuizDetail() {
     }
 }
 
-function displayQuiz(quiz) {
-    document.getElementById('quiz-title').textContent = quiz.metadata.title;
+function displayQuiz(quizResponse) {
+    // quizResponse has: quiz_id, title, creator_id, data (which contains the actual quiz)
+    document.getElementById('quiz-title').textContent = quizResponse.title || quizResponse.quiz_id;
+
+    // Populate info header
+    const infoSection = document.getElementById('quiz-info');
+    document.getElementById('info-title').textContent = quizResponse.title;
+    document.getElementById('info-quiz-id').textContent = quizResponse.quiz_id;
+    document.getElementById('info-creator').textContent = quizResponse.creator_id;
+
+    const metadata = quizResponse.data?.metadata || {};
+    document.getElementById('info-author').textContent = metadata.author || 'N/A';
+    document.getElementById('info-version').textContent = metadata.version || 'N/A';
+    document.getElementById('info-description').textContent = metadata.description || '';
+
+    infoSection.style.display = 'block';
+
+    // Display the full quiz data structure
+    const displayData = {
+        quiz_id: quizResponse.quiz_id,
+        title: quizResponse.title,
+        creator_id: quizResponse.creator_id,
+        ...quizResponse.data
+    };
+
     const content = document.getElementById('quiz-content');
-    content.innerHTML = `<pre>${escapeHtml(JSON.stringify(quiz, null, 2))}</pre>`;
+    content.className = 'json-display';
+    content.innerHTML = `<pre>${escapeHtml(JSON.stringify(displayData, null, 2))}</pre>`;
 }
 
 document.addEventListener('DOMContentLoaded', loadQuizDetail);

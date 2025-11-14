@@ -33,7 +33,7 @@ class QuizDetailResponseModel(BaseModel):
     quiz_id: str
     title: str
     creator_id: str
-    data: QuizContentModel
+    data: dict[str, Any]  # Changed from QuizContentModel to accept full quiz structure
 
 
 class CreateQuizRequestModel(BaseModel):

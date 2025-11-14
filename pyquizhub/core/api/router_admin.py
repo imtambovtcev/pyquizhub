@@ -72,6 +72,84 @@ def admin_get_quiz(quiz_id: str, req: Request):
     return get_quiz_logic(storage_manager, quiz_id)
 
 
+@router.put("/quiz/{quiz_id}",
+            dependencies=[Depends(admin_token_dependency)])
+def admin_update_quiz(quiz_id: str, req: Request):
+    """
+    Update an existing quiz.
+
+    Args:
+        quiz_id: Unique identifier of the quiz to update
+        req: FastAPI Request object containing application state and JSON body
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If quiz is not found or update fails
+    """
+    logger.debug(f"Admin updating quiz: {quiz_id}")
+    storage_manager: StorageManager = req.app.state.storage_manager
+
+    try:
+        # Get raw JSON body
+        import asyncio
+        body = asyncio.run(req.json())
+
+        # Extract quiz data - support both formats
+        if 'quiz' in body:
+            quiz_data = body['quiz']
+        else:
+            quiz_data = body
+
+        storage_manager.update_quiz(quiz_id, quiz_data)
+        logger.info(f"Admin updated quiz: {quiz_id}")
+        return {"message": f"Quiz {quiz_id} updated successfully", "quiz_id": quiz_id}
+    except FileNotFoundError:
+        logger.error(f"Quiz {quiz_id} not found for update")
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    except Exception as e:
+        logger.error(f"Failed to update quiz {quiz_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update quiz: {str(e)}"
+        )
+
+
+@router.delete("/quiz/{quiz_id}",
+               dependencies=[Depends(admin_token_dependency)])
+def admin_delete_quiz(quiz_id: str, req: Request):
+    """
+    Delete a quiz and all associated data (tokens, sessions).
+
+    Args:
+        quiz_id: Unique identifier of the quiz to delete
+        req: FastAPI Request object containing application state
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If quiz is not found or deletion fails
+    """
+    logger.debug(f"Admin deleting quiz: {quiz_id}")
+    storage_manager: StorageManager = req.app.state.storage_manager
+
+    try:
+        storage_manager.delete_quiz(quiz_id)
+        logger.info(f"Admin deleted quiz: {quiz_id}")
+        return {"message": f"Quiz {quiz_id} deleted successfully"}
+    except FileNotFoundError:
+        logger.error(f"Quiz {quiz_id} not found for deletion")
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    except Exception as e:
+        logger.error(f"Failed to delete quiz {quiz_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete quiz: {str(e)}"
+        )
+
+
 @router.get("/results/{quiz_id}",
             response_model=QuizResultResponseModel,
             dependencies=[Depends(admin_token_dependency)])

@@ -65,6 +65,9 @@ def make_admin_request(endpoint: str, method: str = 'GET',
         elif method == 'POST':
             response = requests.post(
                 url, headers=headers, json=json_data, timeout=10)
+        elif method == 'PUT':
+            response = requests.put(
+                url, headers=headers, json=json_data, timeout=10)
         elif method == 'DELETE':
             response = requests.delete(url, headers=headers, timeout=10)
         else:
@@ -165,11 +168,21 @@ def create_quiz():
     return jsonify(data), status
 
 
+@app.route('/api/quiz/<quiz_id>', methods=['PUT'])
+def update_quiz(quiz_id):
+    """Update a quiz."""
+    quiz_data = request.json
+    if not quiz_data or 'quiz' not in quiz_data:
+        return jsonify({"error": "Missing quiz data"}), 400
+
+    data, status = make_admin_request(f'quiz/{quiz_id}', 'PUT', quiz_data)
+    return jsonify(data), status
+
+
 @app.route('/api/quiz/<quiz_id>', methods=['DELETE'])
 def delete_quiz(quiz_id):
     """Delete a quiz."""
-    # Note: delete_quiz endpoint might not exist, need to check
-    data, status = make_admin_request(f'delete_quiz/{quiz_id}', 'DELETE')
+    data, status = make_admin_request(f'quiz/{quiz_id}', 'DELETE')
     return jsonify(data), status
 
 

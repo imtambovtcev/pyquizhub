@@ -154,6 +154,52 @@ class SQLStorageManager(StorageManager):
             ).values(creator_id=creator_id, data=quiz_data)
             self._execute(query)
 
+    def update_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+        """Update an existing quiz."""
+        self.logger.debug(f"Updating quiz with ID: {quiz_id}")
+
+        # Check if quiz exists
+        check_query = select(self.quizzes_table).where(
+            self.quizzes_table.c.id == quiz_id
+        )
+        result = self._execute(check_query).fetchone()
+        if not result:
+            raise FileNotFoundError(f"Quiz {quiz_id} not found")
+
+        # Update the quiz data
+        query = update(self.quizzes_table).where(
+            self.quizzes_table.c.id == quiz_id
+        ).values(data=quiz_data)
+        self._execute(query)
+        self.logger.info(f"Updated quiz {quiz_id}")
+
+    def delete_quiz(self, quiz_id: str) -> None:
+        """Delete a quiz and all associated tokens and sessions."""
+        self.logger.debug(f"Deleting quiz with ID: {quiz_id}")
+
+        # Delete associated tokens first (foreign key constraint)
+        delete_tokens = self.tokens_table.delete().where(
+            self.tokens_table.c.quiz_id == quiz_id
+        )
+        self._execute(delete_tokens)
+
+        # Delete associated sessions
+        delete_sessions = self.sessions_table.delete().where(
+            self.sessions_table.c.quiz_id == quiz_id
+        )
+        self._execute(delete_sessions)
+
+        # Delete the quiz itself
+        delete_quiz = self.quizzes_table.delete().where(
+            self.quizzes_table.c.id == quiz_id
+        )
+        result = self._execute(delete_quiz)
+
+        if result.rowcount == 0:
+            raise FileNotFoundError(f"Quiz {quiz_id} not found")
+
+        self.logger.info(f"Deleted quiz {quiz_id} and all associated data")
+
     def get_results(self, user_id: str, quiz_id: str,
                     session_id: str) -> Optional[Dict[str, Any]]:
         """Fetch results for a specific user, quiz, and session."""

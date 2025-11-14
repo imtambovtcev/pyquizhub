@@ -33,6 +33,16 @@ class StorageManager(ABC):
         """Add or update a quiz."""
         pass
 
+    @abstractmethod
+    def update_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+        """Update an existing quiz."""
+        pass
+
+    @abstractmethod
+    def delete_quiz(self, quiz_id: str) -> None:
+        """Delete a quiz by its ID."""
+        pass
+
     # Tokens
     @abstractmethod
     def get_tokens(self) -> List[Dict[str, Any]]:

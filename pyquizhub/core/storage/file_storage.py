@@ -160,6 +160,50 @@ class FileStorageManager(StorageManager):
         filepath = f"quizzes/{quiz_id}.json"
         self._write_json(filepath, quiz_data)
 
+    def update_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+        """Update an existing quiz."""
+        import os
+        self.logger.debug(f"Updating quiz with ID: {quiz_id}")
+
+        # Check if quiz exists
+        filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Quiz {quiz_id} not found")
+
+        # Preserve creator_id if it exists
+        existing_quiz = self._read_json(f"quizzes/{quiz_id}.json")
+        if "creator_id" in existing_quiz:
+            quiz_data["creator_id"] = existing_quiz["creator_id"]
+
+        # Update the quiz
+        self._write_json(f"quizzes/{quiz_id}.json", quiz_data)
+        self.logger.info(f"Updated quiz {quiz_id}")
+
+    def delete_quiz(self, quiz_id: str) -> None:
+        """Delete a quiz and all associated tokens and sessions."""
+        import os
+        self.logger.debug(f"Deleting quiz with ID: {quiz_id}")
+
+        # Delete quiz file
+        filepath = os.path.join(self.base_dir, "quizzes", f"{quiz_id}.json")
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Quiz {quiz_id} not found")
+
+        os.remove(filepath)
+
+        # Remove associated tokens
+        self.tokens = [t for t in self.tokens if t.get("quiz_id") != quiz_id]
+        self._write_json("tokens.json", self.tokens)
+
+        # Remove associated sessions
+        self.sessions = {
+            sid: sdata for sid, sdata in self.sessions.items()
+            if sdata.get("quiz_id") != quiz_id
+        }
+        self._write_json("sessions.json", self.sessions)
+
+        self.logger.info(f"Deleted quiz {quiz_id} and all associated data")
+
     # Results
     def get_results(self, user_id: str, quiz_id: str,
                     session_id: str) -> Optional[Dict[str, Any]]:

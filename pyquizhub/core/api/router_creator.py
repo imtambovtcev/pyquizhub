@@ -166,11 +166,12 @@ def get_quiz_logic(storage_manager: StorageManager, quiz_id: str):
     logger.debug(f"Fetching quiz details for quiz_id: {quiz_id}")
     try:
         quiz = storage_manager.get_quiz(quiz_id)
+        # quiz is already the quiz data (metadata, questions, etc.)
         return {
             "quiz_id": quiz_id,
             "title": quiz["metadata"]["title"],
-            "creator_id": quiz["creator_id"],
-            "data": quiz["data"],
+            "creator_id": quiz.get("creator_id", "unknown"),
+            "data": quiz,
         }
     except FileNotFoundError:
         logger.error(f"Quiz {quiz_id} not found")
