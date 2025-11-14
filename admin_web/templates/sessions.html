@@ -20,16 +20,137 @@ async function loadSessions() {
     try {
         const res = await fetch('/api/sessions');
         const data = await res.json();
-        
+
         const content = document.getElementById('sessions-content');
-        content.innerHTML = '<p>Session monitoring coming soon!</p>';
-        
+
+        if (!data.sessions || data.sessions.length === 0) {
+            content.innerHTML = '<p class="no-data">No active sessions found.</p>';
+            return;
+        }
+
+        // Build sessions table
+        let html = `
+            <div class="stats-row">
+                <div class="stat-card">
+                    <h3>Total Sessions</h3>
+                    <p class="stat-value">${data.sessions.length}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Sessions</h3>
+                    <p class="stat-value">${data.sessions.filter(s => !s.completed).length}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Completed Sessions</h3>
+                    <p class="stat-value">${data.sessions.filter(s => s.completed).length}</p>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>User ID</th>
+                        <th>Quiz ID</th>
+                        <th>Created</th>
+                        <th>Last Updated</th>
+                        <th>Current Question</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // Sort sessions by updated_at (most recent first)
+        const sortedSessions = data.sessions.sort((a, b) =>
+            new Date(b.updated_at) - new Date(a.updated_at)
+        );
+
+        for (const session of sortedSessions) {
+            const statusBadge = session.completed
+                ? '<span class="badge badge-success">Completed</span>'
+                : '<span class="badge badge-warning">Active</span>';
+
+            const currentQuestion = session.current_question_id !== null
+                ? session.current_question_id
+                : 'N/A';
+
+            html += `
+                <tr>
+                    <td><code>${session.session_id.substring(0, 8)}...</code></td>
+                    <td>${session.user_id}</td>
+                    <td><a href="/quiz/${session.quiz_id}">${session.quiz_id}</a></td>
+                    <td>${new Date(session.created_at).toLocaleString()}</td>
+                    <td>${new Date(session.updated_at).toLocaleString()}</td>
+                    <td>${currentQuestion}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        }
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        content.classList.remove('loading');
+        content.innerHTML = html;
+
     } catch (error) {
         console.error('Error:', error);
-        showMessage('Error loading sessions', 'error');
+        const content = document.getElementById('sessions-content');
+        content.classList.remove('loading');
+        content.innerHTML = '<p class="error">Error loading sessions. Check console for details.</p>';
     }
 }
 
 document.addEventListener('DOMContentLoaded', loadSessions);
 </script>
+
+<style>
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: normal;
+}
+
+.stat-value {
+    margin: 0;
+    font-size: 32px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-success {
+    background: #28a745;
+    color: white;
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #212529;
+}
+</style>
 {% endblock %}

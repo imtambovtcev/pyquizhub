@@ -16,18 +16,83 @@
 
 {% block extra_js %}
 <script>
+// Updated: 2025-11-14 v2
 async function loadResults() {
     try {
         const res = await fetch('/api/results');
         const data = await res.json();
-        
+
+        console.log('Results data:', data);
+
         const content = document.getElementById('results-content');
-        content.innerHTML = '<p>Results viewing coming soon!</p>';
-        
+
+        if (!data.results || Object.keys(data.results).length === 0) {
+            content.innerHTML = '<p class="no-data">No results found.</p>';
+            return;
+        }
+
+        // Build results table
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Quiz ID</th>
+                        <th>User ID</th>
+                        <th>Session ID</th>
+                        <th>Scores</th>
+                        <th>Timestamp</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // Structure is: results[user_id][quiz_id][session_id] = result
+        for (const [userId, userResults] of Object.entries(data.results)) {
+            for (const [quizId, quizResults] of Object.entries(userResults)) {
+                for (const [sessionId, result] of Object.entries(quizResults)) {
+                    const scores = result.scores || {};
+                    const scoresStr = Object.entries(scores)
+                        .map(([key, val]) => `${key}: ${val}`)
+                        .join(', ') || 'N/A';
+
+                    const timestamp = result.timestamp || 'N/A';
+
+                    html += `
+                        <tr>
+                            <td><a href="/quiz/${quizId}">${quizId}</a></td>
+                            <td>${userId}</td>
+                            <td><code>${sessionId.substring(0, 8)}...</code></td>
+                            <td>${scoresStr}</td>
+                            <td>${timestamp !== 'N/A' ? new Date(timestamp).toLocaleString() : 'N/A'}</td>
+                            <td>
+                                <button onclick="viewResultDetails('${quizId}', '${userId}', '${sessionId}')" class="btn-secondary">View Details</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        content.classList.remove('loading');
+        content.innerHTML = html;
+
     } catch (error) {
         console.error('Error:', error);
-        showMessage('Error loading results', 'error');
+        const content = document.getElementById('results-content');
+        content.classList.remove('loading');
+        content.innerHTML = '<p class="error">Error loading results. Check console for details.</p>';
     }
+}
+
+function viewResultDetails(quizId, userId, sessionId) {
+    // For now, just show an alert. Could be expanded to a modal later
+    alert(`Result Details:\nQuiz: ${quizId}\nUser: ${userId}\nSession: ${sessionId}`);
 }
 
 document.addEventListener('DOMContentLoaded', loadResults);

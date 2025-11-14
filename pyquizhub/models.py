@@ -126,3 +126,26 @@ class StartQuizResponseModel(BaseModel):
     session_id: str
     title: str
     question: QuestionModel
+
+
+# Admin Models
+class AllUsersResponseModel(BaseModel):
+    users: dict[str, Any]
+
+
+class AllResultsResponseModel(BaseModel):
+    results: dict[str, dict[str, Any]]
+
+
+class SessionDetailModel(BaseModel):
+    session_id: str
+    user_id: str
+    quiz_id: str
+    created_at: str
+    updated_at: str
+    current_question_id: Optional[int] = None
+    completed: bool = False
+
+
+class AllSessionsResponseModel(BaseModel):
+    sessions: list[SessionDetailModel]

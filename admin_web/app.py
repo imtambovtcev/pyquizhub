@@ -229,12 +229,9 @@ def delete_token(token):
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    """Get all users - NOT IMPLEMENTED IN API YET."""
-    # This endpoint doesn't exist in the current API
-    return jsonify({
-        "error": "User management not yet implemented in API",
-        "users": []
-    }), 501
+    """Get all users."""
+    data, status = make_admin_request('all_users')
+    return jsonify(data), status
 
 
 @app.route('/api/users', methods=['POST'])
@@ -251,12 +248,9 @@ def add_user():
 
 @app.route('/api/results', methods=['GET'])
 def get_all_results():
-    """Get all results - NOT FULLY IMPLEMENTED."""
-    # API only has results per quiz, not all results
-    return jsonify({
-        "error": "All results endpoint not available. Use /api/results/quiz/<quiz_id>",
-        "results": []
-    }), 501
+    """Get all results."""
+    data, status = make_admin_request('all_results')
+    return jsonify(data), status
 
 
 @app.route('/api/results/quiz/<quiz_id>', methods=['GET'])
@@ -281,11 +275,9 @@ def get_user_results(user_id):
 
 @app.route('/api/sessions', methods=['GET'])
 def get_all_sessions():
-    """Get all active sessions - NOT IMPLEMENTED."""
-    return jsonify({
-        "error": "Sessions endpoint not yet implemented in API",
-        "sessions": []
-    }), 501
+    """Get all active sessions."""
+    data, status = make_admin_request('all_sessions')
+    return jsonify(data), status
 
 
 @app.route('/api/sessions/user/<user_id>', methods=['GET'])

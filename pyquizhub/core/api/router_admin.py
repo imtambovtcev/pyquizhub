@@ -21,6 +21,10 @@ from pyquizhub.models import (
     TokenResponseModel,
     AllQuizzesResponseModel,
     AllTokensResponseModel,
+    AllUsersResponseModel,
+    AllResultsResponseModel,
+    AllSessionsResponseModel,
+    SessionDetailModel,
 )
 from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic, get_quiz_logic, get_participated_users_logic, get_results_by_quiz_logic
 import os
@@ -338,4 +342,122 @@ def admin_delete_token(token: str, req: Request):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to delete token: {str(e)}"
+        )
+
+
+# ============================================================================
+# API Routes - User Management
+# ============================================================================
+
+@router.get("/all_users", response_model=AllUsersResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
+def admin_get_all_users(req: Request):
+    """
+    Retrieve all users in the system.
+
+    Args:
+        req: FastAPI Request object containing application state
+
+    Returns:
+        AllUsersResponseModel: Dictionary of all users
+
+    Raises:
+        HTTPException: If retrieval fails or access denied
+    """
+    logger.debug("Admin fetching all users")
+    storage_manager: StorageManager = req.app.state.storage_manager
+    try:
+        all_users = storage_manager.get_users()
+        logger.info(f"Admin retrieved {len(all_users)} users")
+        return AllUsersResponseModel(users=all_users)
+    except Exception as e:
+        logger.error(f"Failed to retrieve users: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve users: {str(e)}"
+        )
+
+
+# ============================================================================
+# API Routes - Results (Extended)
+# ============================================================================
+
+@router.get("/all_results", response_model=AllResultsResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
+def admin_get_all_results(req: Request):
+    """
+    Retrieve all results in the system.
+
+    Args:
+        req: FastAPI Request object containing application state
+
+    Returns:
+        AllResultsResponseModel: Dictionary of all results
+
+    Raises:
+        HTTPException: If retrieval fails or access denied
+    """
+    logger.debug("Admin fetching all results")
+    storage_manager: StorageManager = req.app.state.storage_manager
+    try:
+        all_results = storage_manager.get_all_results()
+        logger.info(f"Admin retrieved all results")
+        return AllResultsResponseModel(results=all_results)
+    except Exception as e:
+        logger.error(f"Failed to retrieve results: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve results: {str(e)}"
+        )
+
+
+# ============================================================================
+# API Routes - Sessions (Extended)
+# ============================================================================
+
+@router.get("/all_sessions", response_model=AllSessionsResponseModel,
+            dependencies=[Depends(admin_token_dependency)])
+def admin_get_all_sessions(req: Request):
+    """
+    Retrieve all active sessions in the system.
+
+    Args:
+        req: FastAPI Request object containing application state
+
+    Returns:
+        AllSessionsResponseModel: List of all sessions
+
+    Raises:
+        HTTPException: If retrieval fails or access denied
+    """
+    logger.debug("Admin fetching all sessions")
+    storage_manager: StorageManager = req.app.state.storage_manager
+    try:
+        # Get all sessions grouped by user
+        sessions_by_user = storage_manager.get_all_sessions()
+
+        # Flatten sessions and load detailed session data
+        sessions = []
+        for user_id, session_ids in sessions_by_user.items():
+            for session_id in session_ids:
+                # Load session state to get details
+                session_data = storage_manager.load_session_state(session_id)
+                if session_data:
+                    sessions.append(SessionDetailModel(
+                        session_id=session_data.get('session_id', session_id),
+                        user_id=session_data.get('user_id', user_id),
+                        quiz_id=session_data.get('quiz_id', 'unknown'),
+                        created_at=session_data.get('created_at', ''),
+                        updated_at=session_data.get('updated_at', ''),
+                        current_question_id=session_data.get('current_question_id'),
+                        completed=session_data.get('completed', False)
+                    ))
+
+        logger.info(f"Admin retrieved {len(sessions)} sessions")
+        return AllSessionsResponseModel(sessions=sessions)
+    except Exception as e:
+        logger.error(f"Failed to retrieve sessions: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve sessions: {str(e)}"
         )

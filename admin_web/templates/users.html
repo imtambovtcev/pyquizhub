@@ -20,13 +20,53 @@ async function loadUsers() {
     try {
         const res = await fetch('/api/users');
         const data = await res.json();
-        
+
         const userList = document.getElementById('user-list');
-        userList.innerHTML = '<p>User management coming soon!</p>';
-        
+
+        if (!data.users || Object.keys(data.users).length === 0) {
+            userList.innerHTML = '<p class="no-data">No users found.</p>';
+            return;
+        }
+
+        // Build users table
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Permissions</th>
+                        <th>Quizzes Taken</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (const [userId, userData] of Object.entries(data.users)) {
+            const permissions = userData.permissions || [];
+            const quizzesTaken = userData.quizzes_taken || 0;
+
+            html += `
+                <tr>
+                    <td><strong>${userId}</strong></td>
+                    <td>${permissions.length > 0 ? permissions.join(', ') : 'None'}</td>
+                    <td>${quizzesTaken}</td>
+                </tr>
+            `;
+        }
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        userList.classList.remove('loading');
+        userList.innerHTML = html;
+
     } catch (error) {
         console.error('Error:', error);
-        showMessage('Error loading users', 'error');
+        const userList = document.getElementById('user-list');
+        userList.classList.remove('loading');
+        userList.innerHTML = '<p class="error">Error loading users. Check console for details.</p>';
     }
 }
 
