@@ -195,6 +195,15 @@
             <span class="n">context</span><span class="o">=</span><span class="p">{}</span>
         <span class="p">)</span>
 
+        <span class="c1"># Execute BEFORE_QUESTION API calls for the first question</span>
+        <span class="n">first_question_id</span> <span class="o">=</span> <span class="n">initial_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">]</span>
+        <span class="n">initial_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+            <span class="n">initial_state</span><span class="p">,</span>
+            <span class="n">RequestTiming</span><span class="o">.</span><span class="n">BEFORE_QUESTION</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;question_id&quot;</span><span class="p">:</span> <span class="n">first_question_id</span><span class="p">,</span> <span class="o">**</span><span class="n">initial_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]},</span>
+            <span class="n">question_id</span><span class="o">=</span><span class="n">first_question_id</span>
+        <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created initial quiz state&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">initial_state</span></div>
 
@@ -227,6 +236,9 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">question</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Question with ID </span><span class="si">{</span><span class="n">question_id</span><span class="si">}</span><span class="s2"> not found.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Apply templating to question text with API data</span>
+        <span class="n">question</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_question_templating</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Retrieved question </span><span class="si">{</span><span class="n">question_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">question</span></div>
@@ -312,7 +324,9 @@
                 <span class="k">for</span> <span class="n">score_key</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">condition_group</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">score_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span>
                         <span class="n">expr</span><span class="p">,</span> <span class="p">{</span>
-                            <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span> <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">new_state</span><span class="p">)}</span>
+                            <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+                            <span class="s2">&quot;api&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">new_state</span><span class="p">)}</span>
                     <span class="p">)</span>
 
         <span class="c1"># Record answer with timestamp</span>
@@ -505,6 +519,62 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final API context: </span><span class="si">{</span><span class="n">api_context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">api_context</span></div>
+
+
+<div class="viewcode-block" id="QuizEngine._apply_question_templating">
+<a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine._apply_question_templating">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_question_templating</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">question</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply templating to question text by replacing API data placeholders.</span>
+
+<span class="sd">        Replaces placeholders like {api.joke_api.setup} with actual API response data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            question: Question dictionary</span>
+<span class="sd">            state: Current session state with api_data</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Question dictionary with templated text</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+        <span class="c1"># Create a deep copy to avoid modifying the original question</span>
+        <span class="n">templated_question</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">question</span><span class="p">)</span>
+
+        <span class="c1"># Get API context</span>
+        <span class="n">api_context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_api_context</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="c1"># Get the question text</span>
+        <span class="n">question_text</span> <span class="o">=</span> <span class="n">templated_question</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Find all placeholders in the format {api.api_id.field}</span>
+        <span class="n">placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{api\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">question_text</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">placeholder</span> <span class="ow">in</span> <span class="n">placeholders</span><span class="p">:</span>
+            <span class="c1"># Split the placeholder into parts (e.g., &quot;joke_api.setup&quot; -&gt; [&quot;joke_api&quot;, &quot;setup&quot;])</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">placeholder</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="n">api_id</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># Navigate through the API context</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">api_context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">api_id</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+            <span class="c1"># Replace the placeholder with the actual value</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not resolve placeholder </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">templated_question</span></div>
 </div>
 
 </pre></div>
