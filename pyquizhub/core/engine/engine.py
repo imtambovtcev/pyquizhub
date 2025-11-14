@@ -109,6 +109,15 @@ class QuizEngine:
             context={}
         )
 
+        # Execute BEFORE_QUESTION API calls for the first question
+        first_question_id = initial_state["current_question_id"]
+        initial_state = self._execute_api_calls(
+            initial_state,
+            RequestTiming.BEFORE_QUESTION,
+            context={"question_id": first_question_id, **initial_state["scores"]},
+            question_id=first_question_id
+        )
+
         self.logger.info("Created initial quiz state")
         return initial_state
 
@@ -138,6 +147,9 @@ class QuizEngine:
 
         if not question:
             raise ValueError(f"Question with ID {question_id} not found.")
+
+        # Apply templating to question text with API data
+        question = self._apply_question_templating(question, state)
 
         self.logger.debug(f"Retrieved question {question_id}")
         return question
@@ -220,7 +232,9 @@ class QuizEngine:
                 for score_key, expr in condition_group.get("update", {}).items():
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
                         expr, {
-                            **new_state["scores"], "api": self._create_api_context(new_state)}
+                            "answer": answer,
+                            **new_state["scores"],
+                            "api": self._create_api_context(new_state)}
                     )
 
         # Record answer with timestamp
@@ -401,3 +415,56 @@ class QuizEngine:
 
         self.logger.debug(f"Final API context: {api_context}")
         return api_context
+
+    def _apply_question_templating(self, question: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply templating to question text by replacing API data placeholders.
+
+        Replaces placeholders like {api.joke_api.setup} with actual API response data.
+
+        Args:
+            question: Question dictionary
+            state: Current session state with api_data
+
+        Returns:
+            Question dictionary with templated text
+        """
+        import copy
+        import re
+
+        # Create a deep copy to avoid modifying the original question
+        templated_question = copy.deepcopy(question)
+
+        # Get API context
+        api_context = self._create_api_context(state)
+
+        # Get the question text
+        question_text = templated_question.get("data", {}).get("text", "")
+
+        # Find all placeholders in the format {api.api_id.field}
+        placeholders = re.findall(r'\{api\.([^}]+)\}', question_text)
+
+        for placeholder in placeholders:
+            # Split the placeholder into parts (e.g., "joke_api.setup" -> ["joke_api", "setup"])
+            parts = placeholder.split('.')
+            api_id = parts[0]
+
+            # Navigate through the API context
+            value = api_context.get(api_id)
+            for part in parts[1:]:
+                if isinstance(value, dict):
+                    value = value.get(part)
+                else:
+                    break
+
+            # Replace the placeholder with the actual value
+            if value is not None:
+                templated_question["data"]["text"] = templated_question["data"]["text"].replace(
+                    f"{{api.{placeholder}}}",
+                    str(value)
+                )
+                self.logger.debug(f"Replaced {{api.{placeholder}}} with {value}")
+            else:
+                self.logger.warning(f"Could not resolve placeholder {{api.{placeholder}}}")
+
+        return templated_question
