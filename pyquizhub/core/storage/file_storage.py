@@ -131,9 +131,41 @@ class FileStorageManager(StorageManager):
         self._write_json(filename, data)
 
     def get_users(self) -> Dict[str, Any]:
-        """Fetch all users."""
+        """Fetch all users with statistics."""
         self.logger.debug("Fetching all users")
-        return self.users
+
+        # Get all unique user IDs from sessions and results
+        user_ids = set()
+
+        # Get user IDs from sessions directory
+        sessions_dir = os.path.join(self.base_dir, "sessions")
+        if os.path.exists(sessions_dir):
+            for session_file in os.listdir(sessions_dir):
+                if session_file.endswith(".json"):
+                    session_id = os.path.splitext(session_file)[0]
+                    session_data = self.load_session_state(session_id)
+                    if session_data and session_data.get("user_id"):
+                        user_ids.add(session_data.get("user_id"))
+
+        # Get user IDs from results
+        for user_id in self.results.keys():
+            user_ids.add(user_id)
+
+        # Build user data with statistics
+        users = {}
+        for user_id in user_ids:
+            # Get permissions from users.json if they exist
+            permissions = self.users.get(user_id, {}).get("permissions", [])
+
+            # Count quizzes taken (unique quiz_ids from results)
+            quizzes_taken = len(self.results.get(user_id, {}).keys())
+
+            users[user_id] = {
+                "permissions": permissions,
+                "quizzes_taken": quizzes_taken
+            }
+
+        return users
 
     def add_users(self, users: Dict[str, Any]) -> None:
         """Add or update users."""
@@ -414,10 +446,23 @@ class FileStorageManager(StorageManager):
         """Fetch all sessions grouped by user."""
         self.logger.debug("Fetching all sessions grouped by user")
         sessions_by_user = {}
-        for user_id, quizzes in self.results.items():
-            sessions_by_user[user_id] = []
-            for quiz_id, sessions in quizzes.items():
-                sessions_by_user[user_id].extend(sessions.keys())
+        sessions_dir = os.path.join(self.base_dir, "sessions")
+
+        if not os.path.exists(sessions_dir):
+            return sessions_by_user
+
+        # Read all session files from sessions directory
+        for session_file in os.listdir(sessions_dir):
+            if session_file.endswith(".json"):
+                session_id = os.path.splitext(session_file)[0]
+                session_data = self.load_session_state(session_id)
+                if session_data:
+                    user_id = session_data.get("user_id")
+                    if user_id:
+                        if user_id not in sessions_by_user:
+                            sessions_by_user[user_id] = []
+                        sessions_by_user[user_id].append(session_id)
+
         return sessions_by_user
 
     def get_sessions_by_user(self, user_id: str) -> List[str]:

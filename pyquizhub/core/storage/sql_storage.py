@@ -106,12 +106,47 @@ class SQLStorageManager(StorageManager):
             return result
 
     def get_users(self) -> Dict[str, Any]:
-        """Fetch all users."""
+        """Fetch all users with statistics."""
         self.logger.debug("Fetching all users")
-        query = select(self.users_table)
-        result = self._execute(query)
-        return {row._mapping["id"]: row._mapping["permissions"]
-                for row in result}
+
+        # Get all unique user IDs from sessions and results
+        user_ids = set()
+
+        # Get user IDs from sessions
+        sessions_query = select(self.sessions_table.c.user_id).distinct()
+        sessions_result = self._execute(sessions_query)
+        for row in sessions_result:
+            user_ids.add(row._mapping["user_id"])
+
+        # Get user IDs from results
+        results_query = select(self.results_table.c.user_id).distinct()
+        results_result = self._execute(results_query)
+        for row in results_result:
+            user_ids.add(row._mapping["user_id"])
+
+        # Build user data with statistics
+        users = {}
+        for user_id in user_ids:
+            # Get permissions from users table if they exist
+            permissions_query = select(self.users_table.c.permissions).where(
+                self.users_table.c.id == user_id
+            )
+            permissions_result = self._execute(permissions_query).fetchone()
+            permissions = permissions_result._mapping["permissions"] if permissions_result else []
+
+            # Count quizzes taken (unique quiz_ids from results)
+            quizzes_query = select(self.results_table.c.quiz_id).where(
+                self.results_table.c.user_id == user_id
+            ).distinct()
+            quizzes_result = self._execute(quizzes_query)
+            quizzes_taken = len(list(quizzes_result))
+
+            users[user_id] = {
+                "permissions": permissions,
+                "quizzes_taken": quizzes_taken
+            }
+
+        return users
 
     def add_users(self, users: Dict[str, Any]) -> None:
         """Add or update users."""
@@ -439,7 +474,7 @@ class SQLStorageManager(StorageManager):
     def get_all_sessions(self) -> Dict[str, List[str]]:
         """Fetch all sessions."""
         self.logger.debug("Fetching all sessions")
-        query = select(self.results_table)
+        query = select(self.sessions_table)
         result = self._execute(query)
         sessions_by_user = {}
         for row in result:

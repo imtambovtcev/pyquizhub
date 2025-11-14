@@ -15,7 +15,7 @@ class StorageManager(ABC):
 
     @abstractmethod
     def get_users(self) -> Dict[str, Any]:
-        """Fetch all users."""
+        """Fetch all users with statistics (permissions and quizzes_taken)."""
         pass
 
     @abstractmethod
