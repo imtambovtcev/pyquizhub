@@ -232,10 +232,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all users with statistics.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all users&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Get all unique user IDs from sessions and results</span>
-        <span class="n">user_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># Start with all users from users.json</span>
+        <span class="n">user_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-        <span class="c1"># Get user IDs from sessions directory</span>
+        <span class="c1"># Also get user IDs from sessions directory</span>
         <span class="n">sessions_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">sessions_dir</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">session_file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">sessions_dir</span><span class="p">):</span>
@@ -245,7 +245,7 @@
                     <span class="k">if</span> <span class="n">session_data</span> <span class="ow">and</span> <span class="n">session_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">):</span>
                         <span class="n">user_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">session_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">))</span>
 
-        <span class="c1"># Get user IDs from results</span>
+        <span class="c1"># Also get user IDs from results</span>
         <span class="k">for</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">user_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
 
@@ -253,7 +253,14 @@
         <span class="n">users</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">user_id</span> <span class="ow">in</span> <span class="n">user_ids</span><span class="p">:</span>
             <span class="c1"># Get permissions from users.json if they exist</span>
-            <span class="n">permissions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;permissions&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">user_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="c1"># Handle both old format (permissions directly) and new format (dict with permissions key)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;permissions&quot;</span> <span class="ow">in</span> <span class="n">user_data</span><span class="p">:</span>
+                <span class="n">permissions</span> <span class="o">=</span> <span class="n">user_data</span><span class="p">[</span><span class="s2">&quot;permissions&quot;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">permissions</span> <span class="o">=</span> <span class="n">user_data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">permissions</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="c1"># Count quizzes taken (unique quiz_ids from results)</span>
             <span class="n">quizzes_taken</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -616,22 +623,30 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all sessions grouped by user.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all sessions grouped by user&quot;</span><span class="p">)</span>
         <span class="n">sessions_by_user</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">sessions_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">sessions_dir</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">sessions_by_user</span>
-
-        <span class="c1"># Read all session files from sessions directory</span>
-        <span class="k">for</span> <span class="n">session_file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">sessions_dir</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">session_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
-                <span class="n">session_id</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">session_file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">session_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_session_state</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">session_data</span><span class="p">:</span>
-                    <span class="n">user_id</span> <span class="o">=</span> <span class="n">session_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">user_id</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">user_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions_by_user</span><span class="p">:</span>
-                            <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Get sessions from results (includes all sessions, active and completed)</span>
+        <span class="k">for</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">user_results</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">quiz_id</span><span class="p">,</span> <span class="n">quiz_sessions</span> <span class="ow">in</span> <span class="n">user_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="n">quiz_sessions</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">user_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions_by_user</span><span class="p">:</span>
+                        <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">if</span> <span class="n">session_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]:</span>
                         <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+
+        <span class="c1"># Also get active sessions from sessions directory</span>
+        <span class="n">sessions_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;sessions&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">sessions_dir</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">session_file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">sessions_dir</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">session_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
+                    <span class="n">session_id</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">session_file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">session_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_session_state</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">session_data</span><span class="p">:</span>
+                        <span class="n">user_id</span> <span class="o">=</span> <span class="n">session_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;user_id&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">user_id</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">user_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions_by_user</span><span class="p">:</span>
+                                <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                            <span class="k">if</span> <span class="n">session_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]:</span>
+                                <span class="n">sessions_by_user</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">sessions_by_user</span></div>
 
