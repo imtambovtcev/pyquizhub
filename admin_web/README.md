@@ -57,11 +57,16 @@ Access at: http://localhost:8081
 
 ### Quiz Management
 - Create quizzes with JSON editor
-- Validate quiz structure
+- **Validate quiz structure** with comprehensive error reporting
+  - Type checking for all variable definitions
+  - Expression validation
+  - API integration validation
+  - Permission tier validation
 - Load templates
 - View all quizzes
+- Edit existing quizzes
 - Delete quizzes
-- Generate tokens
+- Generate tokens for quiz access
 
 ### Token Management
 - Generate permanent/single-use tokens
@@ -114,8 +119,15 @@ All requests include the admin authentication token automatically.
 
 - **Authentication**: All API requests require admin token
 - **CORS**: Enabled for API communication
-- **Input Validation**: Quiz JSON is validated before submission
+- **Input Validation**: Quiz JSON is validated before submission using comprehensive validator
+  - Validates quiz structure and schema
+  - Checks variable definitions and types
+  - Validates expressions and conditions
+  - Enforces permission tiers
+  - Returns detailed error messages with context
 - **XSS Prevention**: All user input is sanitized
+- **Safe Evaluation**: Sandboxed expression execution
+- **Rate Limiting**: Configurable limits for API calls
 
 ## Development
 
