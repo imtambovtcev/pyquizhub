@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz Format Guide &mdash; Pyquizhub  documentation</title>
+  <title>Quiz Format Guide (Version 2.0) &mdash; Pyquizhub  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -46,16 +46,43 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Quiz Format Guide</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quiz Format Guide (Version 2.0)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#json-structure">JSON Structure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#field-descriptions">Field Descriptions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#question-types">Question Types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#example-quiz-files">Example Quiz Files</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#simple-multiple-choice">Simple Multiple Choice</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#text-input">Text Input</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#numeric-input">Numeric Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#variables-system">Variables System</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#required-fields">Required Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optional-fields">Optional Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#variable-tags">Variable Tags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#security-model">Security Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-variable-definitions">Example Variable Definitions</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#api-integrations">API Integrations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#simple-api-integration-static-url">Simple API Integration (Static URL)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dynamic-api-integration-variable-based-request">Dynamic API Integration (Variable-Based Request)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#post-request-with-body">POST Request with Body</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-integration-fields">API Integration Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#security-model-for-apis">Security Model for APIs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#question-execution-blocks">Question Execution Blocks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#block-types">Block Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#execution-order">Execution Order</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-example">Complete Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#weather-prediction-quiz">Weather Prediction Quiz</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#validation-levels">Validation Levels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-validation-default">Basic Validation (Default)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#advanced-validation-permission-aware">Advanced Validation (Permission-Aware)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#migration-from-old-format">Migration from Old Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#question-types-reference">Question Types Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#key-design-decisions-summary">Key Design Decisions Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="core/index.html">Core Documentation</a></li>
@@ -77,7 +104,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Quiz Format Guide</li>
+      <li class="breadcrumb-item active">Quiz Format Guide (Version 2.0)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/quiz_format.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -87,50 +114,129 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="quiz-format-guide">
-<h1>Quiz Format Guide<a class="headerlink" href="#quiz-format-guide" title="Link to this heading"></a></h1>
+  <section id="quiz-format-guide-version-2-0">
+<h1>Quiz Format Guide (Version 2.0)<a class="headerlink" href="#quiz-format-guide-version-2-0" title="Link to this heading"></a></h1>
+<p>This document defines the quiz JSON format with the new variables system, API integrations, and execution flow.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>A quiz consists of:</p>
+<ol class="arabic simple">
+<li><p><strong>Variables</strong> - Type-safe data storage with security tags</p></li>
+<li><p><strong>Questions</strong> - User interaction points with execution blocks</p></li>
+<li><p><strong>Transitions</strong> - Flow control between questions</p></li>
+<li><p><strong>API Integrations</strong> (optional) - External data sources</p></li>
+</ol>
+<p>Each question can have multiple <strong>execution blocks</strong> that run in order:</p>
+<ol class="arabic simple">
+<li><p><strong>Variable updates</strong> - Compute new values from existing variables</p></li>
+<li><p><strong>API calls</strong> - Fetch external data into variables</p></li>
+<li><p><strong>User interaction</strong> - Display question and collect answer (once per question)</p></li>
+</ol>
+</section>
 <section id="json-structure">
 <h2>JSON Structure<a class="headerlink" href="#json-structure" title="Link to this heading"></a></h2>
-<p>Quizzes are defined using JSON files with the following structure:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Quiz Title&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Quiz description&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;author&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Author Name&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span>
+<span class="w">        </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.0&quot;</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;scores&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;score_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;variable_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer|float|boolean|string|array&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;array_item_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer|float|boolean|string&quot;</span><span class="p">,</span><span class="w">  </span><span class="c1">// Required if type is array</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;api&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;engine&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;leaderboard&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;user_input&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Optional description&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* optional validation rules */</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;api_integrations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api_id&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GET|POST|PUT|PATCH|DELETE&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none|bearer|api_key&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;prepare_request&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// Optional: For dynamic URLs or request bodies</span>
+<span class="w">                </span><span class="nt">&quot;url_template&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://api.example.com/{variables.city}/forecast&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;required_variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;units&quot;</span><span class="p">],</span>
+<span class="w">                </span><span class="nt">&quot;body_template&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{variables.search_term}&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;limit&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{variables.result_count}&quot;</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;application/json&quot;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;extract_response&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// Required: Which variables to populate from response</span>
+<span class="w">                </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span>
+<span class="w">                    </span><span class="p">},</span>
+<span class="w">                    </span><span class="nt">&quot;wind_speed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.wind_speed_10m&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
 <span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multiple_choice&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Question text&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                    </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yes&quot;</span><span class="p">,</span>
-<span class="w">                        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Yes&quot;</span>
-<span class="w">                    </span><span class="p">},</span>
-<span class="w">                    </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;no&quot;</span><span class="p">,</span>
-<span class="w">                        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;No&quot;</span>
-<span class="w">                    </span><span class="p">}</span>
-<span class="w">                </span><span class="p">]</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">            </span><span class="nt">&quot;score_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="nt">&quot;execution_blocks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer == &#39;yes&#39;&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;update&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;score_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score_name + 1&quot;</span>
-<span class="w">                    </span><span class="p">}</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update_variables&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;computed_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;other_var * 2&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                    </span><span class="p">]</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api_call&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;api_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;on_success&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;continue&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;on_failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;use_fallbacks&quot;</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multiple_choice|text|integer|float|multiple_select&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Question text with {variables.value} interpolation&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="cm">/* for choice questions */</span><span class="w"> </span><span class="p">]</span>
+<span class="w">                    </span><span class="p">},</span>
+<span class="w">                    </span><span class="nt">&quot;store_answer_in&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_answer&quot;</span><span class="w">  </span><span class="c1">// Optional: store raw answer</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update_variables&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;after_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer == &#39;correct&#39;&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score + 10&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                    </span><span class="p">]</span>
 <span class="w">                </span><span class="p">}</span>
 <span class="w">            </span><span class="p">]</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
 <span class="w">    </span><span class="nt">&quot;transitions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score &gt; 50&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">            </span><span class="p">},</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">                </span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="p">,</span>
 <span class="w">                </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
@@ -141,180 +247,686 @@
 </pre></div>
 </div>
 </section>
-<section id="field-descriptions">
-<h2>Field Descriptions<a class="headerlink" href="#field-descriptions" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>metadata</dt><dd><p>Quiz metadata including title, description, author and version</p>
-</dd>
-<dt>scores</dt><dd><p>Defines score variables and their initial values</p>
-</dd>
-<dt>questions</dt><dd><p>Array of question objects containing:</p>
+<section id="variables-system">
+<h2>Variables System<a class="headerlink" href="#variables-system" title="Link to this heading"></a></h2>
+<section id="required-fields">
+<h3>Required Fields<a class="headerlink" href="#required-fields" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>id - Unique question identifier</p></li>
-<li><p>data - Question content and type</p></li>
-<li><p>score_updates - Score update rules based on answers</p></li>
+<li><p><strong>type</strong> - Data type (integer, float, boolean, string, array)</p></li>
+<li><p><strong>mutable_by</strong> - Who can modify this variable: [“user”, “api”, “engine”]</p></li>
+<li><p><strong>array_item_type</strong> - Type of items in array (required if type is “array”)</p></li>
+</ul>
+</section>
+<section id="optional-fields">
+<h3>Optional Fields<a class="headerlink" href="#optional-fields" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>default</strong> - Initial value (auto-generated from type if not provided: 0, 0.0, false, “”, [])</p></li>
+<li><p><strong>tags</strong> - Variable classification (see Tags section)</p></li>
+<li><p><strong>description</strong> - Human-readable description</p></li>
+<li><p><strong>constraints</strong> - Validation rules (min_value, max_value, enum, pattern, min_items, max_items, etc.)</p></li>
+</ul>
+<p><strong>Note</strong>: <code class="docutils literal notranslate"><span class="pre">object</span></code> type is NOT allowed for security reasons. Arrays must be homogeneous (all items same type).</p>
+</section>
+<section id="variable-tags">
+<h3>Variable Tags<a class="headerlink" href="#variable-tags" title="Link to this heading"></a></h3>
+<p><strong>Purpose Tags:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">score</span></code> - Numeric metrics for analytics (auto-tagged as public)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leaderboard</span></code> - THE primary score for ranking (only ONE per quiz, auto-tagged as score+public)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">state</span></code> - Quiz state tracking</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_input</span></code> - Value comes from user (auto-tagged as untrusted)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api_data</span></code> - Value comes from API (auto-tagged as sanitized+safe_for_api)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">computed</span></code> - Calculated from other variables</p></li>
+</ul>
+<p><strong>Visibility Tags:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">public</span></code> - Visible in results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">private</span></code> - Internal use only (default if no visibility tag)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">admin_only</span></code> - Only visible to admins</p></li>
+</ul>
+<p><strong>Safety Tags</strong> (mostly auto-applied):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">safe_for_api</span></code> - Safe to use in API requests (numeric types, enum strings)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sanitized</span></code> - Validated/constrained (API responses, enum strings, numeric with constraints)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">untrusted</span></code> - Needs validation before use (user input)</p></li>
+</ul>
+<p><strong>Special Tags:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">immutable</span></code> - Cannot be changed after initialization (requires mutable_by: [])</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">temporary</span></code> - Cleared between questions</p></li>
+</ul>
+</section>
+<section id="security-model">
+<h3>Security Model<a class="headerlink" href="#security-model" title="Link to this heading"></a></h3>
+<p><strong>Type Safety:</strong></p>
+<ul class="simple">
+<li><p>Numeric types (integer, float, boolean) → automatically <code class="docutils literal notranslate"><span class="pre">safe_for_api</span></code></p></li>
+<li><p>String with enum constraint → automatically <code class="docutils literal notranslate"><span class="pre">safe_for_api</span></code> + <code class="docutils literal notranslate"><span class="pre">sanitized</span></code></p></li>
+<li><p>Free-text strings → NEVER <code class="docutils literal notranslate"><span class="pre">safe_for_api</span></code> (injection risk)</p></li>
+<li><p>User input → automatically <code class="docutils literal notranslate"><span class="pre">untrusted</span></code></p></li>
+<li><p>Numeric user input with constraints → <code class="docutils literal notranslate"><span class="pre">untrusted</span></code> + <code class="docutils literal notranslate"><span class="pre">sanitized</span></code> (constrained values are safe)</p></li>
+</ul>
+<p><strong>API Variables:</strong></p>
+<p>Variables with <code class="docutils literal notranslate"><span class="pre">source_api</span></code> must:</p>
+<ul class="simple">
+<li><p>Have <code class="docutils literal notranslate"><span class="pre">response_path</span></code> defined (how to extract from API response)</p></li>
+<li><p>Have “api” in <code class="docutils literal notranslate"><span class="pre">mutable_by</span></code></p></li>
+<li><p>Are automatically tagged: <code class="docutils literal notranslate"><span class="pre">api_data</span></code>, <code class="docutils literal notranslate"><span class="pre">sanitized</span></code>, <code class="docutils literal notranslate"><span class="pre">safe_for_api</span></code></p></li>
+<li><p>Are type-validated against their declared type</p></li>
+<li><p>Can have additional constraints (min_value, max_value) for extra validation</p></li>
+</ul>
+</section>
+<section id="example-variable-definitions">
+<h3>Example Variable Definitions<a class="headerlink" href="#example-variable-definitions" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;total_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;engine&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;leaderboard&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Primary score for ranking&quot;</span>
+<span class="w">            </span><span class="c1">// default: 0 (auto-generated)</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;user_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user_input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;private&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;max_length&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;pattern&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^[a-zA-Z0-9 ]+$&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;city_choice&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user_input&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;enum&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;berlin&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;london&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;paris&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;tokyo&quot;</span><span class="p">]</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// This is SAFE for API use because of enum constraint</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;actual_temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;source_api&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;response_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Current temperature from API&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;min_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;max_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// Auto-tagged: api_data, sanitized, safe_for_api</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;user_prediction&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;engine&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user_input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;public&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;min_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-50</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;max_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// Numeric with constraints: untrusted + sanitized</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;selected_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;array_item_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user_input&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;min_items&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;max_items&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;enum&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;option_a&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;option_b&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;option_c&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;option_d&quot;</span><span class="p">]</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// Array of strings with enum constraint - safe for API use</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;score_history&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;array_item_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;engine&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;private&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;max_items&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="c1">// Array of integers - numeric types are safe</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="api-integrations">
+<h2>API Integrations<a class="headerlink" href="#api-integrations" title="Link to this heading"></a></h2>
+<p>API integrations have two main blocks:</p>
+<ol class="arabic simple">
+<li><p><strong>prepare_request</strong> (optional) - For dynamic URLs or request bodies</p></li>
+<li><p><strong>extract_response</strong> (required) - Which variables to populate from response</p></li>
+</ol>
+<section id="simple-api-integration-static-url">
+<h3>Simple API Integration (Static URL)<a class="headerlink" href="#simple-api-integration-static-url" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;api_integrations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://api.open-meteo.com/v1/forecast?latitude=52.52&amp;longitude=13.41&amp;current=temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;extract_response&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span>
+<span class="w">                    </span><span class="p">},</span>
+<span class="w">                    </span><span class="nt">&quot;humidity&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.relative_humidity_2m&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="dynamic-api-integration-variable-based-request">
+<h3>Dynamic API Integration (Variable-Based Request)<a class="headerlink" href="#dynamic-api-integration-variable-based-request" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;api_integrations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;city_weather&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;prepare_request&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;url_template&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://api.example.com/weather/{variables.city_code}&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;required_variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;city_code&quot;</span><span class="p">],</span>
+<span class="w">                </span><span class="nt">&quot;query_params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;units&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{variables.temperature_units}&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;lang&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;en&quot;</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;Accept&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;application/json&quot;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;extract_response&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;main.temp&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="post-request-with-body">
+<h3>POST Request with Body<a class="headerlink" href="#post-request-with-body" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;api_integrations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;search_api&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://api.example.com/search&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bearer&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;prepare_request&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;required_variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;search_query&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;max_results&quot;</span><span class="p">],</span>
+<span class="w">                </span><span class="nt">&quot;body_template&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{variables.search_query}&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;limit&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{variables.max_results}&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;filters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;article&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;Content-Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;application/json&quot;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;extract_response&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;result_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;meta.total&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span>
+<span class="w">                    </span><span class="p">},</span>
+<span class="w">                    </span><span class="nt">&quot;top_result_title&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;results[0].title&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="api-integration-fields">
+<h3>API Integration Fields<a class="headerlink" href="#api-integration-fields" title="Link to this heading"></a></h3>
+<p><strong>Required:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> - Unique identifier for this API integration</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">method</span></code> - HTTP method (GET, POST, PUT, PATCH, DELETE)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extract_response</span></code> - Which variables to populate and how</p></li>
+</ul>
+<p><strong>Optional:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code> - Static URL (use this OR url_template in prepare_request)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">auth</span></code> - Authentication configuration</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prepare_request</span></code> - For dynamic URLs/bodies (contains url_template, body_template, required_variables)</p></li>
+</ul>
+<p><strong>prepare_request block</strong> (optional):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url_template</span></code> - URL with {variables.name} placeholders</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">body_template</span></code> - Request body with {variables.name} placeholders</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">query_params</span></code> - Query parameters (can use {variables.name})</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">headers</span></code> - HTTP headers</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">required_variables</span></code> - List of variable names needed to build request</p></li>
+</ul>
+<p><strong>extract_response block</strong> (required):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">variables</span></code> - Dictionary mapping variable names to extraction configs</p>
+<p>Each extraction config has:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> - JSON path to extract (e.g., “current.temp” or “results[0].title”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code> - Expected type (must match variable’s declared type)</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="security-model-for-apis">
+<h3>Security Model for APIs<a class="headerlink" href="#security-model-for-apis" title="Link to this heading"></a></h3>
+<p><strong>NO direct API access in templates/expressions!</strong></p>
+<dl class="simple">
+<dt>Old (DANGEROUS):</dt><dd><p><code class="docutils literal notranslate"><span class="pre">&quot;text&quot;:</span> <span class="pre">&quot;Temperature</span> <span class="pre">is</span> <span class="pre">{api.weather}</span> <span class="pre">degrees&quot;</span></code>  ← Raw untrusted data!</p>
+</dd>
+<dt>New (SAFE):</dt><dd><p><code class="docutils literal notranslate"><span class="pre">&quot;text&quot;:</span> <span class="pre">&quot;Temperature</span> <span class="pre">is</span> <span class="pre">{variables.actual_temperature}</span> <span class="pre">degrees&quot;</span></code>  ← Type-validated variable!</p>
+</dd>
+</dl>
+<p>Process:</p>
+<ol class="arabic simple">
+<li><p><strong>prepare_request</strong> (if present):</p>
+<ol class="loweralpha simple">
+<li><p>Check all <code class="docutils literal notranslate"><span class="pre">required_variables</span></code> are SAFE for API use</p></li>
+<li><p>Validate variable types (only safe types allowed in URLs/bodies)</p></li>
+<li><p>Build URL from template by substituting variables</p></li>
+<li><p>Build request body from template by substituting variables</p></li>
+</ol>
+</li>
+<li><p>Execute API call with prepared request</p></li>
+<li><p><strong>extract_response</strong>:</p>
+<ol class="loweralpha simple">
+<li><p>For each variable in <code class="docutils literal notranslate"><span class="pre">extract_response.variables</span></code>:</p>
+<ul class="simple">
+<li><p>Extract value using <code class="docutils literal notranslate"><span class="pre">path</span></code></p></li>
+<li><p>Validate against declared <code class="docutils literal notranslate"><span class="pre">type</span></code></p></li>
+<li><p>Apply variable constraints if any</p></li>
+<li><p>Store in variable</p></li>
+</ul>
+</li>
+</ol>
+</li>
+<li><p>Variables are now available for use in expressions/templates</p></li>
+</ol>
+<p><strong>Security Guarantees:</strong></p>
+<ul class="simple">
+<li><p>Only variables declared in <code class="docutils literal notranslate"><span class="pre">extract_response</span></code> are populated</p></li>
+<li><p>Each extracted value is type-validated</p></li>
+<li><p>Variables used in <code class="docutils literal notranslate"><span class="pre">prepare_request</span></code> must be SAFE_FOR_API</p></li>
+<li><p>Free-text user input CANNOT be used in URLs (injection prevention)</p></li>
+<li><p>Only enum-constrained strings or numeric types allowed in API requests</p></li>
+</ul>
+</section>
+</section>
+<section id="question-execution-blocks">
+<h2>Question Execution Blocks<a class="headerlink" href="#question-execution-blocks" title="Link to this heading"></a></h2>
+<p>Each question has an ordered list of <code class="docutils literal notranslate"><span class="pre">execution_blocks</span></code> that run sequentially.</p>
+<section id="block-types">
+<h3>Block Types<a class="headerlink" href="#block-types" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>update_variables</strong> - Update variables based on expressions</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update_variables&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before_user_interaction|after_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;expression&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;var_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;expression&quot;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>api_call</strong> - Call external API</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api_call&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before_user_interaction|after_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;api_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;on_success&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;continue|skip_to_next_question&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;on_failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;use_fallbacks|fail_quiz|skip_question&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This will populate ALL variables with <code class="docutils literal notranslate"><span class="pre">source_api:</span> <span class="pre">&quot;weather&quot;</span></code></p>
+</li>
+<li><p><strong>user_interaction</strong> - Display question and collect answer (ONCE per question)</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_interaction&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multiple_choice|text|integer|float|multiple_select&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Question text with {variables.name}&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;store_answer_in&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;optional_variable_name&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="execution-order">
+<h3>Execution Order<a class="headerlink" href="#execution-order" title="Link to this heading"></a></h3>
+<p>Blocks execute in the order listed. Typical pattern:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">update_variables</span></code> (before) - Prepare computed values</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api_call</span></code> (before) - Fetch external data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_interaction</span></code> - Show question, collect answer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">update_variables</span></code> (after) - Update score based on answer</p></li>
+</ol>
+<p>The special variable <code class="docutils literal notranslate"><span class="pre">answer</span></code> is available ONLY in <code class="docutils literal notranslate"><span class="pre">after_user_interaction</span></code> blocks.</p>
+</section>
+</section>
+<section id="complete-example">
+<h2>Complete Example<a class="headerlink" href="#complete-example" title="Link to this heading"></a></h2>
+<section id="weather-prediction-quiz">
+<h3>Weather Prediction Quiz<a class="headerlink" href="#weather-prediction-quiz" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Weather Prediction Quiz&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Predict the temperature and see how accurate you are!&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;author&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PyQuizHub&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.0&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;user_prediction&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;user_input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;public&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;User&#39;s temperature prediction&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;min_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-50</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;max_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;actual_temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;source_api&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;response_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Actual temperature from API&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;min_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-100</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;max_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;accuracy_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;engine&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;leaderboard&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Primary score for ranking (0-100)&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;constraints&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;min_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;max_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;api_integrations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://api.open-meteo.com/v1/forecast?latitude=52.52&amp;longitude=13.41&amp;current=temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;extract_response&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;actual_temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;current.temperature_2m&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;execution_blocks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;float&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;What&#39;s the current temperature in Berlin? (°C)&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;hint&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Think about the current season!&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update_variables&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;after_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;user_prediction&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                    </span><span class="p">]</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">]</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;execution_blocks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api_call&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;api_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;weather&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;on_success&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;continue&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;on_failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;use_fallbacks&quot;</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update_variables&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;before_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abs(user_prediction - actual_temperature) &lt;= 1&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;accuracy_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;100&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abs(user_prediction - actual_temperature) &lt;= 3&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;accuracy_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;80&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abs(user_prediction - actual_temperature) &lt;= 5&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;accuracy_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;60&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">{</span>
+<span class="w">                            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="p">,</span>
+<span class="w">                            </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="nt">&quot;accuracy_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;40&quot;</span>
+<span class="w">                            </span><span class="p">}</span>
+<span class="w">                        </span><span class="p">}</span>
+<span class="w">                    </span><span class="p">]</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user_interaction&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
+<span class="w">                        </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Results:\\n\\nYour prediction: {variables.user_prediction}°C\\nActual: {variables.actual_temperature}°C\\nAccuracy score: {variables.accuracy_score}/100&quot;</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;transitions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">}</span>
+<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;expression&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;true&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">}</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="validation-levels">
+<h2>Validation Levels<a class="headerlink" href="#validation-levels" title="Link to this heading"></a></h2>
+<section id="basic-validation-default">
+<h3>Basic Validation (Default)<a class="headerlink" href="#basic-validation-default" title="Link to this heading"></a></h3>
+<p>Always performed:</p>
+<ul class="simple">
+<li><p>Valid JSON structure</p></li>
+<li><p>Required fields present (type, mutable_by for variables)</p></li>
+<li><p>Type validity (valid VariableType, MutableBy values)</p></li>
+<li><p>Tag validity (valid VariableTag values)</p></li>
+<li><p>Constraint validity</p></li>
+<li><p>Expression syntax</p></li>
+<li><p>Question flow validity</p></li>
+<li><p>ONE leaderboard variable per quiz</p></li>
+<li><p>Reserved names (no variable named “answer”)</p></li>
+<li><p>API variable requirements (source_api requires response_path and mutable_by includes “api”)</p></li>
+</ul>
+</section>
+<section id="advanced-validation-permission-aware">
+<h3>Advanced Validation (Permission-Aware)<a class="headerlink" href="#advanced-validation-permission-aware" title="Link to this heading"></a></h3>
+<p>Checks user/creator permissions:</p>
+<ul class="simple">
+<li><p>API call count limits (by creator tier: restricted=5, standard=20, advanced=50, admin=unlimited)</p></li>
+<li><p>Domain allowlists (restricted tier: allowlist only)</p></li>
+<li><p>Variable usage in APIs (standard tier: query params only; advanced tier: full control)</p></li>
+<li><p>User-level restrictions (some users can’t access certain features)</p></li>
+</ul>
+</section>
+</section>
+<section id="migration-from-old-format">
+<h2>Migration from Old Format<a class="headerlink" href="#migration-from-old-format" title="Link to this heading"></a></h2>
+<p>Old Format (DEPRECATED):</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;scores&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">        </span><span class="nt">&quot;score_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">            </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer == &#39;yes&#39;&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;update&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score + 1&quot;</span><span class="p">}</span>
+<span class="w">        </span><span class="p">}]</span>
+<span class="w">    </span><span class="p">}]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>New Format:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;mutable_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;engine&quot;</span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">        </span><span class="nt">&quot;execution_blocks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">            </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update_variables&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;timing&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;after_user_interaction&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">                </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer == &#39;yes&#39;&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score + 1&quot;</span><span class="p">}</span>
+<span class="w">            </span><span class="p">}]</span>
+<span class="w">        </span><span class="p">}]</span>
+<span class="w">    </span><span class="p">}]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Key Changes:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scores</span></code> → <code class="docutils literal notranslate"><span class="pre">variables</span></code> with type declarations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">score_updates</span></code> → <code class="docutils literal notranslate"><span class="pre">execution_blocks</span></code> with explicit timing</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">update.score</span></code> → <code class="docutils literal notranslate"><span class="pre">variables.score</span></code></p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">type</span></code> and <code class="docutils literal notranslate"><span class="pre">mutable_by</span></code> (required)</p></li>
+<li><p>API integration moved from <code class="docutils literal notranslate"><span class="pre">api_integrations.response_path</span></code> to <code class="docutils literal notranslate"><span class="pre">variables[].response_path</span></code></p></li>
+</ol>
+</section>
+<section id="best-practices">
+<h2>Best Practices<a class="headerlink" href="#best-practices" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Use leaderboard tag for primary score</strong> - Only one variable should have this</p></li>
+<li><p><strong>Tag user input as user_input</strong> - Auto-tags as untrusted for safety checks</p></li>
+<li><p><strong>Use constraints on user input</strong> - Especially for numeric types and strings</p></li>
+<li><p><strong>Use enum for string choices</strong> - Makes them safe for API use</p></li>
+<li><p><strong>Put response_path in variable definition</strong> - Not in API integration</p></li>
+<li><p><strong>Use execution_blocks timing</strong> - before vs after user interaction</p></li>
+<li><p><strong>Never access raw API data</strong> - Always through type-validated variables</p></li>
+<li><p><strong>Give variables descriptive names</strong> - Makes quiz easier to understand</p></li>
+</ol>
+</section>
+<section id="question-types-reference">
+<h2>Question Types Reference<a class="headerlink" href="#question-types-reference" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>multiple_choice</dt><dd><p>Single selection from options</p>
+</dd>
+<dt>multiple_select</dt><dd><p>Multiple selections allowed (stores as array)</p>
+</dd>
+<dt>text</dt><dd><p>Free text input (auto-tagged as unsafe for API use)</p>
+</dd>
+<dt>integer</dt><dd><p>Whole number input (auto-tagged as safe for API use)</p>
+</dd>
+<dt>float</dt><dd><p>Decimal number input (auto-tagged as safe for API use)</p>
+</dd>
+<dt>boolean</dt><dd><p>True/false or yes/no (auto-tagged as safe for API use)</p>
+</dd>
+</dl>
+</section>
+<section id="key-design-decisions-summary">
+<h2>Key Design Decisions Summary<a class="headerlink" href="#key-design-decisions-summary" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><strong>1. No Object Type</strong></dt><dd><p>Object type is NOT supported for security reasons. Use separate typed variables instead.</p>
+</dd>
+<dt><strong>2. Homogeneous Arrays Only</strong></dt><dd><p>Arrays must declare <code class="docutils literal notranslate"><span class="pre">array_item_type</span></code>. All items must be the same type.
+Example: <code class="docutils literal notranslate"><span class="pre">[&quot;integer&quot;,</span> <span class="pre">&quot;integer&quot;,</span> <span class="pre">&quot;integer&quot;]</span></code> ✅
+NOT: <code class="docutils literal notranslate"><span class="pre">[&quot;integer&quot;,</span> <span class="pre">&quot;string&quot;,</span> <span class="pre">&quot;float&quot;]</span></code> ❌</p>
+</dd>
+<dt><strong>3. HTTP Methods</strong></dt><dd><p>All standard HTTP methods supported: GET, POST, PUT, PATCH, DELETE</p>
+</dd>
+<dt><strong>4. API Structure</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">prepare_request</span></code> - Optional block for dynamic URLs/bodies</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extract_response</span></code> - Required block declaring which variables to populate</p></li>
+<li><p>Variables list in <code class="docutils literal notranslate"><span class="pre">extract_response</span></code> is exhaustive (only those variables are populated)</p></li>
 </ul>
 </dd>
-<dt>transitions</dt><dd><p>Rules for question flow control using conditions</p>
+<dt><strong>5. Variable Interpolation</strong></dt><dd><ul class="simple">
+<li><p>In <code class="docutils literal notranslate"><span class="pre">prepare_request</span></code>: Use <code class="docutils literal notranslate"><span class="pre">{variables.name}</span></code> for safe variable substitution</p></li>
+<li><p>Only SAFE_FOR_API variables allowed (numeric types, enum strings)</p></li>
+<li><p>Free-text user input CANNOT be used in API requests</p></li>
+</ul>
+</dd>
+<dt><strong>6. Response Extraction</strong></dt><dd><ul class="simple">
+<li><p>Each variable in <code class="docutils literal notranslate"><span class="pre">extract_response.variables</span></code> must declare:
+- <code class="docutils literal notranslate"><span class="pre">path</span></code>: JSON path (supports array notation like <code class="docutils literal notranslate"><span class="pre">results[0].title</span></code>)
+- <code class="docutils literal notranslate"><span class="pre">type</span></code>: Must match the variable’s declared type</p></li>
+<li><p>Type validation happens before storing</p></li>
+<li><p>Constraints applied after extraction</p></li>
+</ul>
+</dd>
+<dt><strong>7. Required vs Optional</strong></dt><dd><p>Variable required fields: <code class="docutils literal notranslate"><span class="pre">type</span></code>, <code class="docutils literal notranslate"><span class="pre">mutable_by</span></code> (+ <code class="docutils literal notranslate"><span class="pre">array_item_type</span></code> if type is array)
+Everything else is optional with reasonable defaults</p>
 </dd>
 </dl>
-</section>
-<section id="question-types">
-<h2>Question Types<a class="headerlink" href="#question-types" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt>multiple_choice</dt><dd><p>Standard multiple choice with single correct answer</p>
-</dd>
-<dt>multiple_select</dt><dd><p>Multiple correct answers allowed</p>
-</dd>
-<dt>text</dt><dd><p>Free text answer matching</p>
-</dd>
-<dt>integer</dt><dd><p>Numeric answer (whole numbers)</p>
-</dd>
-<dt>float</dt><dd><p>Numeric answer (decimal numbers)</p>
-</dd>
-</dl>
-</section>
-<section id="example-quiz-files">
-<h2>Example Quiz Files<a class="headerlink" href="#example-quiz-files" title="Link to this heading"></a></h2>
-<section id="simple-multiple-choice">
-<h3>Simple Multiple Choice<a class="headerlink" href="#simple-multiple-choice" title="Link to this heading"></a></h3>
-<div class="literal-block-wrapper docutils container" id="id1">
-<div class="code-block-caption"><span class="caption-text">Multiple Choice Quiz</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Simple Quiz Multiple Choice&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Correct answer: \&quot;yes\&quot;&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;author&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Test Author&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;scores&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;score_a&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Do you like apples?&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multiple_choice&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                    </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yes&quot;</span><span class="p">,</span>
-<span class="w">                        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Yes&quot;</span>
-<span class="w">                    </span><span class="p">},</span>
-<span class="w">                    </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;no&quot;</span><span class="p">,</span>
-<span class="w">                        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;No&quot;</span>
-<span class="w">                    </span><span class="p">}</span>
-<span class="w">                </span><span class="p">]</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">            </span><span class="nt">&quot;score_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer == &#39;yes&#39;&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;update&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;score_a&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score_a + 1&quot;</span>
-<span class="w">                    </span><span class="p">}</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">]</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;transitions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">]</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</section>
-<section id="text-input">
-<h3>Text Input<a class="headerlink" href="#text-input" title="Link to this heading"></a></h3>
-<div class="literal-block-wrapper docutils container" id="id2">
-<div class="code-block-caption"><span class="caption-text">Text Input Quiz</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Simple Quiz Text&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Correct answer: \&quot;John\&quot;&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;author&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Test Author&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;scores&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;score_a&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;What is your name?&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">            </span><span class="nt">&quot;score_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer == &#39;John&#39;&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;update&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;score_a&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score_a + 1&quot;</span>
-<span class="w">                    </span><span class="p">}</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">]</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;transitions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">]</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</section>
-<section id="numeric-input">
-<h3>Numeric Input<a class="headerlink" href="#numeric-input" title="Link to this heading"></a></h3>
-<div class="literal-block-wrapper docutils container" id="id3">
-<div class="code-block-caption"><span class="caption-text">Numeric Input Quiz</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Simple Quiz Integer&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Correct answer: 19&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;author&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Test Author&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;scores&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;score_a&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;questions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;How old are you?&quot;</span><span class="p">,</span>
-<span class="w">                </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">            </span><span class="nt">&quot;score_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="nt">&quot;condition&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;answer &gt; 18&quot;</span><span class="p">,</span>
-<span class="w">                    </span><span class="nt">&quot;update&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                        </span><span class="nt">&quot;score_a&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;score_a + 1&quot;</span>
-<span class="w">                    </span><span class="p">}</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">]</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;transitions&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;next_question_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">]</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</div>
-</section>
 </section>
 </section>
 

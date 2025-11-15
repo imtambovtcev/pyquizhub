@@ -43,7 +43,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../quiz_format.html">Quiz Format Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../quiz_format.html">Quiz Format Guide (Version 2.0)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core Documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../adapters/index.html">Adapters Documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../deployment.html">Deployment Guide</a></li>
@@ -150,8 +150,30 @@
         <span class="c1"># can assume consistent types (avoid None where lists/dicts expected)</span>
         <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;api_integrations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Support both old (scores) and new (variables) formats</span>
+        <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variables&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># New format: extract default values from variables</span>
+            <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">var_config</span> <span class="ow">in</span> <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;variables&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># Initialize all variables with their default values (0 for numeric, &quot;&quot; for string, etc.)</span>
+                <span class="n">var_type</span> <span class="o">=</span> <span class="n">var_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;integer&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">var_type</span> <span class="o">==</span> <span class="s2">&quot;integer&quot;</span><span class="p">:</span>
+                    <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">elif</span> <span class="n">var_type</span> <span class="o">==</span> <span class="s2">&quot;float&quot;</span><span class="p">:</span>
+                    <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">elif</span> <span class="n">var_type</span> <span class="o">==</span> <span class="s2">&quot;string&quot;</span><span class="p">:</span>
+                    <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">elif</span> <span class="n">var_type</span> <span class="o">==</span> <span class="s2">&quot;boolean&quot;</span><span class="p">:</span>
+                    <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="n">var_type</span> <span class="o">==</span> <span class="s2">&quot;array&quot;</span><span class="p">:</span>
+                    <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">][</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Old format: just use scores</span>
+            <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
         <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;questions&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">quiz_data</span><span class="p">[</span><span class="s2">&quot;questions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">quiz_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;transitions&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -339,7 +361,8 @@
         <span class="c1"># Determine next question</span>
         <span class="n">next_question_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_question</span><span class="p">(</span>
             <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">],</span>
-            <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+            <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">],</span>
+            <span class="n">answer</span>
         <span class="p">)</span>
 
         <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_question_id</span>
@@ -418,13 +441,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_next_question</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">current_question_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">scores</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+            <span class="n">scores</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+            <span class="n">answer</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determine next question based on transitions and scores.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            current_question_id: ID of the current question</span>
 <span class="sd">            scores: Dictionary of current score values</span>
+<span class="sd">            answer: The answer to the current question (for transition conditions)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            ID of next question or None if quiz should end</span>
@@ -435,7 +460,9 @@
         <span class="k">for</span> <span class="n">transition</span> <span class="ow">in</span> <span class="n">transitions</span><span class="p">:</span>
             <span class="n">expression</span> <span class="o">=</span> <span class="n">transition</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expression&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">)</span>
             <span class="n">next_question_id</span> <span class="o">=</span> <span class="n">transition</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;next_question_id&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+            <span class="c1"># Include answer in context for transition expressions</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span> <span class="o">**</span><span class="n">scores</span><span class="p">}</span> <span class="k">if</span> <span class="n">answer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">scores</span>
+            <span class="k">if</span> <span class="n">SafeEvaluator</span><span class="o">.</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">next_question_id</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 
@@ -525,13 +552,15 @@
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine._apply_question_templating">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">_apply_question_templating</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">question</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Apply templating to question text by replacing API data placeholders.</span>
+<span class="sd">        Apply templating to question text by replacing placeholders.</span>
 
-<span class="sd">        Replaces placeholders like {api.joke_api.setup} with actual API response data.</span>
+<span class="sd">        Replaces placeholders like:</span>
+<span class="sd">        - {api.joke_api.setup} with actual API response data</span>
+<span class="sd">        - {variables.var_name} with current variable values</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            question: Question dictionary</span>
-<span class="sd">            state: Current session state with api_data</span>
+<span class="sd">            state: Current session state with api_data and scores</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Question dictionary with templated text</span>
@@ -548,10 +577,10 @@
         <span class="c1"># Get the question text</span>
         <span class="n">question_text</span> <span class="o">=</span> <span class="n">templated_question</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Find all placeholders in the format {api.api_id.field}</span>
-        <span class="n">placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{api\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">question_text</span><span class="p">)</span>
+        <span class="c1"># Find and replace {api.api_id.field} placeholders</span>
+        <span class="n">api_placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{api\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">question_text</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">placeholder</span> <span class="ow">in</span> <span class="n">placeholders</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">placeholder</span> <span class="ow">in</span> <span class="n">api_placeholders</span><span class="p">:</span>
             <span class="c1"># Split the placeholder into parts (e.g., &quot;joke_api.setup&quot; -&gt; [&quot;joke_api&quot;, &quot;setup&quot;])</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="n">placeholder</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
             <span class="n">api_id</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -573,6 +602,24 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not resolve placeholder </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Find and replace {variables.var_name} placeholders</span>
+        <span class="n">var_placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{variables\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">question_text</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">var_placeholders</span><span class="p">:</span>
+            <span class="c1"># Get variable value from state scores</span>
+            <span class="n">scores</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
+
+            <span class="c1"># Replace the placeholder with the actual value</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not resolve variable placeholder </span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">templated_question</span></div>
 </div>

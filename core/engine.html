@@ -46,7 +46,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../quiz_format.html">Quiz Format Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quiz_format.html">Quiz Format Guide (Version 2.0)</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Core Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Engine API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#core-classes">Core Classes</a><ul>
@@ -249,13 +249,14 @@ a new state dictionary with the updated values.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyquizhub.core.engine.engine.QuizEngine._get_next_question">
-<span class="sig-name descname"><span class="pre">_get_next_question</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_question_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scores</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/engine/engine.html#QuizEngine._get_next_question"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.engine.engine.QuizEngine._get_next_question" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_get_next_question</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_question_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">answer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/engine/engine.html#QuizEngine._get_next_question"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.engine.engine.QuizEngine._get_next_question" title="Link to this definition"></a></dt>
 <dd><p>Determine next question based on transitions and scores.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>current_question_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – ID of the current question</p></li>
 <li><p><strong>scores</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span>) – Dictionary of current score values</p></li>
+<li><p><strong>answer</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span>) – The answer to the current question (for transition conditions)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -311,13 +312,15 @@ api.weather.temperature &gt; 20</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pyquizhub.core.engine.engine.QuizEngine._apply_question_templating">
 <span class="sig-name descname"><span class="pre">_apply_question_templating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyquizhub/core/engine/engine.html#QuizEngine._apply_question_templating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyquizhub.core.engine.engine.QuizEngine._apply_question_templating" title="Link to this definition"></a></dt>
-<dd><p>Apply templating to question text by replacing API data placeholders.</p>
-<p>Replaces placeholders like {api.joke_api.setup} with actual API response data.</p>
+<dd><p>Apply templating to question text by replacing placeholders.</p>
+<p>Replaces placeholders like:
+- {api.joke_api.setup} with actual API response data
+- {variables.var_name} with current variable values</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>question</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span>) – Question dictionary</p></li>
-<li><p><strong>state</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span>) – Current session state with api_data</p></li>
+<li><p><strong>state</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span>) – Current session state with api_data and scores</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
