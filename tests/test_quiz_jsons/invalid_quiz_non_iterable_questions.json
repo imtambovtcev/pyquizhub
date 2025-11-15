@@ -1,9 +1,14 @@
 {
     "metadata": {
-        "title": "Non-Iterable Questions"
+        "title": "Non-Iterable Questions",
+        "description": "Should fail: questions field is not a list"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score"]
+        }
     },
     "questions": "This should be a list, but it's a string.",
     "transitions": {}

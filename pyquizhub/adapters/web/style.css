@@ -89,3 +89,19 @@ button:hover {
     border-radius: 4px;
     background: #d4edda;
 }
+
+.final-message {
+    background: #ffffff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    color: #333;
+    white-space: pre-wrap;
+    font-size: 1.1em;
+    line-height: 1.8;
+}
+
+.final-message p {
+    margin: 0.5em 0;
+}

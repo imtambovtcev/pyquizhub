@@ -154,13 +154,15 @@ class TestAPIIntegrationManager:
         """Test template variable substitution in URL and body."""
         api_config = {
             "id": "test_api",
-            "url": "https://api.example.com/users/{user_id}/score",
             "method": "POST",
-            "auth": {"type": "none"},
-            "body": {
-                "answer": "{answer}",
-                "score": "{correct}"
-            }
+            "prepare_request": {
+                "url_template": "https://api.example.com/users/{user_id}/score",
+                "body_template": {
+                    "answer": "{answer}",
+                    "score": "{correct}"
+                }
+            },
+            "auth": {"type": "none"}
         }
 
         context = {
@@ -192,7 +194,14 @@ class TestAPIIntegrationManager:
             "url": "https://api.weather.com/current",
             "method": "GET",
             "auth": {"type": "none"},
-            "response_path": "data.temperature"
+            "extract_response": {
+                "variables": {
+                    "temperature": {
+                        "path": "data.temperature",
+                        "type": "float"
+                    }
+                }
+            }
         }
 
         with patch('requests.request') as mock_request:
@@ -213,8 +222,10 @@ class TestAPIIntegrationManager:
                 {}
             )
 
-            # Verify extracted value
-            assert result_state["api_data"]["weather"]["response"] == 22.5
+            # Verify extracted value is stored in scores
+            assert result_state["scores"]["temperature"] == 22.5
+            # And also available in api_data
+            assert result_state["api_data"]["weather"]["response"]["temperature"] == 22.5
 
     def test_network_error_handling(self, api_manager, session_state):
         """Test handling of network errors."""
@@ -431,9 +442,11 @@ class TestAPIIntegrationManager:
             "url": "https://api.example.com/submit",
             "method": "POST",
             "auth": {"type": "none"},
-            "body": {
-                "user": "test_user",
-                "value": 42
+            "prepare_request": {
+                "body_template": {
+                    "user": "test_user",
+                    "value": 42
+                }
             }
         }
 
@@ -462,7 +475,14 @@ class TestAPIIntegrationManager:
             "url": "https://api.example.com/list",
             "method": "GET",
             "auth": {"type": "none"},
-            "response_path": "results[0].value"
+            "extract_response": {
+                "variables": {
+                    "first_value": {
+                        "path": "results[0].value",
+                        "type": "integer"
+                    }
+                }
+            }
         }
 
         with patch('requests.request') as mock_request:
@@ -482,8 +502,8 @@ class TestAPIIntegrationManager:
                 {}
             )
 
-            # Verify array indexing worked
-            assert result_state["api_data"]["test_api"]["response"] == 123
+            # Verify array indexing worked and value is in scores
+            assert result_state["scores"]["first_value"] == 123
 
     def test_malformed_json_response(self, api_manager, session_state):
         """Test handling of malformed JSON responses."""

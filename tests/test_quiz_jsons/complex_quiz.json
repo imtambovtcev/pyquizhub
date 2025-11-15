@@ -5,10 +5,25 @@
         "author": "Advanced Author",
         "version": "2.0"
     },
-    "scores": {
-        "fruits": 0,
-        "apples": 0,
-        "pears": 0
+    "variables": {
+        "fruits": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"],
+            "description": "Total fruit preference score"
+        },
+        "apples": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"],
+            "description": "Apple preference score"
+        },
+        "pears": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"],
+            "description": "Pear preference score"
+        }
     },
     "questions": [
         {

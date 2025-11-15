@@ -57,11 +57,8 @@ def add(ctx, file, creator_id):
             click.echo("Quiz added successfully.")
             click.echo(f"Quiz ID: {response_data.quiz_id}")
         else:
-            click.echo(
-                f"Failed to add quiz: {
-                    response.json().get(
-                        'detail',
-                        'Unknown error')}")
+            detail = response.json().get('detail', 'Unknown error')
+            click.echo(f"Failed to add quiz: {detail}")
             click.echo(response.json().get("errors", ""))
     except FileNotFoundError:
         click.echo("Error: File not found.")
@@ -89,11 +86,8 @@ def token(ctx, quiz_id, token_type):
             response_data = TokenResponseModel(**response.json())
             click.echo(f"Token generated successfully: {response_data.token}")
         else:
-            click.echo(
-                f"Failed to generate token: {
-                    response.json().get(
-                        'detail',
-                        'Unknown error')}")
+            detail = response.json().get('detail', 'Unknown error')
+            click.echo(f"Failed to generate token: {detail}")
     except Exception as e:
         click.echo(f"Error: {e}")
 
@@ -119,11 +113,8 @@ def results(ctx, quiz_id):
                     click.echo(f"    Scores: {result.scores}")
                     click.echo(f"    Answers: {result.answers}")
         else:
-            click.echo(
-                f"Failed to fetch results: {
-                    response.json().get(
-                        'detail',
-                        'Unknown error')}")
+            detail = response.json().get('detail', 'Unknown error')
+            click.echo(f"Failed to fetch results: {detail}")
     except Exception as e:
         click.echo(f"Error: {e}")
 
@@ -140,11 +131,8 @@ def check(ctx):
         if response.status_code == 200:
             click.echo("API is working correctly.")
         else:
-            click.echo(
-                f"API check failed: {
-                    response.json().get(
-                        'detail',
-                        'Unknown error')}")
+            detail = response.json().get('detail', 'Unknown error')
+            click.echo(f"API check failed: {detail}")
     except Exception as e:
         click.echo(f"Error: {e}")
 

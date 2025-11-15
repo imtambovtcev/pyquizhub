@@ -1,0 +1,100 @@
+{
+    "metadata": {
+        "title": "All Variable Types Test",
+        "description": "Demonstrates all supported variable types and features",
+        "author": "System Test",
+        "version": "2.0"
+    },
+    "variables": {
+        "count": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["private"],
+            "description": "Integer variable with auto-constraints"
+        },
+        "percentage": {
+            "type": "float",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"],
+            "description": "Float variable tagged as score",
+            "constraints": {
+                "min_value": 0.0,
+                "max_value": 100.0
+            }
+        },
+        "is_complete": {
+            "type": "boolean",
+            "mutable_by": ["engine"],
+            "tags": ["state", "private"],
+            "description": "Boolean for state tracking"
+        },
+        "user_name": {
+            "type": "string",
+            "mutable_by": ["user"],
+            "tags": ["user_input", "private"],
+            "description": "Free-text string from user (auto-limited to 1000 chars)"
+        },
+        "difficulty": {
+            "type": "string",
+            "mutable_by": ["user"],
+            "tags": ["user_input", "private"],
+            "description": "Enum string - safe for API use",
+            "constraints": {
+                "enum": ["easy", "medium", "hard", "expert"]
+            }
+        },
+        "selected_topics": {
+            "type": "array",
+            "array_item_type": "string",
+            "mutable_by": ["user"],
+            "tags": ["user_input", "private"],
+            "description": "Array of strings (auto-limited to 100 items for user input)"
+        },
+        "score_history": {
+            "type": "array",
+            "array_item_type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["private"],
+            "description": "Array of integers tracking score changes"
+        },
+        "final_score": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["leaderboard"],
+            "description": "THE primary leaderboard score (only one per quiz)",
+            "constraints": {
+                "min_value": 0,
+                "max_value": 1000
+            }
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "This quiz demonstrates all variable types. Ready to continue?",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "yes", "label": "Yes, continue"},
+                    {"value": "no", "label": "No, exit"}
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'yes'",
+                    "update": {
+                        "is_complete": "true",
+                        "count": "count + 1",
+                        "percentage": "100.0",
+                        "final_score": "100"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

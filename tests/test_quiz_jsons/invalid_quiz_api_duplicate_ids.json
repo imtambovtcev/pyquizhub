@@ -1,0 +1,47 @@
+{
+    "metadata": {
+        "title": "API Duplicate IDs",
+        "description": "Should fail: Multiple API integrations with same ID",
+        "version": "2.0"
+    },
+    "variables": {
+        "temperature": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "public"]
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "weather_api",
+            "method": "GET",
+            "url": "https://api.weather.com/current",
+            "extract_response": {
+                "temperature": "data.main.temp"
+            }
+        },
+        {
+            "id": "weather_api",
+            "method": "GET",
+            "url": "https://api.openweathermap.org/data/2.5/weather",
+            "extract_response": {
+                "temperature": "main.temp"
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What is the temperature?",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

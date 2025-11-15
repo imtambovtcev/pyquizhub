@@ -1,0 +1,65 @@
+{
+    "metadata": {
+        "title": "Array Variables Test",
+        "description": "Test homogeneous arrays with different item types",
+        "author": "System Test",
+        "version": "2.0"
+    },
+    "variables": {
+        "string_array": {
+            "type": "array",
+            "array_item_type": "string",
+            "mutable_by": ["user", "engine"],
+            "tags": ["user_input"],
+            "description": "Array of strings"
+        },
+        "integer_array": {
+            "type": "array",
+            "array_item_type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["private"],
+            "description": "Array of integers"
+        },
+        "float_array": {
+            "type": "array",
+            "array_item_type": "float",
+            "mutable_by": ["engine"],
+            "tags": ["private"],
+            "description": "Array of floats"
+        },
+        "boolean_array": {
+            "type": "array",
+            "array_item_type": "boolean",
+            "mutable_by": ["engine"],
+            "tags": ["state"],
+            "description": "Array of booleans"
+        },
+        "constrained_array": {
+            "type": "array",
+            "array_item_type": "string",
+            "mutable_by": ["user"],
+            "tags": ["user_input"],
+            "description": "Array with explicit constraints",
+            "constraints": {
+                "min_items": 1,
+                "max_items": 5,
+                "enum": ["option_a", "option_b", "option_c", "option_d"]
+            }
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Array variables test question",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

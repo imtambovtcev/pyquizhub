@@ -61,10 +61,14 @@ function loadTemplate() {
             "title": "My Quiz",
             "description": "A sample quiz",
             "author": "Admin",
-            "version": "1.0"
+            "version": "2.0"
         },
-        "scores": {
-            "correct": 0
+        "variables": {
+            "correct": {
+                "type": "integer",
+                "mutable_by": ["engine"],
+                "tags": ["score"]
+            }
         },
         "questions": [
             {
@@ -92,7 +96,7 @@ function loadTemplate() {
             ]
         }
     };
-    
+
     document.getElementById('quiz-json').value = JSON.stringify(template, null, 2);
     showMessage('Template loaded', 'success');
 }
@@ -132,29 +136,40 @@ async function validateQuiz() {
 function displayValidation(result) {
     const container = document.getElementById('validation-content');
     const resultsDiv = document.getElementById('validation-results');
-    
+
     let html = '';
-    
-    if (result.errors && result.errors.length > 0) {
+    const errors = result.errors || [];
+    const warnings = result.warnings || [];
+    const permissionErrors = result.permission_errors || [];
+
+    if (errors.length > 0) {
         html += '<div class="validation-errors"><h5>Errors:</h5><ul>';
-        result.errors.forEach(err => {
+        errors.forEach(err => {
             html += `<li class="error-item">${escapeHtml(err)}</li>`;
         });
         html += '</ul></div>';
     }
-    
-    if (result.warnings && result.warnings.length > 0) {
+
+    if (permissionErrors.length > 0) {
+        html += '<div class="validation-errors"><h5>Permission Errors:</h5><ul>';
+        permissionErrors.forEach(err => {
+            html += `<li class="error-item">${escapeHtml(err)}</li>`;
+        });
+        html += '</ul></div>';
+    }
+
+    if (warnings.length > 0) {
         html += '<div class="validation-warnings"><h5>Warnings:</h5><ul>';
-        result.warnings.forEach(warn => {
+        warnings.forEach(warn => {
             html += `<li class="warning-item">${escapeHtml(warn)}</li>`;
         });
         html += '</ul></div>';
     }
-    
-    if (result.errors.length === 0 && result.warnings.length === 0) {
+
+    if (errors.length === 0 && warnings.length === 0 && permissionErrors.length === 0) {
         html = '<p class="validation-success">✓ Quiz is valid!</p>';
     }
-    
+
     container.innerHTML = html;
     resultsDiv.style.display = 'block';
 }

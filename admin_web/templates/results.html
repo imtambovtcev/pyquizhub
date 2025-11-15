@@ -39,7 +39,7 @@ async function loadResults() {
                         <th>Quiz ID</th>
                         <th>User ID</th>
                         <th>Session ID</th>
-                        <th>Scores</th>
+                        <th>Variables</th>
                         <th>Timestamp</th>
                         <th>Actions</th>
                     </tr>
@@ -51,8 +51,8 @@ async function loadResults() {
         for (const [userId, userResults] of Object.entries(data.results)) {
             for (const [quizId, quizResults] of Object.entries(userResults)) {
                 for (const [sessionId, result] of Object.entries(quizResults)) {
-                    const scores = result.scores || {};
-                    const scoresStr = Object.entries(scores)
+                    const variables = result.scores || {};
+                    const variablesStr = Object.entries(variables)
                         .map(([key, val]) => `${key}: ${val}`)
                         .join(', ') || 'N/A';
 
@@ -63,7 +63,7 @@ async function loadResults() {
                             <td><a href="/quiz/${quizId}">${quizId}</a></td>
                             <td>${userId}</td>
                             <td><code>${sessionId.substring(0, 8)}...</code></td>
-                            <td>${scoresStr}</td>
+                            <td>${variablesStr}</td>
                             <td>${timestamp !== 'N/A' ? new Date(timestamp).toLocaleString() : 'N/A'}</td>
                             <td>
                                 <button onclick="viewResultDetails('${quizId}', '${userId}', '${sessionId}')" class="btn-secondary">View Details</button>

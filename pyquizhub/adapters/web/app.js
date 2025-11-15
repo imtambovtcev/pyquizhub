@@ -131,12 +131,25 @@ class QuizApp {
             return;
         }
 
+        // Handle final_message type - show completion screen with final message
+        if (question.data.type === 'final_message') {
+            this.showResults({
+                title: this.currentQuiz.title,
+                finalMessage: question.data.text
+            });
+            return;
+        }
+
         this.startScreen.style.display = 'none';
         this.quizScreen.style.display = 'block';
 
         document.getElementById('question-text').textContent = question.data.text;
         const choicesDiv = document.getElementById('choices');
         choicesDiv.innerHTML = this.generateChoicesHtml(question);
+
+        // Ensure submit button is visible for regular questions
+        const submitButton = this.quizForm.querySelector('button[type="submit"]');
+        submitButton.style.display = 'block';
     }
 
     generateChoicesHtml(question) {
@@ -188,15 +201,26 @@ class QuizApp {
     showResults(data) {
         this.startScreen.style.display = 'none';
         this.quizScreen.style.display = 'block';
-        
-        this.quizScreen.innerHTML = `
-            <div class="success">
-                <h2>Quiz Completed!</h2>
-                <p>Thank you for completing "${data.title || 'the quiz'}"!</p>
-                <p>Your responses have been recorded.</p>
-                <button onclick="location.reload()">Take Another Quiz</button>
-            </div>
-        `;
+
+        // If there's a final message, show only that with the "Take Another Quiz" button
+        if (data.finalMessage) {
+            this.quizScreen.innerHTML = `
+                <div class="final-message">${data.finalMessage.split('\n').map(line => line ? `<p>${line}</p>` : '<br>').join('')}</div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="location.reload()">Take Another Quiz</button>
+                </div>
+            `;
+        } else {
+            // Standard completion screen without final message
+            this.quizScreen.innerHTML = `
+                <div class="success">
+                    <h2>Quiz Completed!</h2>
+                    <p>Thank you for completing "${data.title || 'the quiz'}"!</p>
+                    <p>Your responses have been recorded.</p>
+                    <button onclick="location.reload()">Take Another Quiz</button>
+                </div>
+            `;
+        }
     }
 
     showError(message) {

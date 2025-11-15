@@ -33,8 +33,15 @@ def test_valid_json_files(json_file):
     quiz_data = load_quiz_data(json_file)
     result = QuizJSONValidator.validate(quiz_data)
     assert len(result["errors"]) == 0, f"Unexpected errors: {result['errors']}"
-    assert len(result["warnings"]
-               ) == 0, f"Unexpected warnings: {result['warnings']}"
+
+    # Old format files using 'scores' will have deprecation warning
+    # New format files using 'variables' should have no warnings
+    if "variables" in quiz_data:
+        assert len(result["warnings"]) == 0, f"Unexpected warnings: {result['warnings']}"
+    else:
+        # Old format - expect deprecation warning
+        assert any("DEPRECATED" in w for w in result["warnings"]), \
+            "Expected deprecation warning for old 'scores' format"
 
 
 @pytest.mark.parametrize("json_file", INVALID_JSON_FILES)

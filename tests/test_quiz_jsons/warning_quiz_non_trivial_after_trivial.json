@@ -3,10 +3,14 @@
         "title": "Warning Non-Trivial After Trivial",
         "description": "Tests for warnings when a non-trivial condition follows a trivial one",
         "author": "Test Author",
-        "version": "1.0"
+        "version": "2.0"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        }
     },
     "questions": [
         {
@@ -24,7 +28,8 @@
                         "label": "No"
                     }
                 ]
-            }
+            },
+            "score_updates": []
         }
     ],
     "transitions": {

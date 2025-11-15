@@ -1,0 +1,65 @@
+{
+    "metadata": {
+        "title": "Simple Static API Test",
+        "description": "Basic API integration with fixed URL - RESTRICTED tier compatible",
+        "author": "System Test",
+        "version": "2.0"
+    },
+    "variables": {
+        "temperature": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "public"],
+            "description": "Temperature from weather API",
+            "constraints": {
+                "min_value": -100.0,
+                "max_value": 100.0
+            }
+        },
+        "humidity": {
+            "type": "integer",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "private"],
+            "description": "Humidity percentage",
+            "constraints": {
+                "min_value": 0,
+                "max_value": 100
+            }
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "weather",
+            "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m,relative_humidity_2m",
+            "auth": {"type": "none"},
+            "extract_response": {
+                "variables": {
+                    "temperature": {
+                        "path": "current.temperature_2m",
+                        "type": "float"
+                    },
+                    "humidity": {
+                        "path": "current.relative_humidity_2m",
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Current weather: {variables.temperature}°C, Humidity: {variables.humidity}%",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

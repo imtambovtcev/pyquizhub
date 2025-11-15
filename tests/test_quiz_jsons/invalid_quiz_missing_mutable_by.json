@@ -1,0 +1,28 @@
+{
+    "metadata": {
+        "title": "Missing Mutable By",
+        "description": "Should fail: variable definition missing required 'mutable_by' field",
+        "version": "2.0"
+    },
+    "variables": {
+        "user_name": {
+            "type": "string",
+            "tags": ["user_input"]
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What is your name?",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

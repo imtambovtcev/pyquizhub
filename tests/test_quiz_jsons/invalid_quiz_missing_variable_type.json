@@ -1,0 +1,32 @@
+{
+    "metadata": {
+        "title": "Missing Variable Type",
+        "description": "Should fail: variable definition missing required 'type' field",
+        "version": "2.0"
+    },
+    "variables": {
+        "score_a": {
+            "mutable_by": ["engine"],
+            "tags": ["score"]
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Sample question",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "yes", "label": "Yes"},
+                    {"value": "no", "label": "No"}
+                ]
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

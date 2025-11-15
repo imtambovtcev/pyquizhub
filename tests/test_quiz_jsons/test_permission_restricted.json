@@ -1,0 +1,73 @@
+{
+    "metadata": {
+        "title": "RESTRICTED Tier Test",
+        "description": "Quiz that should pass for RESTRICTED tier - fixed URL, GET only, max 5 APIs",
+        "author": "System Test",
+        "version": "2.0"
+    },
+    "variables": {
+        "temp": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data"]
+        },
+        "humidity": {
+            "type": "integer",
+            "mutable_by": ["api"],
+            "tags": ["api_data"]
+        },
+        "wind": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data"]
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "weather1",
+            "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
+            "auth": {"type": "none"},
+            "extract_response": {
+                "variables": {
+                    "temp": {"path": "current.temperature_2m", "type": "float"}
+                }
+            }
+        },
+        {
+            "id": "weather2",
+            "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=relative_humidity_2m",
+            "auth": {"type": "none"},
+            "extract_response": {
+                "variables": {
+                    "humidity": {"path": "current.relative_humidity_2m", "type": "integer"}
+                }
+            }
+        },
+        {
+            "id": "weather3",
+            "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=wind_speed_10m",
+            "auth": {"type": "none"},
+            "extract_response": {
+                "variables": {
+                    "wind": {"path": "current.wind_speed_10m", "type": "float"}
+                }
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Weather data loaded. This quiz uses 3 APIs (under RESTRICTED limit of 5).",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [{"expression": "true", "next_question_id": null}]
+    }
+}

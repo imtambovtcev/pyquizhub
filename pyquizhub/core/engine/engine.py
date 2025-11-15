@@ -67,8 +67,30 @@ class QuizEngine:
         # can assume consistent types (avoid None where lists/dicts expected)
         if quiz_data.get("api_integrations") is None:
             quiz_data["api_integrations"] = []
-        if quiz_data.get("scores") is None:
-            quiz_data["scores"] = {}
+
+        # Support both old (scores) and new (variables) formats
+        if quiz_data.get("variables") is not None:
+            # New format: extract default values from variables
+            if quiz_data.get("scores") is None:
+                quiz_data["scores"] = {}
+            for var_name, var_config in quiz_data["variables"].items():
+                # Initialize all variables with their default values (0 for numeric, "" for string, etc.)
+                var_type = var_config.get("type", "integer")
+                if var_type == "integer":
+                    quiz_data["scores"][var_name] = 0
+                elif var_type == "float":
+                    quiz_data["scores"][var_name] = 0.0
+                elif var_type == "string":
+                    quiz_data["scores"][var_name] = ""
+                elif var_type == "boolean":
+                    quiz_data["scores"][var_name] = False
+                elif var_type == "array":
+                    quiz_data["scores"][var_name] = []
+        else:
+            # Old format: just use scores
+            if quiz_data.get("scores") is None:
+                quiz_data["scores"] = {}
+
         if quiz_data.get("questions") is None:
             quiz_data["questions"] = []
         if quiz_data.get("transitions") is None:
@@ -247,7 +269,8 @@ class QuizEngine:
         # Determine next question
         next_question_id = self._get_next_question(
             new_state["current_question_id"],
-            new_state["scores"]
+            new_state["scores"],
+            answer
         )
 
         new_state["current_question_id"] = next_question_id
@@ -320,13 +343,15 @@ class QuizEngine:
     def _get_next_question(
             self,
             current_question_id: int,
-            scores: dict) -> Optional[int]:
+            scores: dict,
+            answer: Any = None) -> Optional[int]:
         """
         Determine next question based on transitions and scores.
 
         Args:
             current_question_id: ID of the current question
             scores: Dictionary of current score values
+            answer: The answer to the current question (for transition conditions)
 
         Returns:
             ID of next question or None if quiz should end
@@ -337,7 +362,9 @@ class QuizEngine:
         for transition in transitions:
             expression = transition.get("expression", "true")
             next_question_id = transition.get("next_question_id")
-            if SafeEvaluator.eval_expr(expression, scores):
+            # Include answer in context for transition expressions
+            context = {"answer": answer, **scores} if answer is not None else scores
+            if SafeEvaluator.eval_expr(expression, context):
                 return next_question_id
         return None
 
@@ -418,13 +445,15 @@ class QuizEngine:
 
     def _apply_question_templating(self, question: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Apply templating to question text by replacing API data placeholders.
+        Apply templating to question text by replacing placeholders.
 
-        Replaces placeholders like {api.joke_api.setup} with actual API response data.
+        Replaces placeholders like:
+        - {api.joke_api.setup} with actual API response data
+        - {variables.var_name} with current variable values
 
         Args:
             question: Question dictionary
-            state: Current session state with api_data
+            state: Current session state with api_data and scores
 
         Returns:
             Question dictionary with templated text
@@ -441,10 +470,10 @@ class QuizEngine:
         # Get the question text
         question_text = templated_question.get("data", {}).get("text", "")
 
-        # Find all placeholders in the format {api.api_id.field}
-        placeholders = re.findall(r'\{api\.([^}]+)\}', question_text)
+        # Find and replace {api.api_id.field} placeholders
+        api_placeholders = re.findall(r'\{api\.([^}]+)\}', question_text)
 
-        for placeholder in placeholders:
+        for placeholder in api_placeholders:
             # Split the placeholder into parts (e.g., "joke_api.setup" -> ["joke_api", "setup"])
             parts = placeholder.split('.')
             api_id = parts[0]
@@ -466,5 +495,23 @@ class QuizEngine:
                 self.logger.debug(f"Replaced {{api.{placeholder}}} with {value}")
             else:
                 self.logger.warning(f"Could not resolve placeholder {{api.{placeholder}}}")
+
+        # Find and replace {variables.var_name} placeholders
+        var_placeholders = re.findall(r'\{variables\.([^}]+)\}', question_text)
+
+        for var_name in var_placeholders:
+            # Get variable value from state scores
+            scores = state.get("scores", {})
+            value = scores.get(var_name)
+
+            # Replace the placeholder with the actual value
+            if value is not None:
+                templated_question["data"]["text"] = templated_question["data"]["text"].replace(
+                    f"{{variables.{var_name}}}",
+                    str(value)
+                )
+                self.logger.debug(f"Replaced {{variables.{var_name}}} with {value}")
+            else:
+                self.logger.warning(f"Could not resolve variable placeholder {{variables.{var_name}}}")
 
         return templated_question

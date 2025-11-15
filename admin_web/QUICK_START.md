@@ -66,10 +66,15 @@ curl http://localhost:8081/api/health
      "metadata": {
        "title": "My First Quiz",
        "description": "A simple quiz",
-       "author": "Admin"
+       "author": "Admin",
+       "version": "2.0"
      },
-     "scores": {
-       "correct": 0
+     "variables": {
+       "correct": {
+         "type": "integer",
+         "mutable_by": ["engine"],
+         "tags": ["score"]
+       }
      },
      "questions": [
        {

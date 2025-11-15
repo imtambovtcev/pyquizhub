@@ -1,0 +1,38 @@
+{
+    "metadata": {
+        "title": "API Missing ID",
+        "description": "Should fail: API integration missing required 'id' field",
+        "version": "2.0"
+    },
+    "variables": {
+        "temperature": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "public"]
+        }
+    },
+    "api_integrations": [
+        {
+            "method": "GET",
+            "url": "https://api.weather.com/current",
+            "extract_response": {
+                "temperature": "data.main.temp"
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What is the temperature?",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

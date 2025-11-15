@@ -157,6 +157,35 @@ def get_quiz(quiz_id):
     return jsonify(data), status
 
 
+@app.route('/api/validate-quiz', methods=['POST'])
+def validate_quiz():
+    """Validate a quiz JSON structure."""
+    quiz_data = request.json
+    if not quiz_data:
+        return jsonify({"error": "Missing quiz data"}), 400
+
+    # Import validator
+    try:
+        from pyquizhub.core.engine.json_validator import QuizJSONValidator
+        from pyquizhub.core.engine.variable_types import CreatorPermissionTier
+
+        # Validate the quiz (using ADMIN tier for maximum permissions)
+        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADMIN)
+
+        return jsonify({
+            "errors": result.get("errors", []),
+            "warnings": result.get("warnings", []),
+            "permission_errors": result.get("permission_errors", [])
+        }), 200
+
+    except ImportError as e:
+        logger.error(f"Failed to import validator: {e}")
+        return jsonify({"error": "Validator not available"}), 500
+    except Exception as e:
+        logger.error(f"Validation error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/quiz', methods=['POST'])
 def create_quiz():
     """Create a new quiz."""

@@ -1,0 +1,162 @@
+{
+    "metadata": {
+        "title": "Complex Weather Prediction Quiz",
+        "description": "Predict the temperature in Berlin and see how accurate you were!",
+        "author": "Advanced API Integration Demo",
+        "version": "2.0",
+        "requires_api": true
+    },
+    "variables": {
+        "user_prediction": {
+            "type": "float",
+            "mutable_by": ["user", "engine"],
+            "tags": ["user_input", "public"],
+            "description": "User's temperature prediction",
+            "constraints": {
+                "min_value": -50.0,
+                "max_value": 50.0
+            }
+        },
+        "actual_temp": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "private"],
+            "description": "Actual temperature from API",
+            "constraints": {
+                "min_value": -100.0,
+                "max_value": 100.0
+            }
+        },
+        "wind_speed": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "private"],
+            "description": "Wind speed from API"
+        },
+        "temp_diff_positive": {
+            "type": "float",
+            "mutable_by": ["engine"],
+            "tags": ["private"],
+            "description": "Calculated temperature difference (user - actual)"
+        },
+        "temp_diff_negative": {
+            "type": "float",
+            "mutable_by": ["engine"],
+            "tags": ["private"],
+            "description": "Calculated temperature difference (actual - user)"
+        },
+        "accuracy_score": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["leaderboard"],
+            "description": "Primary leaderboard score (0-100)",
+            "constraints": {
+                "min_value": 0,
+                "max_value": 100
+            }
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "weather",
+            "timing": "on_quiz_start",
+            "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m,wind_speed_10m",
+            "auth": {"type": "none"},
+            "extract_response": {
+                "variables": {
+                    "actual_temp": {
+                        "path": "current.temperature_2m",
+                        "type": "float"
+                    },
+                    "wind_speed": {
+                        "path": "current.wind_speed_10m",
+                        "type": "float"
+                    }
+                }
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What do you think the current temperature is in Berlin, Germany? (Enter temperature in °C)",
+                "type": "float",
+                "hint": "Think about the current season and typical Berlin weather!"
+            },
+            "score_updates": [
+                {
+                    "condition": "true",
+                    "update": {
+                        "user_prediction": "answer",
+                        "temp_diff_positive": "answer - actual_temp",
+                        "temp_diff_negative": "actual_temp - answer"
+                    }
+                },
+                {
+                    "condition": "answer >= actual_temp - 1 and answer <= actual_temp + 1",
+                    "update": {
+                        "accuracy_score": "100"
+                    }
+                },
+                {
+                    "condition": "(answer > actual_temp + 1 and answer <= actual_temp + 3) or (answer < actual_temp - 1 and answer >= actual_temp - 3)",
+                    "update": {
+                        "accuracy_score": "80"
+                    }
+                },
+                {
+                    "condition": "(answer > actual_temp + 3 and answer <= actual_temp + 5) or (answer < actual_temp - 3 and answer >= actual_temp - 5)",
+                    "update": {
+                        "accuracy_score": "60"
+                    }
+                },
+                {
+                    "condition": "(answer > actual_temp + 5 and answer <= actual_temp + 10) or (answer < actual_temp - 5 and answer >= actual_temp - 10)",
+                    "update": {
+                        "accuracy_score": "40"
+                    }
+                },
+                {
+                    "condition": "answer < actual_temp - 10 or answer > actual_temp + 10",
+                    "update": {
+                        "accuracy_score": "20"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "data": {
+                "text": "Weather Results:\n\n🌡️  Your prediction: {variables.user_prediction}°C\n🌡️  Actual temperature: {variables.actual_temp}°C\n💨 Wind speed: {variables.wind_speed} km/h\n\n📊 Your accuracy score: {variables.accuracy_score}/100\n\nWould you like to try again?",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "yes", "label": "Yes, let me try again!"},
+                    {"value": "no", "label": "No, I'm done"}
+                ]
+            },
+            "score_updates": []
+        },
+        {
+            "id": 3,
+            "data": {
+                "text": "Final Results:\n\n🌡️  Your prediction: {variables.user_prediction}°C\n🌡️  Actual temperature: {variables.actual_temp}°C\n📊 Final accuracy score: {variables.accuracy_score}/100\n\nThank you for playing!",
+                "type": "final_message"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": 2}
+        ],
+        "2": [
+            {"expression": "answer == 'yes'", "next_question_id": 1},
+            {"expression": "true", "next_question_id": 3}
+        ],
+        "3": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

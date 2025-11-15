@@ -1,0 +1,33 @@
+{
+    "metadata": {
+        "title": "Invalid Variable Type",
+        "description": "Should fail: variable type 'object' is not allowed (only integer, float, boolean, string, array)",
+        "version": "2.0"
+    },
+    "variables": {
+        "user_data": {
+            "type": "object",
+            "mutable_by": ["user"],
+            "tags": ["user_input"]
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Sample question",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "yes", "label": "Yes"},
+                    {"value": "no", "label": "No"}
+                ]
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}
