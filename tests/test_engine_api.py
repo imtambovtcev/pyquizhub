@@ -164,11 +164,15 @@ class TestQuizEngine:
         # When quiz is completed, question is None
         assert data["question"] is None, "Question should be None when quiz is completed"
 
-    def test_get_participated_users(self, api_client: TestClient, admin_headers):
+    def test_get_participated_users(
+            self,
+            api_client: TestClient,
+            admin_headers):
         """Test retrieving participated users for the quiz."""
         from pyquizhub.models import StartQuizRequestModel, StartQuizResponseModel, TokenRequestModel, AnswerRequestModel
         assert self.quiz_id, "Quiz ID must be created before retrieving participants."
-        response = api_client.get(f"/admin/participated_users/{self.quiz_id}", headers=admin_headers)
+        response = api_client.get(
+            f"/admin/participated_users/{self.quiz_id}", headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {
             response.status_code}, detail: {
             response.json()}"

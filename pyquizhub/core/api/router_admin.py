@@ -127,7 +127,9 @@ def admin_update_quiz(quiz_id: str, req: Request):
 
         storage_manager.update_quiz(quiz_id, quiz_data)
         logger.info(f"Admin updated quiz: {quiz_id}")
-        return {"message": f"Quiz {quiz_id} updated successfully", "quiz_id": quiz_id}
+        return {
+            "message": f"Quiz {quiz_id} updated successfully",
+            "quiz_id": quiz_id}
     except FileNotFoundError:
         logger.error(f"Quiz {quiz_id} not found for update")
         raise HTTPException(status_code=404, detail="Quiz not found")

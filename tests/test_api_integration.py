@@ -325,7 +325,8 @@ class TestAPIIntegrationManager:
                 "value": 42}
             assert mock_request.call_count == 3
 
-    def test_retry_logic_max_retries_exceeded(self, api_manager, session_state):
+    def test_retry_logic_max_retries_exceeded(
+            self, api_manager, session_state):
         """Test retry logic fails after max retries."""
         api_config = {
             "id": "test_api",

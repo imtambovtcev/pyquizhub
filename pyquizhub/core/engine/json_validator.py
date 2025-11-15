@@ -69,7 +69,8 @@ class QuizJSONValidator:
             api_mock = {}
             for api_config in quiz_data["api_integrations"]:
                 if "id" in api_config:
-                    # Use placeholder values for validation - actual values will come at runtime
+                    # Use placeholder values for validation - actual values
+                    # will come at runtime
                     api_mock[api_config["id"]] = 0  # Numeric placeholder
             default_variables["api"] = api_mock
 
@@ -124,35 +125,41 @@ class QuizJSONValidator:
                 current_answer_type = str
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "integer":
                 current_answer_type = int
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "float":
                 current_answer_type = float
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
                 if not isinstance(score_updates, list):
                     errors.append(
-                        f"Score updates must be a list in question {question['id']}.")
+                        f"Score updates must be a list in question {
+                            question['id']}.")
                     continue
                 for update in score_updates:
                     if not isinstance(update, dict):
                         errors.append(
-                            f"Score update must be a dictionary in question {question['id']}.")
+                            f"Score update must be a dictionary in question {
+                                question['id']}.")
                         continue
                     if not all(
                         key in update for key in [
                             "condition",
                             "update"]):
                         errors.append(
-                            f"Invalid score update format in question {question['id']}: {update}")
+                            f"Invalid score update format in question {
+                                question['id']}: {update}")
                         continue
                     # Validate conditions and updates
                     try:
@@ -167,7 +174,8 @@ class QuizJSONValidator:
                                 expr, allowed_variables)
                     except Exception as e:
                         errors.append(
-                            f"Invalid score update condition or expression in question {question['id']}: {e}")
+                            f"Invalid score update condition or expression in question {
+                                question['id']}: {e}")
 
         # Validate transitions
         transitions = quiz_data.get("transitions", {})

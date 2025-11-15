@@ -114,9 +114,10 @@ class QuizEngine:
         initial_state = self._execute_api_calls(
             initial_state,
             RequestTiming.BEFORE_QUESTION,
-            context={"question_id": first_question_id, **initial_state["scores"]},
-            question_id=first_question_id
-        )
+            context={
+                "question_id": first_question_id,
+                **initial_state["scores"]},
+            question_id=first_question_id)
 
         self.logger.info("Created initial quiz state")
         return initial_state
@@ -229,7 +230,8 @@ class QuizEngine:
             }
             self.logger.debug(f"Eval context: {eval_context}")
             if SafeEvaluator.eval_expr(condition, eval_context):
-                for score_key, expr in condition_group.get("update", {}).items():
+                for score_key, expr in condition_group.get(
+                        "update", {}).items():
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
                         expr, {
                             "answer": answer,
@@ -416,7 +418,8 @@ class QuizEngine:
         self.logger.debug(f"Final API context: {api_context}")
         return api_context
 
-    def _apply_question_templating(self, question: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_question_templating(
+            self, question: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Apply templating to question text by replacing API data placeholders.
 
@@ -445,7 +448,8 @@ class QuizEngine:
         placeholders = re.findall(r'\{api\.([^}]+)\}', question_text)
 
         for placeholder in placeholders:
-            # Split the placeholder into parts (e.g., "joke_api.setup" -> ["joke_api", "setup"])
+            # Split the placeholder into parts (e.g., "joke_api.setup" ->
+            # ["joke_api", "setup"])
             parts = placeholder.split('.')
             api_id = parts[0]
 
@@ -463,8 +467,10 @@ class QuizEngine:
                     f"{{api.{placeholder}}}",
                     str(value)
                 )
-                self.logger.debug(f"Replaced {{api.{placeholder}}} with {value}")
+                self.logger.debug(
+                    f"Replaced {{api.{placeholder}}} with {value}")
             else:
-                self.logger.warning(f"Could not resolve placeholder {{api.{placeholder}}}")
+                self.logger.warning(
+                    f"Could not resolve placeholder {{api.{placeholder}}}")
 
         return templated_question

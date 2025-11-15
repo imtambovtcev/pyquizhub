@@ -7,6 +7,7 @@ This is needed for API integration features in quizzes.
 from sqlalchemy import create_engine, MetaData, Table, Column, JSON, inspect, text
 import sys
 
+
 def migrate_database(connection_string: str):
     """Add api_data column to sessions table if it doesn't exist."""
     print(f"Connecting to database: {connection_string}")
@@ -35,6 +36,7 @@ def migrate_database(connection_string: str):
     inspector = inspect(engine)
     columns_after = [c["name"] for c in inspector.get_columns("sessions")]
     print(f"Sessions table columns after migration: {columns_after}")
+
 
 if __name__ == "__main__":
     # Default connection string for the Docker setup (PostgreSQL)

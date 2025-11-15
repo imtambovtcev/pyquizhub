@@ -59,7 +59,10 @@ class TestAdminAPI:
         # Users dict might be empty or contain users from other tests
         assert isinstance(data["users"], dict)
 
-    def test_get_all_results_empty(self, api_client: TestClient, admin_headers):
+    def test_get_all_results_empty(
+            self,
+            api_client: TestClient,
+            admin_headers):
         """Test retrieving all results when none exist."""
         response = api_client.get("/admin/all_results", headers=admin_headers)
         assert response.status_code == 200
@@ -67,7 +70,10 @@ class TestAdminAPI:
         assert "results" in data
         assert isinstance(data["results"], dict)
 
-    def test_get_all_sessions_empty(self, api_client: TestClient, admin_headers):
+    def test_get_all_sessions_empty(
+            self,
+            api_client: TestClient,
+            admin_headers):
         """Test retrieving all sessions when none exist."""
         response = api_client.get("/admin/all_sessions", headers=admin_headers)
         assert response.status_code == 200
@@ -108,7 +114,8 @@ class TestAdminAPI:
         assert response.status_code == 200
         token = response.json()["token"]
 
-        # Start quiz with token (using user_headers as start_quiz requires user token)
+        # Start quiz with token (using user_headers as start_quiz requires user
+        # token)
         request_data = {
             "token": token,
             "user_id": self.user_id
@@ -162,7 +169,8 @@ class TestAdminAPI:
             request_data = {
                 "session_id": TestAdminAPI.session_id,
                 "user_id": self.user_id,
-                "answer": {"answer": "yes"}  # Answer format matches engine expectations
+                # Answer format matches engine expectations
+                "answer": {"answer": "yes"}
             }
             response = api_client.post(
                 f"/quiz/submit_answer/{TestAdminAPI.quiz_id}",
