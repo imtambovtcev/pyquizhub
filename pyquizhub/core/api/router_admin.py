@@ -44,14 +44,33 @@ def admin_token_dependency(request: Request):
         request: FastAPI Request object containing headers
 
     Raises:
-        HTTPException: If admin token is invalid
+        HTTPException: If admin token is invalid or missing
     """
     from pyquizhub.config.settings import get_config_manager
     token = request.headers.get("Authorization")
     config_manager = get_config_manager()
     expected_token = config_manager.get_token("admin")
+
+    # Check if admin token is configured
+    if not expected_token:
+        raise HTTPException(
+            status_code=500,
+            detail="Admin token not configured"
+        )
+
+    # Check if token is provided
+    if not token:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid admin token"
+        )
+
+    # Check if token matches
     if token != expected_token:
-        raise HTTPException(status_code=403, detail="Invalid admin token")
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid admin token"
+        )
 
 
 @router.get("/quiz/{quiz_id}",

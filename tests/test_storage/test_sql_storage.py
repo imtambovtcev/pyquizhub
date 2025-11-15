@@ -18,7 +18,13 @@ def test_add_and_get_users(sql_storage: SQLStorageManager):
     }
     sql_storage.add_users(users)
     loaded_users = sql_storage.get_users()
-    assert loaded_users == users
+
+    # get_users() now returns users with statistics
+    expected_users = {
+        "user1": {"permissions": ["create"], "quizzes_taken": 0},
+        "user2": {"permissions": ["participate"], "quizzes_taken": 0}
+    }
+    assert loaded_users == expected_users
 
 
 def test_add_and_get_quiz(sql_storage: SQLStorageManager):

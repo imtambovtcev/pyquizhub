@@ -79,7 +79,7 @@
         ],
         "2": [
             {"expression": "answer == 'yes'", "next_question_id": 1},
-            {"expression": "answer == 'no'", "next_question_id": null}
+            {"expression": "true", "next_question_id": null}
         ]
     }
 }

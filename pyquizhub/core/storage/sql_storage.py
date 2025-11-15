@@ -109,16 +109,20 @@ class SQLStorageManager(StorageManager):
         """Fetch all users with statistics."""
         self.logger.debug("Fetching all users")
 
-        # Get all unique user IDs from sessions and results
+        # Start with all users from users table
         user_ids = set()
+        users_query = select(self.users_table.c.id)
+        users_result = self._execute(users_query)
+        for row in users_result:
+            user_ids.add(row._mapping["id"])
 
-        # Get user IDs from sessions
+        # Also get user IDs from sessions
         sessions_query = select(self.sessions_table.c.user_id).distinct()
         sessions_result = self._execute(sessions_query)
         for row in sessions_result:
             user_ids.add(row._mapping["user_id"])
 
-        # Get user IDs from results
+        # Also get user IDs from results
         results_query = select(self.results_table.c.user_id).distinct()
         results_result = self._execute(results_query)
         for row in results_result:
@@ -151,7 +155,13 @@ class SQLStorageManager(StorageManager):
     def add_users(self, users: Dict[str, Any]) -> None:
         """Add or update users."""
         self.logger.debug(f"Adding users: {users}")
-        for user_id, permissions in users.items():
+        for user_id, user_data in users.items():
+            # Handle both old format (permissions directly) and new format (dict with permissions key)
+            if isinstance(user_data, dict) and "permissions" in user_data:
+                permissions = user_data["permissions"]
+            else:
+                permissions = user_data
+
             query = insert(self.users_table).values(
                 id=user_id, permissions=permissions)
             try:
@@ -474,14 +484,33 @@ class SQLStorageManager(StorageManager):
     def get_all_sessions(self) -> Dict[str, List[str]]:
         """Fetch all sessions."""
         self.logger.debug("Fetching all sessions")
-        query = select(self.sessions_table)
-        result = self._execute(query)
         sessions_by_user = {}
+
+        # Get sessions from results (includes all sessions, active and completed)
+        query = select(
+            self.results_table.c.user_id,
+            self.results_table.c.session_id
+        ).distinct()
+        result = self._execute(query)
         for row in result:
             user_id = row._mapping["user_id"]
+            session_id = row._mapping["session_id"]
             if user_id not in sessions_by_user:
                 sessions_by_user[user_id] = []
-            sessions_by_user[user_id].append(row._mapping["session_id"])
+            if session_id not in sessions_by_user[user_id]:
+                sessions_by_user[user_id].append(session_id)
+
+        # Also get active sessions from sessions table
+        query = select(self.sessions_table)
+        result = self._execute(query)
+        for row in result:
+            user_id = row._mapping["user_id"]
+            session_id = row._mapping["session_id"]
+            if user_id not in sessions_by_user:
+                sessions_by_user[user_id] = []
+            if session_id not in sessions_by_user[user_id]:
+                sessions_by_user[user_id].append(session_id)
+
         return sessions_by_user
 
     def get_sessions_by_user(self, user_id: str) -> List[str]:
@@ -528,8 +557,8 @@ class SQLStorageManager(StorageManager):
             user_id=session_data["user_id"],
             quiz_id=session_data["quiz_id"],
             current_question_id=session_data["current_question_id"],
-            scores=session_data["scores"],
-            answers=session_data["answers"],
+            scores=session_data.get("scores", {}),
+            answers=session_data.get("answers", {}),
             completed=str(session_data["completed"]),
             created_at=session_data["created_at"],
             updated_at=session_data["updated_at"],

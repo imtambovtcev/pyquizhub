@@ -32,6 +32,9 @@ def clear_env_vars():
         "PYQUIZHUB_API__BASE_URL",
         "PYQUIZHUB_API__HOST",
         "PYQUIZHUB_API__PORT",
+        "PYQUIZHUB_ADMIN_TOKEN",
+        "PYQUIZHUB_CREATOR_TOKEN",
+        "PYQUIZHUB_USER_TOKEN",
     ]
 
     # Store original values
@@ -145,7 +148,6 @@ def api_client(config_path, storage_base_dir, test_project_dir):
 
     This fixture sets up an API client with a unique storage directory for each test module.
     """
-    from pyquizhub.main import app
     config_content = f"""
 storage:
     type: "file"
@@ -155,9 +157,30 @@ storage:
         connection_string: "sqlite:///{test_project_dir}/test.db"
 api:
     base_url: "http://testserver"
+security:
+    use_tokens: true
 """
     with open(config_path, "a") as f:
         f.write(config_content)
 
+    # Set token environment variables for tests
+    os.environ["PYQUIZHUB_ADMIN_TOKEN"] = "test_admin_token_12345"
+    os.environ["PYQUIZHUB_CREATOR_TOKEN"] = "test_admin_token_12345"
+    os.environ["PYQUIZHUB_USER_TOKEN"] = "test_user_token_67890"
+
+    # Force config manager to reload after writing security config
+    from pyquizhub.config.settings import ConfigManager
+    ConfigManager.reset_instance()
+    config_manager = ConfigManager.get_instance()
+    config_manager.load(str(config_path))
+
+    # Now import app after config is properly set up
+    from pyquizhub.main import app
+
     with TestClient(app, base_url="http://testserver") as client:
         yield client
+
+    # Clean up environment variables after test
+    os.environ.pop("PYQUIZHUB_ADMIN_TOKEN", None)
+    os.environ.pop("PYQUIZHUB_CREATOR_TOKEN", None)
+    os.environ.pop("PYQUIZHUB_USER_TOKEN", None)

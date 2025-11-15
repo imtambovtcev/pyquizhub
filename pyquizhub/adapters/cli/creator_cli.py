@@ -50,7 +50,7 @@ def add(ctx, file, creator_id):
         request_data = CreateQuizRequestModel(
             quiz=quiz_data, creator_id=creator_id)
         response = requests.post(
-            f"{base_url}/admin/create_quiz",
+            f"{base_url}/creator/create_quiz",
             json=request_data.dict(),
             headers=get_headers(),
         )
@@ -86,7 +86,7 @@ def token(ctx, quiz_id, token_type):
 
         request_data = TokenRequestModel(quiz_id=quiz_id, type=token_type)
         response = requests.post(
-            f"{base_url}/admin/generate_token",
+            f"{base_url}/creator/generate_token",
             json=request_data.dict(),
             headers=get_headers())
         if response.status_code == 200:
@@ -113,7 +113,7 @@ def results(ctx, quiz_id):
         base_url = config_manager.api_base_url
 
         response = requests.get(
-            f"{base_url}/admin/results/{quiz_id}", headers=get_headers())
+            f"{base_url}/creator/results/{quiz_id}", headers=get_headers())
         if response.status_code == 200:
             response_data = QuizResultResponseModel(**response.json())
             click.echo("Quiz results:")

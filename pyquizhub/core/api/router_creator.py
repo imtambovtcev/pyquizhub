@@ -40,14 +40,33 @@ def creator_token_dependency(request: Request):
         request: FastAPI Request object containing headers
 
     Raises:
-        HTTPException: If creator token is invalid
+        HTTPException: If creator token is invalid or missing
     """
     from pyquizhub.config.settings import get_config_manager
     token = request.headers.get("Authorization")
     config_manager = get_config_manager()
     expected_token = config_manager.get_token("creator")
+
+    # Check if creator token is configured
+    if not expected_token:
+        raise HTTPException(
+            status_code=500,
+            detail="Creator token not configured"
+        )
+
+    # Check if token is provided
+    if not token:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid creator token"
+        )
+
+    # Check if token matches
     if token != expected_token:
-        raise HTTPException(status_code=403, detail="Invalid creator token")
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid creator token"
+        )
 
 
 def create_quiz_logic(

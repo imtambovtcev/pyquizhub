@@ -25,9 +25,8 @@ def invalid_quiz_data():
 
 
 @pytest.fixture(scope="module")
-def user_headers(config_path):
+def user_headers(api_client):
     config_manager = get_config_manager()
-    config_manager.load(str(config_path))
     headers = {"Content-Type": "application/json"}
     token = config_manager.get_token("user")
     if token:
@@ -36,9 +35,8 @@ def user_headers(config_path):
 
 
 @pytest.fixture(scope="module")
-def admin_headers(config_path):
+def admin_headers(api_client):
     config_manager = get_config_manager()
-    config_manager.load(str(config_path))
     headers = {"Content-Type": "application/json"}
     token = config_manager.get_token("admin")
     if token:
@@ -166,11 +164,11 @@ class TestQuizEngine:
         # When quiz is completed, question is None
         assert data["question"] is None, "Question should be None when quiz is completed"
 
-    def test_get_participated_users(self, api_client: TestClient):
+    def test_get_participated_users(self, api_client: TestClient, admin_headers):
         """Test retrieving participated users for the quiz."""
         from pyquizhub.models import StartQuizRequestModel, StartQuizResponseModel, TokenRequestModel, AnswerRequestModel
         assert self.quiz_id, "Quiz ID must be created before retrieving participants."
-        response = api_client.get(f"/admin/participated_users/{self.quiz_id}")
+        response = api_client.get(f"/admin/participated_users/{self.quiz_id}", headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {
             response.status_code}, detail: {
             response.json()}"
@@ -179,13 +177,13 @@ class TestQuizEngine:
         assert self.user_id in data["user_ids"], f"User ID {
             self.user_id} should be in participated users."
 
-    def test_get_results(self, api_client: TestClient):
+    def test_get_results(self, api_client: TestClient, admin_headers):
         """Test retrieving results for the quiz session."""
         from pyquizhub.models import StartQuizRequestModel, StartQuizResponseModel, TokenRequestModel, AnswerRequestModel
         assert self.quiz_id, "Quiz ID must be created before retrieving results."
         assert self.session_id, "Session ID must exist before retrieving results."
         response = api_client.get(
-            f"/admin/results/{self.quiz_id}")
+            f"/admin/results/{self.quiz_id}", headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {
             response.status_code}, detail: {
             response.json()}"
@@ -200,6 +198,7 @@ class TestQuizEngine:
     def test_invalid_quiz_data(
             self,
             api_client: TestClient,
+            admin_headers,
             invalid_quiz_data):
         """Test handling invalid quiz data."""
         from pyquizhub.models import StartQuizRequestModel, StartQuizResponseModel, TokenRequestModel, AnswerRequestModel
@@ -207,7 +206,8 @@ class TestQuizEngine:
             "/admin/create_quiz",
             json={
                 "quiz": invalid_quiz_data,
-                "creator_id": self.user_id})
+                "creator_id": self.user_id},
+            headers=admin_headers)
         assert response.status_code == 400, f"Unexpected status code: {
             response.status_code}, detail: {
             response.json()}"
