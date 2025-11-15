@@ -136,7 +136,8 @@ class SQLStorageManager(StorageManager):
                 self.users_table.c.id == user_id
             )
             permissions_result = self._execute(permissions_query).fetchone()
-            permissions = permissions_result._mapping["permissions"] if permissions_result else []
+            permissions = permissions_result._mapping["permissions"] if permissions_result else [
+            ]
 
             # Count quizzes taken (unique quiz_ids from results)
             quizzes_query = select(self.results_table.c.quiz_id).where(
@@ -156,7 +157,8 @@ class SQLStorageManager(StorageManager):
         """Add or update users."""
         self.logger.debug(f"Adding users: {users}")
         for user_id, user_data in users.items():
-            # Handle both old format (permissions directly) and new format (dict with permissions key)
+            # Handle both old format (permissions directly) and new format
+            # (dict with permissions key)
             if isinstance(user_data, dict) and "permissions" in user_data:
                 permissions = user_data["permissions"]
             else:
@@ -486,7 +488,8 @@ class SQLStorageManager(StorageManager):
         self.logger.debug("Fetching all sessions")
         sessions_by_user = {}
 
-        # Get sessions from results (includes all sessions, active and completed)
+        # Get sessions from results (includes all sessions, active and
+        # completed)
         query = select(
             self.results_table.c.user_id,
             self.results_table.c.session_id
@@ -652,7 +655,8 @@ class SQLStorageManager(StorageManager):
             session_id: Unique session identifier
             session_data: Updated session data dictionary
         """
-        # Build update values conditionally depending on whether api_data exists
+        # Build update values conditionally depending on whether api_data
+        # exists
         values = dict(
             user_id=session_data["user_id"],
             quiz_id=session_data["quiz_id"],

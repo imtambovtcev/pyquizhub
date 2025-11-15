@@ -156,7 +156,8 @@ class FileStorageManager(StorageManager):
         for user_id in user_ids:
             # Get permissions from users.json if they exist
             user_data = self.users.get(user_id, {})
-            # Handle both old format (permissions directly) and new format (dict with permissions key)
+            # Handle both old format (permissions directly) and new format
+            # (dict with permissions key)
             if isinstance(user_data, dict) and "permissions" in user_data:
                 permissions = user_data["permissions"]
             elif isinstance(user_data, list):
@@ -454,7 +455,8 @@ class FileStorageManager(StorageManager):
         self.logger.debug("Fetching all sessions grouped by user")
         sessions_by_user = {}
 
-        # Get sessions from results (includes all sessions, active and completed)
+        # Get sessions from results (includes all sessions, active and
+        # completed)
         for user_id, user_results in self.results.items():
             for quiz_id, quiz_sessions in user_results.items():
                 for session_id in quiz_sessions.keys():
