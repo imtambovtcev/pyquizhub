@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "title": "AI-Powered Joke Quiz",
-        "description": "A quiz that generates jokes using an AI API and asks users to rate them",
-        "author": "API Integration Demo - Advanced",
+        "title": "Joke Quiz - Static API",
+        "description": "A quiz that fetches ONE joke at the start and shows the same joke on loop",
+        "author": "Test - Static API Demo",
         "version": "2.0",
         "requires_api": true
     },
@@ -51,8 +51,7 @@
     "api_integrations": [
         {
             "id": "joke_api",
-            "timing": "before_question",
-            "question_id": 1,
+            "timing": "on_quiz_start",
             "method": "GET",
             "url": "https://official-joke-api.appspot.com/random_joke",
             "auth": {

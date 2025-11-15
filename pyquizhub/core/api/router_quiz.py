@@ -51,6 +51,21 @@ def user_token_dependency(request: Request):
         raise HTTPException(status_code=403, detail="Invalid user token")
 
 
+def _is_final_message(question: dict) -> bool:
+    """
+    Check if a question is a final message (display-only, no answer required).
+
+    Args:
+        question: Question dictionary
+
+    Returns:
+        True if question type is 'final_message', False otherwise
+    """
+    if not question or not question.get("data"):
+        return False
+    return question["data"].get("type") == "final_message"
+
+
 @router.post("/start_quiz", response_model=StartQuizResponseModel,
              dependencies=[Depends(user_token_dependency)])
 def start_quiz(request: StartQuizRequestModel, req: Request):
@@ -122,6 +137,35 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
     logger.info(
         f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
+
+    # If first question is a final_message, auto-complete the quiz
+    if _is_final_message(first_question):
+        logger.info(f"First question is final_message, auto-completing quiz {quiz_id}")
+        # Process final message (no answer needed)
+        final_state = engine.answer_question(engine_state, None)
+
+        # Save final results
+        storage_manager.add_results(
+            user_id=request.user_id,
+            quiz_id=quiz_id,
+            session_id=session_id,
+            results={
+                "scores": final_state["scores"],
+                "answers": final_state["answers"],
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+        storage_manager.delete_session_state(session_id)
+        logger.info(f"Auto-completed quiz session {session_id}")
+
+        # Return with completed status (question=None indicates completion)
+        return StartQuizResponseModel(
+            quiz_id=quiz_id,
+            user_id=request.user_id,
+            session_id=session_id,
+            title=quiz_data["metadata"]["title"],
+            question=first_question  # Show the final message
+        )
 
     return StartQuizResponseModel(
         quiz_id=quiz_id,
@@ -216,6 +260,35 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
 
     # Save updated session state
     storage_manager.update_session_state(session_id, session_data)
+
+    # Check if next question is a final_message
+    if next_question and _is_final_message(next_question):
+        logger.info(f"Next question is final_message, auto-completing quiz {quiz_id}")
+        # Process final message (no answer needed)
+        final_state = engine.answer_question(new_engine_state, None)
+
+        # Save final results
+        storage_manager.add_results(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            session_id=session_id,
+            results={
+                "scores": final_state["scores"],
+                "answers": final_state["answers"],
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+        storage_manager.delete_session_state(session_id)
+        logger.info(f"Auto-completed quiz session {session_id} after final_message")
+
+        # Return the final message question (with completed=True implicitly)
+        return SubmitAnswerResponseModel(
+            quiz_id=quiz_id,
+            user_id=user_id,
+            session_id=session_id,
+            title=quiz_data["metadata"]["title"],
+            question=next_question  # Show the final message, next call will return None
+        )
 
     # If completed, save final results and clean up session
     if new_engine_state["completed"]:

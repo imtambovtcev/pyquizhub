@@ -189,6 +189,12 @@ class QuizJSONValidator:
                 if "options" in data:
                     errors.append(
                         f"Question type '{data['type']}' should not have options: {data}")
+            elif data["type"] == "final_message":
+                # final_message type doesn't require an answer
+                current_answer_type = type(None)
+                if "options" in data:
+                    errors.append(
+                        f"Question type '{data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]

@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "title": "AI-Powered Joke Quiz",
-        "description": "A quiz that generates jokes using an AI API and asks users to rate them",
-        "author": "API Integration Demo - Advanced",
+        "title": "Joke Quiz - Dynamic API",
+        "description": "A quiz that fetches a NEW joke before each question presentation",
+        "author": "Test - Dynamic API Demo",
         "version": "2.0",
         "requires_api": true
     },

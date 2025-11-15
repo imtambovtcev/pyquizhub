@@ -59,6 +59,7 @@
     "api_integrations": [
         {
             "id": "weather",
+            "timing": "on_quiz_start",
             "method": "GET",
             "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m,wind_speed_10m",
             "auth": {"type": "none"},
@@ -88,7 +89,39 @@
                 {
                     "condition": "true",
                     "update": {
-                        "user_prediction": "answer"
+                        "user_prediction": "answer",
+                        "temp_diff_positive": "answer - actual_temp",
+                        "temp_diff_negative": "actual_temp - answer"
+                    }
+                },
+                {
+                    "condition": "answer >= actual_temp - 1 and answer <= actual_temp + 1",
+                    "update": {
+                        "accuracy_score": "100"
+                    }
+                },
+                {
+                    "condition": "(answer > actual_temp + 1 and answer <= actual_temp + 3) or (answer < actual_temp - 1 and answer >= actual_temp - 3)",
+                    "update": {
+                        "accuracy_score": "80"
+                    }
+                },
+                {
+                    "condition": "(answer > actual_temp + 3 and answer <= actual_temp + 5) or (answer < actual_temp - 3 and answer >= actual_temp - 5)",
+                    "update": {
+                        "accuracy_score": "60"
+                    }
+                },
+                {
+                    "condition": "(answer > actual_temp + 5 and answer <= actual_temp + 10) or (answer < actual_temp - 5 and answer >= actual_temp - 10)",
+                    "update": {
+                        "accuracy_score": "40"
+                    }
+                },
+                {
+                    "condition": "answer < actual_temp - 10 or answer > actual_temp + 10",
+                    "update": {
+                        "accuracy_score": "20"
                     }
                 }
             ]
@@ -103,51 +136,13 @@
                     {"value": "no", "label": "No, I'm done"}
                 ]
             },
-            "score_updates": [
-                {
-                    "condition": "true",
-                    "update": {
-                        "temp_diff_positive": "user_prediction - actual_temp",
-                        "temp_diff_negative": "actual_temp - user_prediction"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 1 and user_prediction <= actual_temp + 1",
-                    "update": {
-                        "accuracy_score": "100"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 3 and user_prediction <= actual_temp + 3",
-                    "update": {
-                        "accuracy_score": "80"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 5 and user_prediction <= actual_temp + 5",
-                    "update": {
-                        "accuracy_score": "60"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 10 and user_prediction <= actual_temp + 10",
-                    "update": {
-                        "accuracy_score": "40"
-                    }
-                },
-                {
-                    "condition": "user_prediction < actual_temp - 10 or user_prediction > actual_temp + 10",
-                    "update": {
-                        "accuracy_score": "20"
-                    }
-                }
-            ]
+            "score_updates": []
         },
         {
             "id": 3,
             "data": {
                 "text": "Final Results:\n\n🌡️  Your prediction: {variables.user_prediction}°C\n🌡️  Actual temperature: {variables.actual_temp}°C\n📊 Final accuracy score: {variables.accuracy_score}/100\n\nThank you for playing!",
-                "type": "text"
+                "type": "final_message"
             },
             "score_updates": []
         }
