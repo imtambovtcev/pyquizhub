@@ -67,14 +67,19 @@ class TestSimpleQuizFlow:
     """Test suite for simple quiz end-to-end user experience."""
 
     def test_simple_quiz_answer_yes(
-            self, api_client: TestClient, user_headers, admin_headers, simple_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            simple_quiz_setup):
         """Test complete flow answering 'yes' - verify exact user output."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": simple_quiz_setup["token"], "user_id": "test_yes_user"},
-            headers=user_headers
-        )
+            json={
+                "token": simple_quiz_setup["token"],
+                "user_id": "test_yes_user"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -88,7 +93,8 @@ class TestSimpleQuizFlow:
         assert len(question_data["options"]) == 2
 
         # Verify options are correct
-        options = {opt["value"]: opt["label"] for opt in question_data["options"]}
+        options = {opt["value"]: opt["label"]
+                   for opt in question_data["options"]}
         assert options["yes"] == "Yes"
         assert options["no"] == "No"
 
@@ -128,14 +134,19 @@ class TestSimpleQuizFlow:
         assert user_results["answers"][0]["answer"] == "yes"
 
     def test_simple_quiz_answer_no(
-            self, api_client: TestClient, user_headers, admin_headers, simple_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            simple_quiz_setup):
         """Test complete flow answering 'no' - verify score stays 0."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": simple_quiz_setup["token"], "user_id": "test_no_user"},
-            headers=user_headers
-        )
+            json={
+                "token": simple_quiz_setup["token"],
+                "user_id": "test_no_user"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -184,9 +195,10 @@ class TestSimpleQuizFlow:
         # Start quiz to get quiz data
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": simple_quiz_setup["token"], "user_id": "test_metadata_user"},
-            headers=user_headers
-        )
+            json={
+                "token": simple_quiz_setup["token"],
+                "user_id": "test_metadata_user"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
 

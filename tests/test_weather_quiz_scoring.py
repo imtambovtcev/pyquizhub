@@ -96,9 +96,10 @@ class TestWeatherQuizScoring:
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_perfect"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_perfect"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -137,9 +138,10 @@ class TestWeatherQuizScoring:
         # Test prediction 2°C higher (12.0°C)
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_80_higher"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_80_higher"},
+            headers=user_headers)
         data = response.json()
         session_id = data["session_id"]
 
@@ -159,9 +161,10 @@ class TestWeatherQuizScoring:
         # Test prediction 2°C lower (8.0°C)
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_80_lower"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_80_lower"},
+            headers=user_headers)
         data = response.json()
         session_id = data["session_id"]
 
@@ -187,9 +190,10 @@ class TestWeatherQuizScoring:
 
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_60_points"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_60_points"},
+            headers=user_headers)
         data = response.json()
         session_id = data["session_id"]
 
@@ -215,9 +219,10 @@ class TestWeatherQuizScoring:
 
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_40_points"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_40_points"},
+            headers=user_headers)
         data = response.json()
         session_id = data["session_id"]
 
@@ -243,9 +248,10 @@ class TestWeatherQuizScoring:
 
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_20_points"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_20_points"},
+            headers=user_headers)
         data = response.json()
         session_id = data["session_id"]
 
@@ -263,16 +269,21 @@ class TestWeatherQuizScoring:
         assert "20/100" in data["question"]["data"]["text"]
 
     def test_api_integration_fetches_weather_data(
-            self, api_client: TestClient, user_headers, weather_quiz_setup, mock_weather_api):
+            self,
+            api_client: TestClient,
+            user_headers,
+            weather_quiz_setup,
+            mock_weather_api):
         """Test that the weather API is called and data is populated."""
         quiz_id = weather_quiz_setup["quiz_id"]
 
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_api_integration"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_api_integration"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -306,9 +317,10 @@ class TestWeatherQuizScoring:
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_substitution"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_substitution"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -330,7 +342,8 @@ class TestWeatherQuizScoring:
         question_text = data["question"]["data"]["text"]
 
         # Check that user prediction appears
-        assert f"{prediction}" in question_text or f"{int(prediction)}" in question_text
+        assert f"{prediction}" in question_text or f"{
+            int(prediction)}" in question_text
 
         # Check that no unreplaced placeholders remain
         assert "{variables." not in question_text, "All variable placeholders should be replaced"
@@ -342,9 +355,10 @@ class TestWeatherQuizScoring:
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_loop"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_loop"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -384,9 +398,10 @@ class TestWeatherQuizScoring:
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": weather_quiz_setup["token"], "user_id": "test_final"},
-            headers=user_headers
-        )
+            json={
+                "token": weather_quiz_setup["token"],
+                "user_id": "test_final"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]

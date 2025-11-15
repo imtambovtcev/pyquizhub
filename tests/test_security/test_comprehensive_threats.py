@@ -89,8 +89,10 @@ class TestSafeInputsAllowed:
         ]
 
         for text in safe_markdown:
-            # Should not raise - markdown as plain text is safe (except #, `, and parentheses)
-            result = InputSanitizer.sanitize_string(text, allow_html=False, allow_sql=True)
+            # Should not raise - markdown as plain text is safe (except #, `,
+            # and parentheses)
+            result = InputSanitizer.sanitize_string(
+                text, allow_html=False, allow_sql=True)
             assert result == text
 
     def test_safe_json_structures_allowed(self):
@@ -205,7 +207,8 @@ class TestCodeExecutionAttempts:
     @pytest.mark.parametrize("code", PYTHON_CODE_ATTEMPTS)
     def test_python_code_rejected(self, code):
         """Test that Python code attempts are rejected."""
-        # Code contains dangerous patterns (parentheses trigger command injection check)
+        # Code contains dangerous patterns (parentheses trigger command
+        # injection check)
         with pytest.raises(ValueError):
             InputSanitizer.sanitize_string(code, allow_shell=False)
 
@@ -418,7 +421,8 @@ class TestInjectionAttacks:
     def test_command_injection_blocked(self, payload):
         """Test that command injection attempts are blocked."""
         with pytest.raises(ValueError, match="command injection|template injection"):
-            InputSanitizer.sanitize_string(payload, allow_shell=False, allow_template=False)
+            InputSanitizer.sanitize_string(
+                payload, allow_shell=False, allow_template=False)
 
 
 class TestEnvironmentVariableAccess:

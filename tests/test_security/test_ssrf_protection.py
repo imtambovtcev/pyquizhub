@@ -425,13 +425,13 @@ class TestIPv6Protection:
         with patch('socket.getaddrinfo') as mock_addrinfo:
             # Mock IPv6 resolution to link-local address
             mock_addrinfo.return_value = [
-                (socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('fe80::1', 80, 0, 0))
-            ]
+                (socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('fe80::1', 80, 0, 0))]
 
             with patch('socket.gethostbyname', return_value='8.8.8.8'):
                 # IPv4 is public, but IPv6 is private - should fail
                 with pytest.raises(ValueError, match="private IPv6|private|link"):
-                    DNSValidator.resolve_and_validate('evil.com', check_ipv6=True)
+                    DNSValidator.resolve_and_validate(
+                        'evil.com', check_ipv6=True)
 
 
 class TestRedirectProtection:

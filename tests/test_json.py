@@ -37,7 +37,9 @@ def test_valid_json_files(json_file):
     # Old format files using 'scores' will have deprecation warning
     # New format files using 'variables' should have no warnings
     if "variables" in quiz_data:
-        assert len(result["warnings"]) == 0, f"Unexpected warnings: {result['warnings']}"
+        assert len(
+            result["warnings"]) == 0, f"Unexpected warnings: {
+            result['warnings']}"
     else:
         # Old format - expect deprecation warning
         assert any("DEPRECATED" in w for w in result["warnings"]), \

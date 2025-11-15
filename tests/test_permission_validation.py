@@ -27,8 +27,11 @@ class TestPermissionValidation:
         }
 
         # All tiers should pass
-        for tier in [CreatorPermissionTier.RESTRICTED, CreatorPermissionTier.STANDARD,
-                     CreatorPermissionTier.ADVANCED, CreatorPermissionTier.ADMIN]:
+        for tier in [
+                CreatorPermissionTier.RESTRICTED,
+                CreatorPermissionTier.STANDARD,
+                CreatorPermissionTier.ADVANCED,
+                CreatorPermissionTier.ADMIN]:
             result = QuizJSONValidator.validate(quiz_data, tier)
             assert len(result["errors"]) == 0
             assert len(result["permission_errors"]) == 0, \
@@ -52,7 +55,8 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.RESTRICTED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.RESTRICTED)
         assert len(result["errors"]) == 0
         assert len(result["permission_errors"]) == 0
 
@@ -74,10 +78,12 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.RESTRICTED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.RESTRICTED)
         assert len(result["permission_errors"]) > 0
         assert any("POST method" in err for err in result["permission_errors"])
-        assert any("RESTRICTED tier only allows GET" in err for err in result["permission_errors"])
+        assert any(
+            "RESTRICTED tier only allows GET" in err for err in result["permission_errors"])
 
     def test_restricted_rejects_url_template(self):
         """Test that RESTRICTED tier rejects dynamic URL templates."""
@@ -100,10 +106,13 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.RESTRICTED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.RESTRICTED)
         assert len(result["permission_errors"]) > 0
-        assert any("url_template" in err for err in result["permission_errors"])
-        assert any("RESTRICTED tier only allows fixed URLs" in err for err in result["permission_errors"])
+        assert any(
+            "url_template" in err for err in result["permission_errors"])
+        assert any(
+            "RESTRICTED tier only allows fixed URLs" in err for err in result["permission_errors"])
 
     def test_standard_rejects_url_template(self):
         """Test that STANDARD tier also rejects url_template (only query params allowed)."""
@@ -126,10 +135,13 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.STANDARD)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.STANDARD)
         assert len(result["permission_errors"]) > 0
-        assert any("url_template" in err for err in result["permission_errors"])
-        assert any("STANDARD tier only allows variables in query parameters" in err for err in result["permission_errors"])
+        assert any(
+            "url_template" in err for err in result["permission_errors"])
+        assert any(
+            "STANDARD tier only allows variables in query parameters" in err for err in result["permission_errors"])
 
     def test_advanced_allows_url_template(self):
         """Test that ADVANCED tier allows dynamic URL templates."""
@@ -152,7 +164,8 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADVANCED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.ADVANCED)
         assert len(result["errors"]) == 0
         assert len(result["permission_errors"]) == 0
 
@@ -178,7 +191,8 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADVANCED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.ADVANCED)
         assert len(result["errors"]) == 0
         assert len(result["permission_errors"]) == 0
 
@@ -206,10 +220,13 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.STANDARD)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.STANDARD)
         assert len(result["permission_errors"]) > 0
-        assert any("body template" in err for err in result["permission_errors"])
-        assert any("ADVANCED tier" in err for err in result["permission_errors"])
+        assert any(
+            "body template" in err for err in result["permission_errors"])
+        assert any(
+            "ADVANCED tier" in err for err in result["permission_errors"])
 
     def test_api_count_limits(self):
         """Test that API count limits are enforced per tier."""
@@ -234,20 +251,25 @@ class TestPermissionValidation:
         }
 
         # RESTRICTED allows max 5 - should fail
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.RESTRICTED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.RESTRICTED)
         assert len(result["permission_errors"]) > 0
-        assert any("max 5" in err and "has 6" in err for err in result["permission_errors"])
+        assert any(
+            "max 5" in err and "has 6" in err for err in result["permission_errors"])
 
         # STANDARD allows max 20 - should pass
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.STANDARD)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.STANDARD)
         assert len(result["permission_errors"]) == 0
 
         # ADVANCED allows max 50 - should pass
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADVANCED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.ADVANCED)
         assert len(result["permission_errors"]) == 0
 
         # ADMIN allows unlimited - should pass
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADMIN)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.ADMIN)
         assert len(result["permission_errors"]) == 0
 
     def test_restricted_rejects_custom_auth(self):
@@ -272,9 +294,11 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.RESTRICTED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.RESTRICTED)
         assert len(result["permission_errors"]) > 0
-        assert any("authentication" in err for err in result["permission_errors"])
+        assert any(
+            "authentication" in err for err in result["permission_errors"])
 
     def test_admin_bypasses_all_restrictions(self):
         """Test that ADMIN tier bypasses all restrictions."""
@@ -304,7 +328,8 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADMIN)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.ADMIN)
         assert len(result["errors"]) == 0
         assert len(result["permission_errors"]) == 0
 
@@ -353,11 +378,14 @@ class TestPermissionValidation:
             "transitions": {"1": [{"expression": "true", "next_question_id": None}]}
         }
 
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.RESTRICTED)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.RESTRICTED)
 
         # Should have both structural errors and permission errors
-        assert len(result["errors"]) > 0  # Structural error from missing 'type'
-        assert len(result["permission_errors"]) > 0  # Permission error from POST method
+        # Structural error from missing 'type'
+        assert len(result["errors"]) > 0
+        # Permission error from POST method
+        assert len(result["permission_errors"]) > 0
 
         # Verify they are separate
         assert "errors" in result

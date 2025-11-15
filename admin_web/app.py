@@ -170,7 +170,8 @@ def validate_quiz():
         from pyquizhub.core.engine.variable_types import CreatorPermissionTier
 
         # Validate the quiz (using ADMIN tier for maximum permissions)
-        result = QuizJSONValidator.validate(quiz_data, CreatorPermissionTier.ADMIN)
+        result = QuizJSONValidator.validate(
+            quiz_data, CreatorPermissionTier.ADMIN)
 
         return jsonify({
             "errors": result.get("errors", []),

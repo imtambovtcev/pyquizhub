@@ -88,7 +88,8 @@ class APIIntegrationManager:
         api_id = api_config.get("id", "default")
 
         try:
-            # Prepare request URL (new format: url or prepare_request.url_template)
+            # Prepare request URL (new format: url or
+            # prepare_request.url_template)
             url = self._prepare_url(api_config, context or {})
             method = api_config.get("method", "GET").upper()
             headers = self._prepare_headers(api_config, session_state)
@@ -107,8 +108,10 @@ class APIIntegrationManager:
                 timeout=api_config.get("timeout", self.default_timeout)
             )
 
-            # Process response and extract variables into session_state["scores"]
-            response_data = self._process_response(response, api_config, session_state)
+            # Process response and extract variables into
+            # session_state["scores"]
+            response_data = self._process_response(
+                response, api_config, session_state)
 
             # Store raw response in api_data for debugging/logging
             session_state["api_data"][api_id] = {
@@ -156,7 +159,8 @@ class APIIntegrationManager:
         if "url" in api_config:
             return api_config["url"]
 
-        raise ValueError("API configuration must have either 'url' or 'prepare_request.url_template'")
+        raise ValueError(
+            "API configuration must have either 'url' or 'prepare_request.url_template'")
 
     def _prepare_headers(
         self,
@@ -457,7 +461,8 @@ class APIIntegrationManager:
             extract_config = api_config["extract_response"]
 
             if "variables" in extract_config:
-                for var_name, var_config in extract_config["variables"].items():
+                for var_name, var_config in extract_config["variables"].items(
+                ):
                     path = var_config["path"]
                     extracted_value = self._extract_json_path(data, path)
 
@@ -465,7 +470,8 @@ class APIIntegrationManager:
                     if "scores" in session_state:
                         session_state["scores"][var_name] = extracted_value
                         extracted[var_name] = extracted_value
-                        self.logger.debug(f"Extracted {var_name} = {extracted_value} from API response")
+                        self.logger.debug(
+                            f"Extracted {var_name} = {extracted_value} from API response")
 
         return extracted if extracted else data
 

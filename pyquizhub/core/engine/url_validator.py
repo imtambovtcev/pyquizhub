@@ -49,7 +49,7 @@ class URLValidator:
         "0x7f.0.0.1",  # Hex
         "0x7f.1",      # Short hex
         "2130706433",  # Decimal
-        "017700000001", # Octal full
+        "017700000001",  # Octal full
         "[::1]",       # IPv6
         "[0:0:0:0:0:0:0:1]",  # IPv6 full
     ]
@@ -151,7 +151,8 @@ class URLValidator:
 
         # Check for pure decimal IPv4 (e.g., 2130706433)
         if hostname.isdigit():
-            raise ValueError(f"IP-based URLs not allowed (decimal IP): {hostname}")
+            raise ValueError(
+                f"IP-based URLs not allowed (decimal IP): {hostname}")
 
         # Check for hex IPv4 (e.g., 0x7f000001, 0x7f.0.0.1)
         if re.match(r'^0x[0-9a-fA-F.]+', hostname):
@@ -159,7 +160,8 @@ class URLValidator:
 
         # Check for octal IPv4 (e.g., 0177.0.0.1, 0177.1)
         if re.match(r'^0[0-7.]+', hostname) and not hostname == "0":
-            raise ValueError(f"IP-based URLs not allowed (octal IP): {hostname}")
+            raise ValueError(
+                f"IP-based URLs not allowed (octal IP): {hostname}")
 
         # Check for IPv4 addresses (dotted decimal)
         try:
@@ -248,8 +250,8 @@ class URLValidator:
             for pattern in suspicious_query_patterns:
                 if pattern in query_lower:
                     logger.warning(
-                        f"Suspicious query parameter: {pattern} in {parsed.query}"
-                    )
+                        f"Suspicious query parameter: {pattern} in {
+                            parsed.query}")
 
 
 class DNSValidator:
@@ -454,7 +456,8 @@ class APIAllowlistManager:
             if allowed.startswith("*."):
                 # Wildcard subdomain: *.example.com
                 base_domain = allowed[2:]
-                if hostname == base_domain or hostname.endswith("." + base_domain):
+                if hostname == base_domain or hostname.endswith(
+                        "." + base_domain):
                     return True
             elif hostname == allowed:
                 return True

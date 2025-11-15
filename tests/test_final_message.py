@@ -33,91 +33,52 @@ def admin_headers(api_client):
 @pytest.fixture
 def final_message_quiz():
     """Quiz with a final_message question at the end."""
-    return {
-        "metadata": {
-            "title": "Final Message Test Quiz",
-            "description": "Tests final_message auto-completion",
-            "version": "2.0"
-        },
-        "variables": {
-            "score": {
-                "type": "integer",
-                "mutable_by": ["engine"],
-                "tags": ["score"]
-            },
-            "attempts": {
-                "type": "integer",
-                "mutable_by": ["engine"],
-                "tags": ["public"]
-            }
-        },
-        "questions": [
-            {
-                "id": 1,
-                "data": {
-                    "text": "What is 2 + 2?",
-                    "type": "integer"
-                },
-                "score_updates": [
-                    {
-                        "condition": "answer == 4",
-                        "update": {
-                            "score": "score + 10",
-                            "attempts": "attempts + 1"
-                        }
-                    },
-                    {
-                        "condition": "answer != 4",
-                        "update": {
-                            "attempts": "attempts + 1"
-                        }
-                    }
-                ]
-            },
-            {
-                "id": 2,
-                "data": {
-                    "text": "What is 5 * 3?",
-                    "type": "integer"
-                },
-                "score_updates": [
-                    {
-                        "condition": "answer == 15",
-                        "update": {
-                            "score": "score + 10",
-                            "attempts": "attempts + 1"
-                        }
-                    },
-                    {
-                        "condition": "answer != 15",
-                        "update": {
-                            "attempts": "attempts + 1"
-                        }
-                    }
-                ]
-            },
-            {
-                "id": 3,
-                "data": {
-                    "text": "Quiz Complete! Your score: {variables.score} points from {variables.attempts} attempts.",
-                    "type": "final_message"
-                },
-                "score_updates": []
-            }
-        ],
-        "transitions": {
-            "1": [{"expression": "true", "next_question_id": 2}],
-            "2": [{"expression": "true", "next_question_id": 3}],
-            "3": [{"expression": "true", "next_question_id": None}]
-        }
-    }
+    return {"metadata": {"title": "Final Message Test Quiz",
+                         "description": "Tests final_message auto-completion",
+                         "version": "2.0"},
+            "variables": {"score": {"type": "integer",
+                                    "mutable_by": ["engine"],
+                                    "tags": ["score"]},
+                          "attempts": {"type": "integer",
+                                       "mutable_by": ["engine"],
+                                       "tags": ["public"]}},
+            "questions": [{"id": 1,
+                           "data": {"text": "What is 2 + 2?",
+                                    "type": "integer"},
+                           "score_updates": [{"condition": "answer == 4",
+                                              "update": {"score": "score + 10",
+                                                         "attempts": "attempts + 1"}},
+                                             {"condition": "answer != 4",
+                                              "update": {"attempts": "attempts + 1"}}]},
+                          {"id": 2,
+                           "data": {"text": "What is 5 * 3?",
+                                    "type": "integer"},
+                           "score_updates": [{"condition": "answer == 15",
+                                              "update": {"score": "score + 10",
+                                                         "attempts": "attempts + 1"}},
+                                             {"condition": "answer != 15",
+                                              "update": {"attempts": "attempts + 1"}}]},
+                          {"id": 3,
+                           "data": {"text": "Quiz Complete! Your score: {variables.score} points from {variables.attempts} attempts.",
+                                    "type": "final_message"},
+                           "score_updates": []}],
+            "transitions": {"1": [{"expression": "true",
+                                   "next_question_id": 2}],
+                            "2": [{"expression": "true",
+                                   "next_question_id": 3}],
+                            "3": [{"expression": "true",
+                                   "next_question_id": None}]}}
 
 
 class TestFinalMessage:
     """Test suite for final_message question type."""
 
     def test_final_message_auto_completes_quiz(
-            self, api_client: TestClient, admin_headers, user_headers, final_message_quiz):
+            self,
+            api_client: TestClient,
+            admin_headers,
+            user_headers,
+            final_message_quiz):
         """Test that quiz auto-completes when final_message is reached."""
         # Create quiz
         response = api_client.post(
@@ -220,7 +181,11 @@ class TestFinalMessage:
         assert answers[2]["answer"] is None  # final_message has no answer
 
     def test_final_message_with_incorrect_answers(
-            self, api_client: TestClient, admin_headers, user_headers, final_message_quiz):
+            self,
+            api_client: TestClient,
+            admin_headers,
+            user_headers,
+            final_message_quiz):
         """Test final_message with incorrect answers (score should be 0)."""
         # Create quiz
         response = api_client.post(
@@ -288,7 +253,6 @@ class TestFinalMessage:
         assert results["scores"]["score"] == 0.0
         assert results["scores"]["attempts"] == 2.0
 
-
     def test_final_message_validation(
             self, api_client: TestClient, admin_headers):
         """Test that final_message questions are validated correctly."""
@@ -301,7 +265,8 @@ class TestFinalMessage:
                     "data": {
                         "text": "Final message with options (invalid)",
                         "type": "final_message",
-                        "options": [{"value": "a", "label": "A"}]  # Should not have options
+                        # Should not have options
+                        "options": [{"value": "a", "label": "A"}]
                     },
                     "score_updates": []
                 }

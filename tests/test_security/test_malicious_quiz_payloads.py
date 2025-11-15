@@ -49,7 +49,8 @@ class TestMaliciousQuizDefinitions:
         from pyquizhub.core.engine.url_validator import URLValidator
 
         with pytest.raises(ValueError, match="HTTPS|localhost"):
-            URLValidator.validate_url(malicious_quiz["api_integrations"][0]["url"])
+            URLValidator.validate_url(
+                malicious_quiz["api_integrations"][0]["url"])
 
     def test_private_network_in_api_url(self):
         """Test quiz trying to access private network is rejected."""
@@ -66,7 +67,8 @@ class TestMaliciousQuizDefinitions:
         from pyquizhub.core.engine.url_validator import URLValidator
 
         with pytest.raises(ValueError, match="IP-based"):
-            URLValidator.validate_url(malicious_quiz["api_integrations"][0]["url"])
+            URLValidator.validate_url(
+                malicious_quiz["api_integrations"][0]["url"])
 
     def test_cloud_metadata_in_api_url(self):
         """Test quiz trying to access cloud metadata is rejected."""
@@ -83,7 +85,8 @@ class TestMaliciousQuizDefinitions:
         from pyquizhub.core.engine.url_validator import URLValidator
 
         with pytest.raises(ValueError, match="HTTPS|IP-based"):
-            URLValidator.validate_url(malicious_quiz["api_integrations"][0]["url"])
+            URLValidator.validate_url(
+                malicious_quiz["api_integrations"][0]["url"])
 
     def test_non_https_protocol_rejected(self):
         """Test that non-HTTPS protocols are rejected."""
@@ -307,7 +310,8 @@ class TestCompleteAttackChain:
                     "default": "",
                     "mutable_by": ["api"],
                     "constraints": {
-                        "forbidden_patterns": ["'; DROP TABLE users; --"]  # Valid use of pattern
+                        # Valid use of pattern
+                        "forbidden_patterns": ["'; DROP TABLE users; --"]
                     }
                 }
             },
@@ -317,7 +321,8 @@ class TestCompleteAttackChain:
                     "url": "http://localhost/admin",  # SSRF
                     "method": "POST",
                     "body": {
-                        "injection": "{{config.SECRET_KEY}}"  # Template injection
+                        # Template injection
+                        "injection": "{{config.SECRET_KEY}}"
                     }
                 }
             ],
@@ -339,7 +344,8 @@ class TestCompleteAttackChain:
 
         # Test SSRF protection
         with pytest.raises(ValueError):
-            URLValidator.validate_url(malicious_quiz["api_integrations"][0]["url"])
+            URLValidator.validate_url(
+                malicious_quiz["api_integrations"][0]["url"])
 
         # Test XSS in metadata
         with pytest.raises(ValueError, match="XSS"):
@@ -425,7 +431,8 @@ class TestAllowlistBypass:
 
         # Should be rejected
         assert not allowlist.is_allowed("https://fake-api.open-meteo.com/data")
-        assert not allowlist.is_allowed("https://api.open-meteo.com.evil.com/data")
+        assert not allowlist.is_allowed(
+            "https://api.open-meteo.com.evil.com/data")
 
     def test_unicode_domain_bypass(self):
         """Test Unicode homograph domain bypass."""

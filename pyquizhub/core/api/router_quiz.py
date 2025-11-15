@@ -86,7 +86,9 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         HTTPException: If token is invalid or quiz not found
     """
     logger.debug(
-        f"Starting quiz with token: {request.token} for user: {request.user_id}")
+        f"Starting quiz with token: {
+            request.token} for user: {
+            request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -136,11 +138,13 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     storage_manager.save_session_state(session_data)
 
     logger.info(
-        f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
+        f"Started quiz session {session_id} for user {
+            request.user_id} on quiz {quiz_id}")
 
     # If first question is a final_message, auto-complete the quiz
     if _is_final_message(first_question):
-        logger.info(f"First question is final_message, auto-completing quiz {quiz_id}")
+        logger.info(
+            f"First question is final_message, auto-completing quiz {quiz_id}")
         # Process final message (no answer needed)
         final_state = engine.answer_question(engine_state, None)
 
@@ -198,7 +202,8 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
         HTTPException: If session not found or answer invalid
     """
     logger.debug(
-        f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
+        f"Submitting answer for quiz_id: {quiz_id}, user_id: {
+            request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -210,9 +215,13 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # Load session state from storage
     session_data = storage_manager.load_session_state(session_id)
     logger.info(
-        f"Loaded session data keys: {session_data.keys() if session_data else 'None'}")
+        f"Loaded session data keys: {
+            session_data.keys() if session_data else 'None'}")
     logger.info(
-        f"Session data api_data: {session_data.get('api_data', 'NOT FOUND') if session_data else 'N/A'}")
+        f"Session data api_data: {
+            session_data.get(
+                'api_data',
+                'NOT FOUND') if session_data else 'N/A'}")
     if not session_data:
         logger.error(f"Session {session_id} not found")
         raise HTTPException(status_code=404, detail="Session not found")
@@ -220,7 +229,8 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # Verify quiz_id matches (security check)
     if session_data["quiz_id"] != quiz_id:
         logger.error(
-            f"Quiz ID mismatch: expected {session_data['quiz_id']}, got {quiz_id}")
+            f"Quiz ID mismatch: expected {
+                session_data['quiz_id']}, got {quiz_id}")
         raise HTTPException(status_code=400, detail="Quiz ID mismatch")
 
     # Extract engine state (without metadata)
@@ -263,7 +273,8 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
 
     # Check if next question is a final_message
     if next_question and _is_final_message(next_question):
-        logger.info(f"Next question is final_message, auto-completing quiz {quiz_id}")
+        logger.info(
+            f"Next question is final_message, auto-completing quiz {quiz_id}")
         # Process final message (no answer needed)
         final_state = engine.answer_question(new_engine_state, None)
 
@@ -279,7 +290,8 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
             }
         )
         storage_manager.delete_session_state(session_id)
-        logger.info(f"Auto-completed quiz session {session_id} after final_message")
+        logger.info(
+            f"Auto-completed quiz session {session_id} after final_message")
 
         # Return the final message question (with completed=True implicitly)
         return SubmitAnswerResponseModel(

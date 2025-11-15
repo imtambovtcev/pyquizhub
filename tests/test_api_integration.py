@@ -159,11 +159,9 @@ class TestAPIIntegrationManager:
                 "url_template": "https://api.example.com/users/{user_id}/score",
                 "body_template": {
                     "answer": "{answer}",
-                    "score": "{correct}"
-                }
-            },
-            "auth": {"type": "none"}
-        }
+                    "score": "{correct}"}},
+            "auth": {
+                "type": "none"}}
 
         context = {
             "user_id": "42",
@@ -336,7 +334,8 @@ class TestAPIIntegrationManager:
                 "value": 42}
             assert mock_request.call_count == 3
 
-    def test_retry_logic_max_retries_exceeded(self, api_manager, session_state):
+    def test_retry_logic_max_retries_exceeded(
+            self, api_manager, session_state):
         """Test retry logic fails after max retries."""
         api_config = {
             "id": "test_api",
