@@ -174,7 +174,8 @@ class TestRequiredFields:
 
         result = QuizJSONValidator.validate(quiz_data)
         assert len(result["errors"]) > 0
-        assert any("missing required fields" in e.lower() for e in result["errors"])
+        assert any("missing required fields" in e.lower()
+                   for e in result["errors"])
 
     def test_missing_mutable_by_rejected(self):
         """Test that missing 'mutable_by' field is rejected."""
@@ -192,4 +193,5 @@ class TestRequiredFields:
 
         result = QuizJSONValidator.validate(quiz_data)
         assert len(result["errors"]) > 0
-        assert any("missing required fields" in e.lower() for e in result["errors"])
+        assert any("missing required fields" in e.lower()
+                   for e in result["errors"])

@@ -31,8 +31,7 @@ class TestAutoConstraints:
 
         # Variable should have constraints with max_length
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "user_comment" in var_defs
         assert var_defs["user_comment"].constraints is not None
         assert var_defs["user_comment"].constraints.max_length == 1000
@@ -53,8 +52,7 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "api_response" in var_defs
         assert var_defs["api_response"].constraints is not None
         # API strings can be longer than user strings
@@ -77,8 +75,7 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "player_score" in var_defs
         assert var_defs["player_score"].constraints is not None
         # Score variables get ±1 billion bounds
@@ -102,12 +99,12 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "final_score" in var_defs
         assert var_defs["final_score"].constraints is not None
         # Leaderboard gets ±1 billion bounds
-        assert var_defs["final_score"].constraints.min_value == -1_000_000_000.0
+        assert var_defs["final_score"].constraints.min_value == - \
+            1_000_000_000.0
         assert var_defs["final_score"].constraints.max_value == 1_000_000_000.0
 
     def test_regular_integer_gets_64bit_bounds(self):
@@ -126,12 +123,12 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "counter" in var_defs
         assert var_defs["counter"].constraints is not None
         # Regular integers get full 64-bit bounds
-        assert var_defs["counter"].constraints.min_value == -9_223_372_036_854_775_808
+        assert var_defs["counter"].constraints.min_value == - \
+            9_223_372_036_854_775_808
         assert var_defs["counter"].constraints.max_value == 9_223_372_036_854_775_807
 
     def test_user_array_gets_max_items(self):
@@ -151,8 +148,7 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "selected_options" in var_defs
         assert var_defs["selected_options"].constraints is not None
         # User arrays get max 100 items
@@ -175,8 +171,7 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "api_results" in var_defs
         assert var_defs["api_results"].constraints is not None
         # API arrays can have more items
@@ -200,8 +195,7 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "custom_string" in var_defs
         assert var_defs["custom_string"].constraints is not None
         # Should use explicit constraint, not auto-generated
@@ -223,8 +217,7 @@ class TestAutoConstraints:
         }
 
         var_errors, var_warnings, var_defs = QuizJSONValidator._validate_variables(
-            quiz_data["variables"]
-        )
+            quiz_data["variables"])
         assert "is_complete" in var_defs
         # Boolean should have constraints object but all fields None
         assert var_defs["is_complete"].constraints is not None

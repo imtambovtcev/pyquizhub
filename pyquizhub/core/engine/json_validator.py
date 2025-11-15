@@ -34,7 +34,9 @@ class QuizJSONValidator:
     """
 
     @staticmethod
-    def validate(quiz_data: dict, creator_tier: CreatorPermissionTier = CreatorPermissionTier.RESTRICTED) -> dict:
+    def validate(
+            quiz_data: dict,
+            creator_tier: CreatorPermissionTier = CreatorPermissionTier.RESTRICTED) -> dict:
         """
         Validate the JSON structure and contents of a quiz.
 
@@ -64,7 +66,10 @@ class QuizJSONValidator:
         # Ensure the data is a dictionary
         if not isinstance(quiz_data, dict):
             errors.append("Top-level JSON structure must be a dictionary.")
-            return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
+            return {
+                "errors": errors,
+                "warnings": warnings,
+                "permission_errors": permission_errors}
 
         # Check for new vs old format
         has_variables = "variables" in quiz_data
@@ -72,22 +77,28 @@ class QuizJSONValidator:
 
         # Validate top-level keys (support both formats)
         if has_variables:
-            required_keys = {"metadata", "variables", "questions", "transitions"}
+            required_keys = {
+                "metadata",
+                "variables",
+                "questions",
+                "transitions"}
         else:
             required_keys = {"metadata", "scores", "questions", "transitions"}
 
         missing_keys = required_keys - quiz_data.keys()
         if missing_keys:
             errors.append(f"Missing required top-level keys: {missing_keys}")
-            return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
+            return {
+                "errors": errors,
+                "warnings": warnings,
+                "permission_errors": permission_errors}
 
         # Deprecation warning for old format
         if has_scores and not has_variables:
             warnings.append(
                 "DEPRECATED: Using old 'scores' format. "
                 "Please migrate to new 'variables' format with type definitions and tags. "
-                "See documentation for migration guide."
-            )
+                "See documentation for migration guide.")
 
         # Validate and build variable definitions
         variable_definitions = {}
@@ -96,8 +107,7 @@ class QuizJSONValidator:
         if has_variables:
             # NEW FORMAT: Validate variables field
             var_errors, var_warnings, variable_definitions = QuizJSONValidator._validate_variables(
-                quiz_data.get("variables", {})
-            )
+                quiz_data.get("variables", {}))
             errors.extend(var_errors)
             warnings.extend(var_warnings)
 
@@ -118,9 +128,7 @@ class QuizJSONValidator:
         # Validate API integrations structure if present
         if "api_integrations" in quiz_data and quiz_data["api_integrations"]:
             api_errors, api_warnings = QuizJSONValidator._validate_api_integrations(
-                quiz_data["api_integrations"],
-                variable_definitions if has_variables else {}
-            )
+                quiz_data["api_integrations"], variable_definitions if has_variables else {})
             errors.extend(api_errors)
             warnings.extend(api_warnings)
 
@@ -130,7 +138,8 @@ class QuizJSONValidator:
             api_mock = {}
             for api_config in quiz_data["api_integrations"]:
                 if "id" in api_config:
-                    # Use placeholder values for validation - actual values will come at runtime
+                    # Use placeholder values for validation - actual values
+                    # will come at runtime
                     api_mock[api_config["id"]] = 0  # Numeric placeholder
             default_variables["api"] = api_mock
 
@@ -178,41 +187,48 @@ class QuizJSONValidator:
                 current_answer_type = str
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "integer":
                 current_answer_type = int
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "float":
                 current_answer_type = float
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "final_message":
                 # final_message type doesn't require an answer
                 current_answer_type = type(None)
                 if "options" in data:
                     errors.append(
-                        f"Question type '{data['type']}' should not have options: {data}")
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
                 if not isinstance(score_updates, list):
                     errors.append(
-                        f"Score updates must be a list in question {question['id']}.")
+                        f"Score updates must be a list in question {
+                            question['id']}.")
                     continue
                 for update in score_updates:
                     if not isinstance(update, dict):
                         errors.append(
-                            f"Score update must be a dictionary in question {question['id']}.")
+                            f"Score update must be a dictionary in question {
+                                question['id']}.")
                         continue
                     if not all(
                         key in update for key in [
                             "condition",
                             "update"]):
                         errors.append(
-                            f"Invalid score update format in question {question['id']}: {update}")
+                            f"Invalid score update format in question {
+                                question['id']}: {update}")
                         continue
                     # Validate conditions and updates
                     try:
@@ -227,7 +243,8 @@ class QuizJSONValidator:
                                 expr, allowed_variables)
                     except Exception as e:
                         errors.append(
-                            f"Invalid score update condition or expression in question {question['id']}: {e}")
+                            f"Invalid score update condition or expression in question {
+                                question['id']}: {e}")
 
         # Validate transitions
         transitions = quiz_data.get("transitions", {})
@@ -278,11 +295,16 @@ class QuizJSONValidator:
                     errors.append(
                         f"Invalid next_question_id in question {question_id}: {next_question_id} does not exist.")
 
-        # Validate permissions - check if creator_tier has rights to use requested features
-        perm_errors = QuizJSONValidator._validate_permissions(quiz_data, creator_tier)
+        # Validate permissions - check if creator_tier has rights to use
+        # requested features
+        perm_errors = QuizJSONValidator._validate_permissions(
+            quiz_data, creator_tier)
         permission_errors.extend(perm_errors)
 
-        return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
+        return {
+            "errors": errors,
+            "warnings": warnings,
+            "permission_errors": permission_errors}
 
     @staticmethod
     def _validate_variables(variables_data: dict) -> tuple:
@@ -312,8 +334,8 @@ class QuizJSONValidator:
         for var_name, var_config in variables_data.items():
             if not isinstance(var_config, dict):
                 errors.append(
-                    f"Variable '{var_name}' definition must be a dictionary, got {type(var_config).__name__}"
-                )
+                    f"Variable '{var_name}' definition must be a dictionary, got {
+                        type(var_config).__name__}")
                 continue
 
             # Validate required fields
@@ -321,8 +343,7 @@ class QuizJSONValidator:
             missing_fields = required_fields - var_config.keys()
             if missing_fields:
                 errors.append(
-                    f"Variable '{var_name}' missing required fields: {missing_fields}"
-                )
+                    f"Variable '{var_name}' missing required fields: {missing_fields}")
                 continue
 
             # Validate type
@@ -332,8 +353,8 @@ class QuizJSONValidator:
                     var_type_enum = VariableType(var_type)
                 else:
                     errors.append(
-                        f"Variable '{var_name}' type must be a string, got {type(var_type).__name__}"
-                    )
+                        f"Variable '{var_name}' type must be a string, got {
+                            type(var_type).__name__}")
                     continue
             except ValueError:
                 valid_types = [t.value for t in VariableType]
@@ -347,12 +368,14 @@ class QuizJSONValidator:
             mutable_by = var_config.get("mutable_by")
             if not isinstance(mutable_by, list):
                 errors.append(
-                    f"Variable '{var_name}' mutable_by must be a list, got {type(mutable_by).__name__}"
-                )
+                    f"Variable '{var_name}' mutable_by must be a list, got {
+                        type(mutable_by).__name__}")
                 continue
 
             try:
-                mutable_by_enums = [MutableBy(m) if isinstance(m, str) else m for m in mutable_by]
+                mutable_by_enums = [
+                    MutableBy(m) if isinstance(
+                        m, str) else m for m in mutable_by]
             except ValueError as e:
                 valid_actors = [m.value for m in MutableBy]
                 errors.append(
@@ -365,12 +388,14 @@ class QuizJSONValidator:
             tags = var_config.get("tags", [])
             if not isinstance(tags, list):
                 errors.append(
-                    f"Variable '{var_name}' tags must be a list, got {type(tags).__name__}"
-                )
+                    f"Variable '{var_name}' tags must be a list, got {
+                        type(tags).__name__}")
                 continue
 
             try:
-                tag_enums = {VariableTag(t) if isinstance(t, str) else t for t in tags}
+                tag_enums = {
+                    VariableTag(t) if isinstance(
+                        t, str) else t for t in tags}
             except ValueError as e:
                 valid_tags = [t.value for t in VariableTag]
                 errors.append(
@@ -385,8 +410,7 @@ class QuizJSONValidator:
                 constraints_data = var_config["constraints"]
                 if not isinstance(constraints_data, dict):
                     errors.append(
-                        f"Variable '{var_name}' constraints must be a dictionary"
-                    )
+                        f"Variable '{var_name}' constraints must be a dictionary")
                     continue
 
                 try:
@@ -426,7 +450,8 @@ class QuizJSONValidator:
                         )
                         continue
                 except ValueError:
-                    valid_types = [t.value for t in VariableType if t != VariableType.ARRAY]
+                    valid_types = [
+                        t.value for t in VariableType if t != VariableType.ARRAY]
                     errors.append(
                         f"Variable '{var_name}' has invalid array_item_type '{array_item_type_str}'. "
                         f"Valid types: {valid_types}"
@@ -573,7 +598,9 @@ class QuizJSONValidator:
             return VariableConstraints()
 
     @staticmethod
-    def _validate_api_integrations(api_integrations: list, variable_definitions: dict) -> tuple:
+    def _validate_api_integrations(
+            api_integrations: list,
+            variable_definitions: dict) -> tuple:
         """
         Validate the api_integrations structure.
 
@@ -595,13 +622,15 @@ class QuizJSONValidator:
 
         for idx, api_config in enumerate(api_integrations):
             if not isinstance(api_config, dict):
-                errors.append(f"API integration at index {idx} must be a dictionary.")
+                errors.append(
+                    f"API integration at index {idx} must be a dictionary.")
                 continue
 
             # Validate required fields
             api_id = api_config.get("id")
             if not api_id:
-                errors.append(f"API integration at index {idx} missing required 'id' field.")
+                errors.append(
+                    f"API integration at index {idx} missing required 'id' field.")
                 continue
 
             # Check for duplicate API IDs
@@ -638,14 +667,12 @@ class QuizJSONValidator:
                 prepare_request = api_config["prepare_request"]
                 if not isinstance(prepare_request, dict):
                     errors.append(
-                        f"API '{api_id}': 'prepare_request' must be a dictionary."
-                    )
+                        f"API '{api_id}': 'prepare_request' must be a dictionary.")
                 else:
                     # Validate url_template
                     if "url_template" not in prepare_request:
                         errors.append(
-                            f"API '{api_id}': 'prepare_request' must contain 'url_template' field."
-                        )
+                            f"API '{api_id}': 'prepare_request' must contain 'url_template' field.")
 
                     # Validate body_template if present (for POST/PUT/PATCH)
                     if "body_template" in prepare_request:
@@ -660,40 +687,37 @@ class QuizJSONValidator:
                 extract_response = api_config["extract_response"]
                 if not isinstance(extract_response, dict):
                     errors.append(
-                        f"API '{api_id}': 'extract_response' must be a dictionary."
-                    )
+                        f"API '{api_id}': 'extract_response' must be a dictionary.")
                 else:
-                    # extract_response should have a 'variables' key with nested structure
+                    # extract_response should have a 'variables' key with
+                    # nested structure
                     if "variables" not in extract_response:
                         errors.append(
-                            f"API '{api_id}': 'extract_response' must contain 'variables' field."
-                        )
+                            f"API '{api_id}': 'extract_response' must contain 'variables' field.")
                     else:
                         variables_config = extract_response["variables"]
                         if not isinstance(variables_config, dict):
                             errors.append(
-                                f"API '{api_id}': 'extract_response.variables' must be a dictionary."
-                            )
+                                f"API '{api_id}': 'extract_response.variables' must be a dictionary.")
                         else:
                             # Each variable should have path and type
                             for var_name, extraction_config in variables_config.items():
                                 if not isinstance(extraction_config, dict):
                                     errors.append(
-                                        f"API '{api_id}': extract_response.variables['{var_name}'] must be a dictionary."
-                                    )
+                                        f"API '{api_id}': extract_response.variables['{var_name}'] must be a dictionary.")
                                     continue
 
-                                # Check for required fields in extraction config
+                                # Check for required fields in extraction
+                                # config
                                 if "path" not in extraction_config:
                                     errors.append(
-                                        f"API '{api_id}': extract_response.variables['{var_name}'] must have 'path' field."
-                                    )
+                                        f"API '{api_id}': extract_response.variables['{var_name}'] must have 'path' field.")
                                 if "type" not in extraction_config:
                                     errors.append(
-                                        f"API '{api_id}': extract_response.variables['{var_name}'] must have 'type' field."
-                                    )
+                                        f"API '{api_id}': extract_response.variables['{var_name}'] must have 'type' field.")
 
-                                # Check if variable exists in variable definitions
+                                # Check if variable exists in variable
+                                # definitions
                                 if var_name not in variable_definitions:
                                     warnings.append(
                                         f"API '{api_id}': extract_response references variable '{var_name}' "
@@ -705,19 +729,19 @@ class QuizJSONValidator:
                 auth = api_config["authentication"]
                 if not isinstance(auth, dict):
                     errors.append(
-                        f"API '{api_id}': 'authentication' must be a dictionary."
-                    )
+                        f"API '{api_id}': 'authentication' must be a dictionary.")
                 else:
                     auth_type = auth.get("type")
                     if not auth_type:
                         errors.append(
-                            f"API '{api_id}': 'authentication' must have 'type' field."
-                        )
+                            f"API '{api_id}': 'authentication' must have 'type' field.")
 
         return (errors, warnings)
 
     @staticmethod
-    def _validate_permissions(quiz_data: dict, creator_tier: CreatorPermissionTier) -> List[str]:
+    def _validate_permissions(
+            quiz_data: dict,
+            creator_tier: CreatorPermissionTier) -> List[str]:
         """
         Validate that the creator's permission tier allows the features used in the quiz.
 
@@ -793,17 +817,21 @@ class QuizJSONValidator:
                         f"STANDARD tier only allows variables in query parameters. Upgrade to ADVANCED tier."
                     )
 
-            # STANDARD tier can use variables in query params with fixed base URL
+            # STANDARD tier can use variables in query params with fixed base
+            # URL
             if creator_tier == CreatorPermissionTier.STANDARD and has_fixed_url:
                 # Check if query parameters contain variables (this is allowed for STANDARD)
-                # The actual URL should be fixed, only query params can have variables
+                # The actual URL should be fixed, only query params can have
+                # variables
                 pass  # This is allowed
 
             # Check request body permissions (for POST/PUT)
             # In the new format, body_template is inside prepare_request block
             has_body_template = "body_template" in prepare_request
             if has_body_template:
-                if creator_tier in [CreatorPermissionTier.RESTRICTED, CreatorPermissionTier.STANDARD]:
+                if creator_tier in [
+                        CreatorPermissionTier.RESTRICTED,
+                        CreatorPermissionTier.STANDARD]:
                     permission_errors.append(
                         f"Permission denied: API '{api_id}' uses request body template. "
                         f"Only ADVANCED tier and above can use body templates. Upgrade required."
@@ -823,7 +851,9 @@ class QuizJSONValidator:
                         )
 
                 # Custom auth schemes require ADVANCED
-                if auth_type in ["custom", "dynamic"] and creator_tier != CreatorPermissionTier.ADVANCED and creator_tier != CreatorPermissionTier.ADMIN:
+                if auth_type in [
+                    "custom",
+                        "dynamic"] and creator_tier != CreatorPermissionTier.ADVANCED and creator_tier != CreatorPermissionTier.ADMIN:
                     permission_errors.append(
                         f"Permission denied: API '{api_id}' uses custom authentication scheme. "
                         f"Only ADVANCED tier and above can use custom auth. Upgrade required."

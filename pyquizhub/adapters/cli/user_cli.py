@@ -81,9 +81,9 @@ def handle_quiz_loop(ctx, quiz_id, user_id, session_id, initial_response):
             return
         question = response.question
 
-    click.echo("\n" + "="*50)
+    click.echo("\n" + "=" * 50)
     click.echo(f"Quiz Completed: {quiz_title}")
-    click.echo("="*50)
+    click.echo("=" * 50)
     click.echo("Thank you for completing the quiz!")
     click.echo("Your responses have been recorded.")
 

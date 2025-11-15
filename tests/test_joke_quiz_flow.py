@@ -91,14 +91,20 @@ class TestJokeQuizFlow:
     """Test suite for joke quiz end-to-end user experience."""
 
     def test_joke_quiz_displays_joke_and_rates(
-            self, api_client: TestClient, user_headers, admin_headers, joke_quiz_setup, mock_joke_api):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            joke_quiz_setup,
+            mock_joke_api):
         """Test that joke quiz displays joke with variable substitution."""
         # Start quiz - API should be called (but mocked)
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": joke_quiz_setup["token"], "user_id": "test_display"},
-            headers=user_headers
-        )
+            json={
+                "token": joke_quiz_setup["token"],
+                "user_id": "test_display"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -140,7 +146,11 @@ class TestJokeQuizFlow:
         assert data["question"]["data"]["text"] == "Would you like to hear another joke?"
 
     def test_joke_quiz_loop_behavior(
-            self, api_client: TestClient, user_headers, admin_headers, joke_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            joke_quiz_setup):
         """Test that answering 'yes' loops back to show another joke."""
         # Start quiz
         response = api_client.post(
@@ -191,7 +201,11 @@ class TestJokeQuizFlow:
         assert "joke" in data["question"]["data"]["text"].lower()
 
     def test_joke_quiz_finish_behavior(
-            self, api_client: TestClient, user_headers, admin_headers, joke_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            joke_quiz_setup):
         """Test that answering 'no' finishes the quiz."""
         # Start quiz
         response = api_client.post(
@@ -233,14 +247,19 @@ class TestJokeQuizFlow:
         assert data["question"] is None
 
     def test_joke_quiz_variable_substitution(
-            self, api_client: TestClient, user_headers, admin_headers, joke_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            joke_quiz_setup):
         """Test that joke variables are correctly substituted in question text."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": joke_quiz_setup["token"], "user_id": "test_substitution"},
-            headers=user_headers
-        )
+            json={
+                "token": joke_quiz_setup["token"],
+                "user_id": "test_substitution"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         question_text = data["question"]["data"]["text"]

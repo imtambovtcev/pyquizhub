@@ -50,8 +50,12 @@ class TestVariablesFormatValidation:
         }
 
         result = QuizJSONValidator.validate(quiz_data)
-        assert len(result["errors"]) == 0, f"Unexpected errors: {result['errors']}"
-        assert len(result["warnings"]) == 0, f"Unexpected warnings: {result['warnings']}"
+        assert len(
+            result["errors"]) == 0, f"Unexpected errors: {
+            result['errors']}"
+        assert len(
+            result["warnings"]) == 0, f"Unexpected warnings: {
+            result['warnings']}"
 
     def test_old_scores_format_shows_deprecation_warning(self):
         """Test that old scores format shows deprecation warning."""
@@ -119,7 +123,8 @@ class TestVariablesFormatValidation:
 
         result = QuizJSONValidator.validate(quiz_data)
         assert len(result["errors"]) > 0
-        assert any("missing required fields" in e.lower() for e in result["errors"])
+        assert any("missing required fields" in e.lower()
+                   for e in result["errors"])
 
     def test_multiple_leaderboard_variables_rejected(self):
         """Test that multiple leaderboard variables are rejected."""
@@ -185,7 +190,8 @@ class TestVariablesFormatValidation:
 
         result = QuizJSONValidator.validate(quiz_data)
         assert len(result["errors"]) > 0
-        assert any("score" in e.lower() and ("integer" in e.lower() or "float" in e.lower()) for e in result["errors"])
+        assert any("score" in e.lower() and ("integer" in e.lower()
+                   or "float" in e.lower()) for e in result["errors"])
 
     def test_answer_reserved_variable_name(self):
         """Test that 'answer' is a reserved variable name."""
@@ -204,4 +210,5 @@ class TestVariablesFormatValidation:
 
         result = QuizJSONValidator.validate(quiz_data)
         assert len(result["errors"]) > 0
-        assert any("answer" in e.lower() and "special" in e.lower() for e in result["errors"])
+        assert any("answer" in e.lower() and "special" in e.lower()
+                   for e in result["errors"])

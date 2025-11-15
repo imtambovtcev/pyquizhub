@@ -9,8 +9,11 @@ With the new architecture:
 """
 import pytest
 from pyquizhub.core.engine.variable_types import (
-    VariableDefinition, VariableType, MutableBy, VariableTag, VariableConstraints
-)
+    VariableDefinition,
+    VariableType,
+    MutableBy,
+    VariableTag,
+    VariableConstraints)
 
 
 class TestAPIVariableSecurity:
@@ -82,7 +85,8 @@ class TestAPIVariableSecurity:
         # (SAFE_FOR_API only added if enum constraint present for strings)
         assert VariableTag.API_DATA in var.tags
         assert VariableTag.SANITIZED in var.tags
-        # Free-text strings from API are sanitized but not safe to use in other API requests
+        # Free-text strings from API are sanitized but not safe to use in other
+        # API requests
 
     def test_multiple_api_variables(self):
         """Test that multiple variables can be populated by API (defined in API integration)."""

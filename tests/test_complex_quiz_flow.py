@@ -71,14 +71,19 @@ class TestComplexQuizFlow:
     """Test suite for complex quiz end-to-end user experience."""
 
     def test_complex_quiz_straight_path_yes_yes(
-            self, api_client: TestClient, user_headers, admin_headers, complex_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            complex_quiz_setup):
         """Test answering yes->yes - straight path through quiz."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": complex_quiz_setup["token"], "user_id": "test_yes_yes"},
-            headers=user_headers
-        )
+            json={
+                "token": complex_quiz_setup["token"],
+                "user_id": "test_yes_yes"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -91,7 +96,8 @@ class TestComplexQuizFlow:
         assert question_data["type"] == "multiple_choice"
 
         # Verify options
-        options = {opt["value"]: opt["label"] for opt in question_data["options"]}
+        options = {opt["value"]: opt["label"]
+                   for opt in question_data["options"]}
         assert options["yes"] == "Yes"
         assert options["no"] == "No"
 
@@ -154,14 +160,19 @@ class TestComplexQuizFlow:
         assert answers[1]["answer"] == "yes"
 
     def test_complex_quiz_loop_path_no_then_yes(
-            self, api_client: TestClient, user_headers, admin_headers, complex_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            complex_quiz_setup):
         """Test loop behavior - answering no then yes causes loop back to Q1."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": complex_quiz_setup["token"], "user_id": "test_no_yes"},
-            headers=user_headers
-        )
+            json={
+                "token": complex_quiz_setup["token"],
+                "user_id": "test_no_yes"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -248,14 +259,19 @@ class TestComplexQuizFlow:
         assert answers[2]["answer"] == "yes"
 
     def test_complex_quiz_yes_no_path(
-            self, api_client: TestClient, user_headers, admin_headers, complex_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            complex_quiz_setup):
         """Test answering yes->no to verify question 2 behavior."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": complex_quiz_setup["token"], "user_id": "test_yes_no"},
-            headers=user_headers
-        )
+            json={
+                "token": complex_quiz_setup["token"],
+                "user_id": "test_yes_no"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]
@@ -302,20 +318,26 @@ class TestComplexQuizFlow:
         results = response.json()["results"]
         user_results = results["test_yes_no"][session_id]
 
-        # Expected scores: fruits=1, apples=2, pears=0 (no update for 'no' to pears)
+        # Expected scores: fruits=1, apples=2, pears=0 (no update for 'no' to
+        # pears)
         assert user_results["scores"]["fruits"] == 1.0
         assert user_results["scores"]["apples"] == 2.0
         assert user_results["scores"]["pears"] == 0.0
 
     def test_complex_quiz_multiple_loops(
-            self, api_client: TestClient, user_headers, admin_headers, complex_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            complex_quiz_setup):
         """Test multiple loops before progressing."""
         # Start quiz
         response = api_client.post(
             "/quiz/start_quiz",
-            json={"token": complex_quiz_setup["token"], "user_id": "test_multi_loop"},
-            headers=user_headers
-        )
+            json={
+                "token": complex_quiz_setup["token"],
+                "user_id": "test_multi_loop"},
+            headers=user_headers)
         assert response.status_code == 200
         data = response.json()
         session_id = data["session_id"]

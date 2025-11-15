@@ -45,7 +45,11 @@ class TestStaticJokeQuiz:
             return json.load(f)
 
     @pytest.fixture(scope="class")
-    def static_quiz_setup(self, api_client: TestClient, admin_headers, static_joke_quiz):
+    def static_quiz_setup(
+            self,
+            api_client: TestClient,
+            admin_headers,
+            static_joke_quiz):
         """Create static joke quiz and generate token."""
         # Create quiz
         response = api_client.post(
@@ -68,7 +72,11 @@ class TestStaticJokeQuiz:
         return {"quiz_id": quiz_id, "token": token}
 
     def test_static_api_called_once_at_start(
-            self, api_client: TestClient, user_headers, admin_headers, static_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            static_quiz_setup):
         """Test that API is called once at quiz start, then same joke is shown on loop."""
 
         # Mock the API to return a specific joke
@@ -85,9 +93,10 @@ class TestStaticJokeQuiz:
             # Start quiz - API should be called ONCE
             response = api_client.post(
                 "/quiz/start_quiz",
-                json={"token": static_quiz_setup["token"], "user_id": "test_static"},
-                headers=user_headers
-            )
+                json={
+                    "token": static_quiz_setup["token"],
+                    "user_id": "test_static"},
+                headers=user_headers)
             assert response.status_code == 200
             data = response.json()
             session_id = data["session_id"]
@@ -147,7 +156,11 @@ class TestDynamicJokeQuiz:
             return json.load(f)
 
     @pytest.fixture(scope="class")
-    def dynamic_quiz_setup(self, api_client: TestClient, admin_headers, dynamic_joke_quiz):
+    def dynamic_quiz_setup(
+            self,
+            api_client: TestClient,
+            admin_headers,
+            dynamic_joke_quiz):
         """Create dynamic joke quiz and generate token."""
         # Create quiz
         response = api_client.post(
@@ -170,7 +183,11 @@ class TestDynamicJokeQuiz:
         return {"quiz_id": quiz_id, "token": token}
 
     def test_dynamic_api_called_before_each_question(
-            self, api_client: TestClient, user_headers, admin_headers, dynamic_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            dynamic_quiz_setup):
         """Test that API is called before EACH presentation of question 1 (new joke each loop)."""
 
         # Mock the API to return different jokes on each call
@@ -203,9 +220,10 @@ class TestDynamicJokeQuiz:
             # Start quiz - API should be called for first joke
             response = api_client.post(
                 "/quiz/start_quiz",
-                json={"token": dynamic_quiz_setup["token"], "user_id": "test_dynamic"},
-                headers=user_headers
-            )
+                json={
+                    "token": dynamic_quiz_setup["token"],
+                    "user_id": "test_dynamic"},
+                headers=user_headers)
             assert response.status_code == 200
             data = response.json()
             session_id = data["session_id"]
@@ -295,7 +313,11 @@ class TestDynamicJokeQuiz:
             assert mock_request.call_count == 3
 
     def test_dynamic_api_only_called_for_question_1(
-            self, api_client: TestClient, user_headers, admin_headers, dynamic_quiz_setup):
+            self,
+            api_client: TestClient,
+            user_headers,
+            admin_headers,
+            dynamic_quiz_setup):
         """Test that API is NOT called for question 2 (only for question 1)."""
 
         mock_response = Mock()
@@ -311,9 +333,10 @@ class TestDynamicJokeQuiz:
             # Start quiz
             response = api_client.post(
                 "/quiz/start_quiz",
-                json={"token": dynamic_quiz_setup["token"], "user_id": "test_q1_only"},
-                headers=user_headers
-            )
+                json={
+                    "token": dynamic_quiz_setup["token"],
+                    "user_id": "test_q1_only"},
+                headers=user_headers)
             data = response.json()
             session_id = data["session_id"]
             quiz_id = data["quiz_id"]
