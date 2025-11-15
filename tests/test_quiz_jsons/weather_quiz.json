@@ -3,23 +3,43 @@
         "title": "Weather Quiz",
         "description": "A quiz that uses real-time weather data from an external API",
         "author": "API Integration Demo",
-        "version": "1.0",
+        "version": "2.0",
         "requires_api": true
     },
-    "scores": {
-        "correct_answers": 0
+    "variables": {
+        "correct_answers": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"],
+            "description": "Number of correct answers"
+        },
+        "current_temperature": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "private"],
+            "description": "Current temperature from weather API",
+            "constraints": {
+                "min_value": -100.0,
+                "max_value": 100.0
+            }
+        }
     },
     "api_integrations": [
         {
             "id": "weather",
-            "timing": "on_quiz_start",
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
             "method": "GET",
+            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
             "auth": {
                 "type": "none"
             },
-            "response_path": "current.temperature_2m",
-            "description": "Fetch current temperature in Berlin"
+            "extract_response": {
+                "variables": {
+                    "current_temperature": {
+                        "path": "current.temperature_2m",
+                        "type": "float"
+                    }
+                }
+            }
         }
     ],
     "questions": [
@@ -32,7 +52,7 @@
             },
             "score_updates": [
                 {
-                    "condition": "answer >= (api.weather - 5) and answer <= (api.weather + 5)",
+                    "condition": "answer >= (current_temperature - 5) and answer <= (current_temperature + 5)",
                     "update": {
                         "correct_answers": "correct_answers + 1"
                     }
@@ -42,7 +62,7 @@
         {
             "id": 2,
             "data": {
-                "text": "Based on the temperature, would you say it's cold (< 10°C), mild (10-20°C), or warm (> 20°C)?",
+                "text": "Based on the temperature ({variables.current_temperature}°C), would you say it's cold (< 10°C), mild (10-20°C), or warm (> 20°C)?",
                 "type": "multiple_choice",
                 "options": [
                     {"value": "cold", "label": "Cold (< 10°C)"},
@@ -52,19 +72,19 @@
             },
             "score_updates": [
                 {
-                    "condition": "answer == 'cold' and api.weather < 10",
+                    "condition": "answer == 'cold' and current_temperature < 10",
                     "update": {
                         "correct_answers": "correct_answers + 1"
                     }
                 },
                 {
-                    "condition": "answer == 'mild' and api.weather >= 10 and api.weather <= 20",
+                    "condition": "answer == 'mild' and current_temperature >= 10 and current_temperature <= 20",
                     "update": {
                         "correct_answers": "correct_answers + 1"
                     }
                 },
                 {
-                    "condition": "answer == 'warm' and api.weather > 20",
+                    "condition": "answer == 'warm' and current_temperature > 20",
                     "update": {
                         "correct_answers": "correct_answers + 1"
                     }

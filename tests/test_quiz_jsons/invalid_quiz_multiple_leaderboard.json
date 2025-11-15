@@ -1,0 +1,46 @@
+{
+    "metadata": {
+        "title": "Multiple Leaderboard Variables",
+        "description": "Should fail: only one variable can have the 'leaderboard' tag",
+        "version": "2.0"
+    },
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "leaderboard", "public"]
+        },
+        "score_b": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "leaderboard", "public"]
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Sample question",
+                "type": "multiple_choice",
+                "options": [
+                    {"value": "yes", "label": "Yes"},
+                    {"value": "no", "label": "No"}
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'yes'",
+                    "update": {
+                        "score_a": "score_a + 1",
+                        "score_b": "score_b + 1"
+                    }
+                }
+            ]
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

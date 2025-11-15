@@ -70,17 +70,16 @@ class APIIntegrationManager:
 
         Args:
             api_config: API configuration containing:
-                - url: API endpoint URL
+                - id: API identifier
                 - method: HTTP method (GET, POST, etc.)
-                - auth: Authentication configuration
-                - headers: Additional headers
-                - body: Request body template
-                - response_path: JSONPath to extract data from response
-            session_state: Current session state (contains api_data)
+                - url: Fixed URL OR prepare_request with url_template
+                - extract_response: Variable extraction configuration
+                - auth/authentication: Authentication configuration
+            session_state: Current session state (contains api_data and scores)
             context: Additional context (scores, answer, question_id, etc.)
 
         Returns:
-            Updated session state with API response data
+            Updated session state with API response data and extracted variables
         """
         # Initialize API data in session if not exists
         if "api_data" not in session_state:
@@ -89,8 +88,8 @@ class APIIntegrationManager:
         api_id = api_config.get("id", "default")
 
         try:
-            # Prepare request
-            url = self._render_template(api_config["url"], context or {})
+            # Prepare request URL (new format: url or prepare_request.url_template)
+            url = self._prepare_url(api_config, context or {})
             method = api_config.get("method", "GET").upper()
             headers = self._prepare_headers(api_config, session_state)
             body = self._prepare_body(api_config, context or {})
@@ -108,10 +107,10 @@ class APIIntegrationManager:
                 timeout=api_config.get("timeout", self.default_timeout)
             )
 
-            # Process response
-            response_data = self._process_response(response, api_config)
+            # Process response and extract variables into session_state["scores"]
+            response_data = self._process_response(response, api_config, session_state)
 
-            # Store in session state
+            # Store raw response in api_data for debugging/logging
             session_state["api_data"][api_id] = {
                 "response": response_data,
                 "timestamp": datetime.now().isoformat(),
@@ -130,6 +129,34 @@ class APIIntegrationManager:
             }
 
         return session_state
+
+    def _prepare_url(
+        self,
+        api_config: Dict[str, Any],
+        context: Dict[str, Any]
+    ) -> str:
+        """
+        Prepare request URL from either fixed url or prepare_request.url_template.
+
+        Args:
+            api_config: API configuration
+            context: Context with variables for template rendering
+
+        Returns:
+            Prepared URL string
+        """
+        # Check for prepare_request block (new format)
+        if "prepare_request" in api_config:
+            prepare_request = api_config["prepare_request"]
+            if "url_template" in prepare_request:
+                url_template = prepare_request["url_template"]
+                return self._render_template(url_template, context)
+
+        # Check for fixed url field (both old and new format)
+        if "url" in api_config:
+            return api_config["url"]
+
+        raise ValueError("API configuration must have either 'url' or 'prepare_request.url_template'")
 
     def _prepare_headers(
         self,
@@ -287,27 +314,28 @@ class APIIntegrationManager:
         context: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """
-        Prepare request body from template.
+        Prepare request body from prepare_request.body_template.
 
         Args:
-            api_config: API configuration containing body template
+            api_config: API configuration containing prepare_request with body_template
             context: Context data for template rendering
 
         Returns:
             Request body dictionary or None
         """
-        body_template = api_config.get("body")
-        if not body_template:
-            return None
+        # Check for prepare_request.body_template (new format)
+        if "prepare_request" in api_config:
+            prepare_request = api_config["prepare_request"]
+            if "body_template" in prepare_request:
+                body_template = prepare_request["body_template"]
+                # Render template with context
+                if isinstance(body_template, dict):
+                    return self._render_dict_template(body_template, context)
+                elif isinstance(body_template, str):
+                    rendered = self._render_template(body_template, context)
+                    return json.loads(rendered)
 
-        # Render template with context
-        if isinstance(body_template, dict):
-            return self._render_dict_template(body_template, context)
-        elif isinstance(body_template, str):
-            rendered = self._render_template(body_template, context)
-            return json.loads(rendered)
-
-        return body_template
+        return None
 
     def _render_template(self, template: str, context: Dict[str, Any]) -> str:
         """
@@ -407,26 +435,39 @@ class APIIntegrationManager:
     def _process_response(
         self,
         response: requests.Response,
-        api_config: Dict[str, Any]
+        api_config: Dict[str, Any],
+        session_state: Dict[str, Any]
     ) -> Any:
         """
-        Process API response and extract relevant data.
+        Process API response and extract variables into session state.
 
         Args:
             response: HTTP response object
-            api_config: API configuration with response_path
+            api_config: API configuration with extract_response block
+            session_state: Session state to update with extracted variables
 
         Returns:
-            Extracted data from response
+            Dictionary of extracted variables
         """
         data = response.json()
+        extracted = {}
 
-        # Extract data using JSONPath if specified
-        response_path = api_config.get("response_path")
-        if response_path:
-            data = self._extract_json_path(data, response_path)
+        # Extract variables using extract_response configuration
+        if "extract_response" in api_config:
+            extract_config = api_config["extract_response"]
 
-        return data
+            if "variables" in extract_config:
+                for var_name, var_config in extract_config["variables"].items():
+                    path = var_config["path"]
+                    extracted_value = self._extract_json_path(data, path)
+
+                    # Store extracted value directly in session scores
+                    if "scores" in session_state:
+                        session_state["scores"][var_name] = extracted_value
+                        extracted[var_name] = extracted_value
+                        self.logger.debug(f"Extracted {var_name} = {extracted_value} from API response")
+
+        return extracted if extracted else data
 
     def _extract_json_path(self, data: Any, path: str) -> Any:
         """

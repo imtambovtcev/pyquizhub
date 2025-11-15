@@ -1,0 +1,34 @@
+{
+    "metadata": {
+        "title": "Array Missing Item Type",
+        "description": "Should fail: array variable must specify 'array_item_type'",
+        "version": "2.0"
+    },
+    "variables": {
+        "selected_items": {
+            "type": "array",
+            "mutable_by": ["user"],
+            "tags": ["user_input"]
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Select your favorite fruits",
+                "type": "multiple_select",
+                "options": [
+                    {"value": "apple", "label": "Apple"},
+                    {"value": "banana", "label": "Banana"},
+                    {"value": "orange", "label": "Orange"}
+                ]
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

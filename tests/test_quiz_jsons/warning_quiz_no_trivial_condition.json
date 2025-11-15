@@ -3,10 +3,14 @@
         "title": "Warning No Trivial Condition",
         "description": "Tests for warnings when there is no trivial condition in the transitions",
         "author": "Test Author",
-        "version": "1.0"
+        "version": "2.0"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        }
     },
     "questions": [
         {
@@ -24,7 +28,8 @@
                         "label": "No"
                     }
                 ]
-            }
+            },
+            "score_updates": []
         }
     ],
     "transitions": {

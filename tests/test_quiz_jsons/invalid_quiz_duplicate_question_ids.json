@@ -1,9 +1,14 @@
 {
     "metadata": {
-        "title": "Duplicate Question IDs"
+        "title": "Duplicate Question IDs",
+        "description": "Should fail: two questions with same ID"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score"]
+        }
     },
     "questions": [
         {
@@ -21,7 +26,8 @@
                         "label": "No"
                     }
                 ]
-            }
+            },
+            "score_updates": []
         },
         {
             "id": 1,
@@ -38,8 +44,13 @@
                         "label": "No"
                     }
                 ]
-            }
+            },
+            "score_updates": []
         }
     ],
-    "transitions": {}
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
 }

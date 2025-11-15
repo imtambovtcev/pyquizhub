@@ -3,10 +3,14 @@
         "title": "Simple Quiz Multiple Select",
         "description": "Correct answer: [\"apple\", \"cherry\"]",
         "author": "Test Author",
-        "version": "1.0"
+        "version": "2.0"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        }
     },
     "questions": [
         {
@@ -48,6 +52,7 @@
     "transitions": {
         "1": [
             {
+                "expression": "true",
                 "next_question_id": null
             }
         ]

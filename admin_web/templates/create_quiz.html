@@ -61,10 +61,14 @@ function loadTemplate() {
             "title": "My Quiz",
             "description": "A sample quiz",
             "author": "Admin",
-            "version": "1.0"
+            "version": "2.0"
         },
-        "scores": {
-            "correct": 0
+        "variables": {
+            "correct": {
+                "type": "integer",
+                "mutable_by": ["engine"],
+                "tags": ["score"]
+            }
         },
         "questions": [
             {
@@ -92,7 +96,7 @@ function loadTemplate() {
             ]
         }
     };
-    
+
     document.getElementById('quiz-json').value = JSON.stringify(template, null, 2);
     showMessage('Template loaded', 'success');
 }

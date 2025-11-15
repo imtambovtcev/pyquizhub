@@ -1,0 +1,46 @@
+{
+    "metadata": {
+        "title": "API Missing URL Template",
+        "description": "Should fail: prepare_request must contain url_template",
+        "version": "2.0"
+    },
+    "variables": {
+        "city": {
+            "type": "string",
+            "mutable_by": ["user"],
+            "tags": ["user_input"]
+        },
+        "temperature": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "public"]
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "weather_api",
+            "method": "GET",
+            "prepare_request": {
+                "body_template": "{\"city\": \"{city}\"}"
+            },
+            "extract_response": {
+                "temperature": "data.main.temp"
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Enter your city",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

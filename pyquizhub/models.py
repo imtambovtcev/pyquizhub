@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Optional, Any
 
 
@@ -13,9 +13,10 @@ class MetadataModel(BaseModel):
 # Quiz Models
 class QuizModel(BaseModel):
     metadata: MetadataModel
-    scores: dict[str, float]
     questions: list[dict]
     transitions: dict[str, list[dict]]
+    # Support new (variables) format only
+    variables: dict[str, dict]
     api_integrations: Optional[list[dict]] = None
 
 

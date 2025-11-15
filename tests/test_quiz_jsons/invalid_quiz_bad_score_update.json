@@ -1,25 +1,32 @@
 {
     "metadata": {
-        "title": "Bad Score Update Quiz"
+        "title": "Bad Score Update Quiz",
+        "description": "Should fail: score_updates missing 'condition' field"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score"]
+        }
     },
     "questions": [
         {
             "id": 1,
-            "text": "Do you like bananas?",
-            "type": "multiple_choice",
-            "options": [
-                {
-                    "value": "yes",
-                    "label": "Yes"
-                },
-                {
-                    "value": "no",
-                    "label": "No"
-                }
-            ],
+            "data": {
+                "text": "Do you like bananas?",
+                "type": "multiple_choice",
+                "options": [
+                    {
+                        "value": "yes",
+                        "label": "Yes"
+                    },
+                    {
+                        "value": "no",
+                        "label": "No"
+                    }
+                ]
+            },
             "score_updates": [
                 {
                     "update": {
@@ -29,5 +36,9 @@
             ]
         }
     ],
-    "transitions": {}
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
 }

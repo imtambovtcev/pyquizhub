@@ -1,5 +1,6 @@
 [
     {
-        "title": "Unexpected Top Level"
+        "title": "Unexpected Top Level",
+        "description": "Should fail: entire structure is array instead of object"
     }
 ]

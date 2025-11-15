@@ -1,9 +1,14 @@
 {
     "metadata": {
-        "title": "Invalid Condition Expression"
+        "title": "Invalid Condition Expression",
+        "description": "Should fail: invalid Python expression in transition"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score"]
+        }
     },
     "questions": [
         {
@@ -21,7 +26,8 @@
                         "label": "No"
                     }
                 ]
-            }
+            },
+            "score_updates": []
         }
     ],
     "transitions": {

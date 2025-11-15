@@ -1,0 +1,47 @@
+{
+    "metadata": {
+        "title": "API Both URL and Prepare Request",
+        "description": "Should fail: Cannot have both 'url' and 'prepare_request'",
+        "version": "2.0"
+    },
+    "variables": {
+        "city": {
+            "type": "string",
+            "mutable_by": ["user"],
+            "tags": ["user_input"]
+        },
+        "temperature": {
+            "type": "float",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "public"]
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "weather_api",
+            "method": "GET",
+            "url": "https://api.weather.com/current",
+            "prepare_request": {
+                "url_template": "https://api.weather.com/current?city={city}"
+            },
+            "extract_response": {
+                "temperature": "data.main.temp"
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Enter your city",
+                "type": "text"
+            },
+            "score_updates": []
+        }
+    ],
+    "transitions": {
+        "1": [
+            {"expression": "true", "next_question_id": null}
+        ]
+    }
+}

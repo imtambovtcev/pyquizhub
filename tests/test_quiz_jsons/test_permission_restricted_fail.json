@@ -1,0 +1,30 @@
+{
+    "metadata": {
+        "title": "RESTRICTED Tier Failure Test",
+        "description": "Quiz that should FAIL for RESTRICTED tier - 6 APIs (over limit of 5)",
+        "author": "System Test",
+        "version": "2.0"
+    },
+    "variables": {
+        "api1_result": {"type": "float", "mutable_by": ["api"]},
+        "api2_result": {"type": "float", "mutable_by": ["api"]},
+        "api3_result": {"type": "float", "mutable_by": ["api"]},
+        "api4_result": {"type": "float", "mutable_by": ["api"]},
+        "api5_result": {"type": "float", "mutable_by": ["api"]},
+        "api6_result": {"type": "float", "mutable_by": ["api"]}
+    },
+    "api_integrations": [
+        {"id": "api1", "method": "GET", "url": "https://api.example.com/1", "auth": {"type": "none"}, "extract_response": {"variables": {"api1_result": {"path": "value", "type": "float"}}}},
+        {"id": "api2", "method": "GET", "url": "https://api.example.com/2", "auth": {"type": "none"}, "extract_response": {"variables": {"api2_result": {"path": "value", "type": "float"}}}},
+        {"id": "api3", "method": "GET", "url": "https://api.example.com/3", "auth": {"type": "none"}, "extract_response": {"variables": {"api3_result": {"path": "value", "type": "float"}}}},
+        {"id": "api4", "method": "GET", "url": "https://api.example.com/4", "auth": {"type": "none"}, "extract_response": {"variables": {"api4_result": {"path": "value", "type": "float"}}}},
+        {"id": "api5", "method": "GET", "url": "https://api.example.com/5", "auth": {"type": "none"}, "extract_response": {"variables": {"api5_result": {"path": "value", "type": "float"}}}},
+        {"id": "api6", "method": "GET", "url": "https://api.example.com/6", "auth": {"type": "none"}, "extract_response": {"variables": {"api6_result": {"path": "value", "type": "float"}}}}
+    ],
+    "questions": [
+        {"id": 1, "data": {"text": "This quiz has 6 APIs - should fail for RESTRICTED tier", "type": "text"}, "score_updates": []}
+    ],
+    "transitions": {
+        "1": [{"expression": "true", "next_question_id": null}]
+    }
+}

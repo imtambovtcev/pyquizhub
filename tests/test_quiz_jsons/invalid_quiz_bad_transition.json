@@ -1,9 +1,14 @@
 {
     "metadata": {
-        "title": "Bad Transition Quiz"
+        "title": "Bad Transition Quiz",
+        "description": "Should fail: transitions contain invalid data type (string instead of dict)"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score"]
+        }
     },
     "questions": [
         {
@@ -21,13 +26,15 @@
                         "label": "No"
                     }
                 ]
-            }
+            },
+            "score_updates": []
         }
     ],
     "transitions": {
         "1": [
             {
-                "expression": "true"
+                "expression": "true",
+                "next_question_id": null
             },
             "true"
         ]

@@ -67,8 +67,30 @@ class QuizEngine:
         # can assume consistent types (avoid None where lists/dicts expected)
         if quiz_data.get("api_integrations") is None:
             quiz_data["api_integrations"] = []
-        if quiz_data.get("scores") is None:
-            quiz_data["scores"] = {}
+
+        # Support both old (scores) and new (variables) formats
+        if quiz_data.get("variables") is not None:
+            # New format: extract default values from variables
+            if quiz_data.get("scores") is None:
+                quiz_data["scores"] = {}
+            for var_name, var_config in quiz_data["variables"].items():
+                # Initialize all variables with their default values (0 for numeric, "" for string, etc.)
+                var_type = var_config.get("type", "integer")
+                if var_type == "integer":
+                    quiz_data["scores"][var_name] = 0
+                elif var_type == "float":
+                    quiz_data["scores"][var_name] = 0.0
+                elif var_type == "string":
+                    quiz_data["scores"][var_name] = ""
+                elif var_type == "boolean":
+                    quiz_data["scores"][var_name] = False
+                elif var_type == "array":
+                    quiz_data["scores"][var_name] = []
+        else:
+            # Old format: just use scores
+            if quiz_data.get("scores") is None:
+                quiz_data["scores"] = {}
+
         if quiz_data.get("questions") is None:
             quiz_data["questions"] = []
         if quiz_data.get("transitions") is None:

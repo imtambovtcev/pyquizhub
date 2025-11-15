@@ -1,12 +1,16 @@
 {
     "metadata": {
         "title": "Simple Quiz",
-        "description": "A basic quiz with one question and a single transition",
+        "description": "A basic quiz with one question - demonstrates minimal new format",
         "author": "Test Author",
-        "version": "1.0"
+        "version": "2.0"
     },
-    "scores": {
-        "score_a": 0
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        }
     },
     "questions": [
         {
@@ -38,6 +42,7 @@
     "transitions": {
         "1": [
             {
+                "expression": "true",
                 "next_question_id": null
             }
         ]
