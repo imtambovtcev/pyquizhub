@@ -21,6 +21,15 @@ from pyquizhub.config.settings import get_logger
 
 logger = get_logger(__name__)
 
+# Auto-constraint constants
+# These define the default security limits applied to variables
+MAX_USER_STRING_LENGTH = 1000      # Max characters for user-input strings
+MAX_API_STRING_LENGTH = 10000      # Max characters for API/engine strings
+MAX_SCORE_VALUE = 1_000_000_000    # Max/min value for score variables (+/- 1 billion)
+MIN_SCORE_VALUE = -1_000_000_000
+MAX_USER_ARRAY_ITEMS = 100         # Max items in user-controlled arrays
+MAX_API_ARRAY_ITEMS = 10000        # Max items in API/engine arrays
+
 
 class QuizJSONValidator:
     """
@@ -514,13 +523,13 @@ class QuizJSONValidator:
             # User input strings need tighter limits
             if MutableBy.USER in mutable_by or VariableTag.USER_INPUT in tags:
                 return VariableConstraints(
-                    max_length=1000,  # Max 1000 characters for user input
+                    max_length=MAX_USER_STRING_LENGTH,
                     min_length=None   # No minimum
                 )
             # API or engine strings can be slightly longer
             else:
                 return VariableConstraints(
-                    max_length=10000,  # Max 10000 characters for API/engine
+                    max_length=MAX_API_STRING_LENGTH,
                     min_length=None
                 )
 
@@ -529,8 +538,8 @@ class QuizJSONValidator:
             # Score variables need reasonable bounds
             if VariableTag.SCORE in tags or VariableTag.LEADERBOARD in tags:
                 return VariableConstraints(
-                    min_value=-1_000_000_000,  # -1 billion
-                    max_value=1_000_000_000    # +1 billion
+                    min_value=MIN_SCORE_VALUE,
+                    max_value=MAX_SCORE_VALUE
                 )
             # Other integers
             else:
@@ -543,8 +552,8 @@ class QuizJSONValidator:
             # Score variables need reasonable bounds
             if VariableTag.SCORE in tags or VariableTag.LEADERBOARD in tags:
                 return VariableConstraints(
-                    min_value=-1_000_000_000.0,  # -1 billion
-                    max_value=1_000_000_000.0    # +1 billion
+                    min_value=float(MIN_SCORE_VALUE),
+                    max_value=float(MAX_SCORE_VALUE)
                 )
             # Other floats
             else:
@@ -558,13 +567,13 @@ class QuizJSONValidator:
             # User input arrays need tighter limits
             if MutableBy.USER in mutable_by or VariableTag.USER_INPUT in tags:
                 return VariableConstraints(
-                    max_items=100,   # Max 100 items for user input
+                    max_items=MAX_USER_ARRAY_ITEMS,
                     min_items=None   # No minimum
                 )
             # API or engine arrays can be larger
             else:
                 return VariableConstraints(
-                    max_items=10000,  # Max 10000 items for API/engine
+                    max_items=MAX_API_ARRAY_ITEMS,
                     min_items=None
                 )
 
