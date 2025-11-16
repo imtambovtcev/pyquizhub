@@ -18,7 +18,7 @@ Key features:
 import os
 import yaml
 import logging
-from typing import Optional, Dict, Any, Literal, Tuple
+from typing import Any, Literal
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource
 
@@ -77,10 +77,10 @@ class LoggingSettings(BaseModel):
     """Logging configuration (raw dict for logging.config.dictConfig)."""
     version: int = Field(default=1)
     disable_existing_loggers: bool = Field(default=False)
-    formatters: Dict[str, Any] = Field(default_factory=dict)
-    handlers: Dict[str, Any] = Field(default_factory=dict)
-    root: Dict[str, Any] = Field(default_factory=dict)
-    loggers: Dict[str, Any] = Field(default_factory=dict)
+    formatters: dict[str, Any] = Field(default_factory=dict)
+    handlers: dict[str, Any] = Field(default_factory=dict)
+    root: dict[str, Any] = Field(default_factory=dict)
+    loggers: dict[str, Any] = Field(default_factory=dict)
 
     # Allow extra fields for logging config flexibility
     model_config = {'extra': 'allow'}
@@ -114,8 +114,8 @@ class AppSettings(BaseSettings):
     )
 
     # Class variable to temporarily store YAML data
-    _temp_config_data: Optional[Dict[str, Any]] = None
-    _temp_config_path: Optional[str] = None
+    _temp_config_data: dict[str, Any | None] = None
+    _temp_config_path: str | None = None
 
     @classmethod
     def settings_customise_sources(
@@ -125,7 +125,7 @@ class AppSettings(BaseSettings):
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
-    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         """
         Customize the sources and their priority for loading settings.
 
@@ -137,13 +137,13 @@ class AppSettings(BaseSettings):
         # Create a custom source for YAML data
         class YamlSettingsSource(PydanticBaseSettingsSource):
             def get_field_value(
-                    self, field: Any, field_name: str) -> Tuple[Any, str, bool]:
+                    self, field: Any, field_name: str) -> tuple[Any, str, bool]:
                 # Return YAML data if available
                 if cls._temp_config_data and field_name in cls._temp_config_data:
                     return cls._temp_config_data[field_name], field_name, False
                 return None, field_name, False
 
-            def __call__(self) -> Dict[str, Any]:
+            def __call__(self) -> dict[str, Any]:
                 return cls._temp_config_data or {}
 
         # Return sources in priority order (first = highest priority)
@@ -154,7 +154,7 @@ class AppSettings(BaseSettings):
         )
 
     @classmethod
-    def from_yaml(cls, config_path: Optional[str] = None) -> 'AppSettings':
+    def from_yaml(cls, config_path: str | None = None) -> 'AppSettings':
         """
         Load configuration from YAML file with fallback search strategy.
 
@@ -264,9 +264,9 @@ class ConfigManager:
     while using the new Pydantic-based settings internally.
     """
 
-    _instance: Optional['ConfigManager'] = None
-    _settings: Optional[AppSettings] = None
-    _config_path: Optional[str] = None
+    _instance: 'ConfigManager' | None = None
+    _settings: AppSettings | None = None
+    _config_path: str | None = None
 
     def __init__(self):
         """Initialize ConfigManager. Use get_instance() instead."""
@@ -286,7 +286,7 @@ class ConfigManager:
         cls._settings = None
         cls._config_path = None
 
-    def load(self, config_path: Optional[str] = None) -> Dict[str, Any]:
+    def load(self, config_path: str | None = None) -> dict[str, Any]:
         """
         Load configuration from file.
 
@@ -333,13 +333,13 @@ class ConfigManager:
 
         return value
 
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """Get entire configuration as dictionary."""
         if self._settings is None:
             self.load()
         return self._settings.model_dump()
 
-    def get_config_path(self) -> Optional[str]:
+    def get_config_path(self) -> str | None:
         """Get path to loaded configuration file."""
         return self._config_path
 
@@ -395,13 +395,13 @@ class ConfigManager:
         return self._settings.security.use_tokens
 
     @property
-    def logging_config(self) -> Dict[str, Any]:
+    def logging_config(self) -> dict[str, Any]:
         """Get logging configuration."""
         if self._settings is None:
             self.load()
         return self._settings.logging.model_dump()
 
-    def get_token_env_var(self, token_type: str) -> Optional[str]:
+    def get_token_env_var(self, token_type: str) -> str | None:
         """
         Get environment variable name for a token type.
 
@@ -421,7 +421,7 @@ class ConfigManager:
         }
         return token_map.get(token_type)
 
-    def get_token(self, token_type: str) -> Optional[str]:
+    def get_token(self, token_type: str) -> str | None:
         """
         Get token value from environment variable.
 

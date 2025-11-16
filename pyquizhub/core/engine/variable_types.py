@@ -6,7 +6,7 @@ It provides strong typing, safety classification, and validation capabilities.
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Set, Tuple
+from typing import Any, Literal, Union
 from dataclasses import dataclass, field
 from pyquizhub.logging.setup import get_logger
 
@@ -199,20 +199,20 @@ class VariableConstraints:
     """
 
     # Numeric constraints
-    min_value: Optional[Union[int, float]] = None
-    max_value: Optional[Union[int, float]] = None
+    min_value: Union[int, float | None] = None
+    max_value: Union[int, float | None] = None
 
     # String constraints
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    pattern: Optional[str] = None  # Regex pattern (validated against ReDoS)
-    enum: Optional[List[str]] = None  # Allowed values (makes string safe)
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None  # Regex pattern (validated against ReDoS)
+    enum: list[str | None] = None  # Allowed values (makes string safe)
 
     # Array constraints
-    min_items: Optional[int] = None
-    max_items: Optional[int] = None
+    min_items: int | None = None
+    max_items: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert constraints to dictionary, excluding None values."""
         return {
             k: v for k, v in {
@@ -228,7 +228,7 @@ class VariableConstraints:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'VariableConstraints':
+    def from_dict(cls, data: dict[str, Any]) -> 'VariableConstraints':
         """Create constraints from dictionary."""
         return cls(
             min_value=data.get("min_value"),
@@ -251,14 +251,14 @@ class FallbackConfig:
     """
 
     behavior: FallbackBehavior
-    default_value: Optional[Any] = None
-    reason_message: Optional[str] = None
+    default_value: Any | None = None
+    reason_message: str | None = None
 
     # For DEGRADE behavior
-    hide_questions: Optional[List[int]] = None
-    alternative_flow: Optional[Dict[str, int]] = None  # {"from": 4, "to": 7}
+    hide_questions: list[int | None] = None
+    alternative_flow: dict[str, int | None] = None  # {"from": 4, "to": 7}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         result = {"behavior": self.behavior.value}
 
@@ -274,7 +274,7 @@ class FallbackConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'FallbackConfig':
+    def from_dict(cls, data: dict[str, Any]) -> 'FallbackConfig':
         """Create from dictionary."""
         return cls(
             behavior=FallbackBehavior(data["behavior"]),
@@ -299,18 +299,18 @@ class VariableDefinition:
     name: str
     type: VariableType
     default: Any
-    mutable_by: List[MutableBy]
-    tags: Set[VariableTag] = field(default_factory=set)
-    description: Optional[str] = None
+    mutable_by: list[MutableBy]
+    tags: set[VariableTag] = field(default_factory=set)
+    description: str | None = None
 
     # Array type specification (required for arrays, must be homogeneous)
-    array_item_type: Optional[VariableType] = None
+    array_item_type: VariableType | None = None
 
     # Security and validation
-    constraints: Optional[VariableConstraints] = None
+    constraints: VariableConstraints | None = None
 
     # Fallback configuration (for API-sourced variables, defined in API integration)
-    fallback: Optional[FallbackConfig] = None
+    fallback: FallbackConfig | None = None
 
     def __post_init__(self):
         """Validate variable definition and auto-apply tags."""
@@ -479,7 +479,7 @@ class VariableDefinition:
             return False
         return actor in self.mutable_by
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         result = {
             "name": self.name,
@@ -501,7 +501,7 @@ class VariableDefinition:
         return result
 
     @classmethod
-    def from_dict(cls, name: str, data: Dict[str, Any]) -> 'VariableDefinition':
+    def from_dict(cls, name: str, data: dict[str, Any]) -> 'VariableDefinition':
         """Create VariableDefinition from dictionary."""
         return cls(
             name=name,
@@ -525,7 +525,7 @@ class VariableStore:
     Provides type-safe get/set operations with validation.
     """
 
-    def __init__(self, definitions: Dict[str, VariableDefinition]):
+    def __init__(self, definitions: dict[str, VariableDefinition]):
         """
         Initialize variable store.
 
@@ -536,7 +536,7 @@ class VariableStore:
             ValueError: If multiple variables have LEADERBOARD tag
         """
         self.definitions = definitions
-        self.values: Dict[str, Any] = {}
+        self.values: dict[str, Any] = {}
 
         # Validate LEADERBOARD tag uniqueness
         leaderboard_vars = [
@@ -763,7 +763,7 @@ class VariableStore:
                     f"Variable '{name}' has {len(value)} items, maximum {constraints.max_items}"
                 )
 
-    def get_all(self) -> Dict[str, Any]:
+    def get_all(self) -> dict[str, Any]:
         """Get all variable values."""
         return self.values.copy()
 
@@ -773,7 +773,7 @@ class VariableStore:
             return False
         return self.definitions[name].is_safe_for_api_use()
 
-    def get_by_tag(self, tag: VariableTag) -> Dict[str, Any]:
+    def get_by_tag(self, tag: VariableTag) -> dict[str, Any]:
         """
         Get all variables with a specific tag.
 
@@ -789,7 +789,7 @@ class VariableStore:
                 result[name] = self.values[name]
         return result
 
-    def get_scores(self) -> Dict[str, Union[int, float]]:
+    def get_scores(self) -> dict[str, Union[int, float]]:
         """
         Get all score variables (for leaderboards/analytics).
 
@@ -798,7 +798,7 @@ class VariableStore:
         """
         return self.get_by_tag(VariableTag.SCORE)
 
-    def get_public_variables(self) -> Dict[str, Any]:
+    def get_public_variables(self) -> dict[str, Any]:
         """
         Get all public variables (for display in results).
 
@@ -807,7 +807,7 @@ class VariableStore:
         """
         return self.get_by_tag(VariableTag.PUBLIC)
 
-    def get_leaderboard_score(self) -> Optional[Tuple[str, Union[int, float]]]:
+    def get_leaderboard_score(self) -> tuple[str, Union[int, float | None]]:
         """
         Get the leaderboard score variable (the primary score for ranking).
 

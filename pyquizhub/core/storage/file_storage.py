@@ -7,7 +7,7 @@ the filesystem for persistent storage of users, quizzes, tokens, results, and se
 
 import os
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 from .storage_manager import StorageManager
 from pyquizhub.logging.setup import get_logger
 from datetime import datetime
@@ -130,7 +130,7 @@ class FileStorageManager(StorageManager):
         self.logger.debug(f"Saving data to file: {filename}")
         self._write_json(filename, data)
 
-    def get_users(self) -> Dict[str, Any]:
+    def get_users(self) -> dict[str, Any]:
         """Fetch all users with statistics."""
         self.logger.debug("Fetching all users")
 
@@ -174,13 +174,13 @@ class FileStorageManager(StorageManager):
 
         return users
 
-    def add_users(self, users: Dict[str, Any]) -> None:
+    def add_users(self, users: dict[str, Any]) -> None:
         """Add or update users."""
         self.logger.debug(f"Adding users: {users}")
         self.users.update(users)
         self._save("users.json", self.users)
 
-    def get_quiz(self, quiz_id: str) -> Dict[str, Any]:
+    def get_quiz(self, quiz_id: str) -> dict[str, Any]:
         """Fetch a quiz by its ID."""
         filepath = os.path.join("quizzes", f"{quiz_id}.json")
         self.logger.debug(f"Fetching quiz with ID: {quiz_id}")
@@ -190,7 +190,7 @@ class FileStorageManager(StorageManager):
 
     def add_quiz(self,
                  quiz_id: str,
-                 quiz_data: Dict[str,
+                 quiz_data: dict[str,
                                  Any],
                  creator_id: str) -> None:
         """Add or update a quiz."""
@@ -199,7 +199,7 @@ class FileStorageManager(StorageManager):
         filepath = f"quizzes/{quiz_id}.json"
         self._write_json(filepath, quiz_data)
 
-    def update_quiz(self, quiz_id: str, quiz_data: Dict[str, Any]) -> None:
+    def update_quiz(self, quiz_id: str, quiz_data: dict[str, Any]) -> None:
         """Update an existing quiz."""
         import os
         self.logger.debug(f"Updating quiz with ID: {quiz_id}")
@@ -245,7 +245,7 @@ class FileStorageManager(StorageManager):
 
     # Results
     def get_results(self, user_id: str, quiz_id: str,
-                    session_id: str) -> Optional[Dict[str, Any]]:
+                    session_id: str) -> dict[str, Any | None]:
         """Fetch results for a specific user, quiz, and session."""
         self.logger.debug(
             f"Fetching results for user {user_id}, quiz {quiz_id}, session {session_id}")
@@ -262,7 +262,7 @@ class FileStorageManager(StorageManager):
         return None
 
     def add_results(self, user_id: str, quiz_id: str,
-                    session_id: str, results: Dict[str, Any]) -> None:
+                    session_id: str, results: dict[str, Any]) -> None:
         """Add or update results."""
         self.logger.debug(
             f"Adding results for user {user_id}, quiz {quiz_id}, session {session_id}")
@@ -275,7 +275,7 @@ class FileStorageManager(StorageManager):
         filepath = f"results/{user_id}/{quiz_id}_{session_id}_results.json"
         self._write_json(filepath, results)
 
-    def get_all_results(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_results(self) -> dict[str, dict[str, Any]]:
         """Fetch all results."""
         self.logger.debug("Fetching all results")
         results_by_user = {}
@@ -296,7 +296,7 @@ class FileStorageManager(StorageManager):
                     }
         return results_by_user
 
-    def get_results_by_quiz(self, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_quiz(self, quiz_id: str) -> dict[str, dict[str, Any]]:
         """Fetch results for a specific quiz."""
         self.logger.debug(f"Fetching results by quiz ID: {quiz_id}")
         results_by_user = {}
@@ -318,7 +318,7 @@ class FileStorageManager(StorageManager):
                     }
         return results_by_user
 
-    def get_results_by_user(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+    def get_results_by_user(self, user_id: str) -> dict[str, dict[str, Any]]:
         """Fetch results for a specific user."""
         self.logger.debug(f"Fetching results by user ID: {user_id}")
         results_by_quiz = {}
@@ -337,7 +337,7 @@ class FileStorageManager(StorageManager):
         return results_by_quiz
 
     def get_results_by_quiz_and_user(
-            self, quiz_id: str, user_id: str) -> Dict[str, Dict[str, Any]]:
+            self, quiz_id: str, user_id: str) -> dict[str, dict[str, Any]]:
         """Fetch results for a specific quiz and user."""
         self.logger.debug(
             f"Fetching results for quiz ID: {quiz_id} and user ID: {user_id}")
@@ -355,12 +355,12 @@ class FileStorageManager(StorageManager):
         return results_by_session
 
     # Tokens
-    def get_tokens(self) -> List[Dict[str, Any]]:
+    def get_tokens(self) -> list[dict[str, Any]]:
         """Fetch all tokens."""
         self.logger.debug("Fetching all tokens")
         return self.tokens
 
-    def add_tokens(self, tokens: List[Dict[str, Any]]) -> None:
+    def add_tokens(self, tokens: list[dict[str, Any]]) -> None:
         """Add or update tokens."""
         self.logger.debug(f"Adding tokens: {tokens}")
         self.tokens.extend(tokens)
@@ -372,7 +372,7 @@ class FileStorageManager(StorageManager):
         self.tokens = [t for t in self.tokens if t["token"] != token]
         self._save("tokens.json", self.tokens)
 
-    def get_all_tokens(self) -> Dict[str, List[Dict[str, Any]]]:
+    def get_all_tokens(self) -> dict[str, list[dict[str, Any]]]:
         """Fetch all tokens grouped by quiz."""
         self.logger.debug("Fetching all tokens grouped by quiz")
         tokens_by_quiz = {}
@@ -383,12 +383,12 @@ class FileStorageManager(StorageManager):
             tokens_by_quiz[quiz_id].append(token_entry)
         return tokens_by_quiz
 
-    def get_tokens_by_quiz(self, quiz_id: str) -> List[Dict[str, Any]]:
+    def get_tokens_by_quiz(self, quiz_id: str) -> list[dict[str, Any]]:
         """Fetch tokens for a specific quiz."""
         self.logger.debug(f"Fetching tokens for quiz ID: {quiz_id}")
         return [token for token in self.tokens if token["quiz_id"] == quiz_id]
 
-    def get_token_type(self, token: str) -> Optional[str]:
+    def get_token_type(self, token: str) -> str | None:
         """Fetch the type of a token."""
         self.logger.debug(f"Fetching token type for token: {token}")
         for token_entry in self.tokens:
@@ -405,7 +405,7 @@ class FileStorageManager(StorageManager):
             return True
         return False
 
-    def get_participated_users(self, quiz_id: str) -> List[str]:
+    def get_participated_users(self, quiz_id: str) -> list[str]:
         """Fetch users who participated in a specific quiz."""
         self.logger.debug(
             f"Fetching users who participated in quiz ID: {quiz_id}")
@@ -415,7 +415,7 @@ class FileStorageManager(StorageManager):
                 participated_users.append(user_id)
         return participated_users
 
-    def get_quiz_id_by_token(self, token: str) -> Optional[str]:
+    def get_quiz_id_by_token(self, token: str) -> str | None:
         """Fetch the quiz ID associated with a token."""
         self.logger.debug(f"Fetching quiz ID for token: {token}")
         for token_entry in self.tokens:
@@ -423,7 +423,7 @@ class FileStorageManager(StorageManager):
                 return token_entry["quiz_id"]
         return None
 
-    def get_all_quizzes(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_quizzes(self) -> dict[str, dict[str, Any]]:
         """Fetch all quizzes."""
         self.logger.debug("Fetching all quizzes")
         quizzes_dir = os.path.join(self.base_dir, "quizzes")
@@ -435,21 +435,21 @@ class FileStorageManager(StorageManager):
         return quizzes
 
     def get_results_by_user_and_quiz(
-            self, user_id: str, quiz_id: str) -> Dict[str, Dict[str, Any]]:
+            self, user_id: str, quiz_id: str) -> dict[str, dict[str, Any]]:
         """Fetch results for a specific user and quiz."""
         self.logger.debug(
             f"Fetching results for user ID: {user_id} and quiz ID: {quiz_id}")
         return self.results.get(user_id, {}).get(quiz_id, {})
 
     def get_session_ids_by_user_and_quiz(
-            self, user_id: str, quiz_id: str) -> List[str]:
+            self, user_id: str, quiz_id: str) -> list[str]:
         """Fetch session IDs for a specific user and quiz."""
         self.logger.debug(
             f"Fetching session IDs for user ID: {user_id} and quiz ID: {quiz_id}")
         return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
 
     # Sessions
-    def get_all_sessions(self) -> Dict[str, List[str]]:
+    def get_all_sessions(self) -> dict[str, list[str]]:
         """Fetch all sessions grouped by user."""
         self.logger.debug("Fetching all sessions grouped by user")
         sessions_by_user = {}
@@ -480,7 +480,7 @@ class FileStorageManager(StorageManager):
 
         return sessions_by_user
 
-    def get_sessions_by_user(self, user_id: str) -> List[str]:
+    def get_sessions_by_user(self, user_id: str) -> list[str]:
         """Fetch sessions for a specific user."""
         self.logger.debug(f"Fetching sessions for user ID: {user_id}")
         sessions = []
@@ -488,7 +488,7 @@ class FileStorageManager(StorageManager):
             sessions.extend(quiz_sessions.keys())
         return sessions
 
-    def get_sessions_by_quiz(self, quiz_id: str) -> List[str]:
+    def get_sessions_by_quiz(self, quiz_id: str) -> list[str]:
         """Fetch sessions for a specific quiz."""
         self.logger.debug(f"Fetching sessions for quiz ID: {quiz_id}")
         sessions = []
@@ -498,13 +498,13 @@ class FileStorageManager(StorageManager):
         return sessions
 
     def get_sessions_by_quiz_and_user(
-            self, quiz_id: str, user_id: str) -> List[str]:
+            self, quiz_id: str, user_id: str) -> list[str]:
         """Fetch sessions for a specific quiz and user."""
         self.logger.debug(
             f"Fetching sessions for quiz ID: {quiz_id} and user ID: {user_id}")
         return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
 
-    def save_session_state(self, session_data: Dict[str, Any]) -> None:
+    def save_session_state(self, session_data: dict[str, Any]) -> None:
         """
         Save complete session state to filesystem.
 
@@ -516,7 +516,7 @@ class FileStorageManager(StorageManager):
         self._write_json(filepath, session_data)
         self.logger.info(f"Saved session state for session {session_id}")
 
-    def load_session_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def load_session_state(self, session_id: str) -> dict[str, Any | None]:
         """
         Load session state from filesystem.
 
@@ -536,7 +536,7 @@ class FileStorageManager(StorageManager):
             return None
 
     def update_session_state(self, session_id: str,
-                             session_data: Dict[str, Any]) -> None:
+                             session_data: dict[str, Any]) -> None:
         """
         Update existing session state in filesystem.
 

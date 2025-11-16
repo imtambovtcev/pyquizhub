@@ -15,7 +15,7 @@ All state is passed in and returned from methods.
 
 import json
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any
 
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
@@ -143,7 +143,7 @@ class QuizEngine:
         self.logger.info("Created initial quiz state")
         return initial_state
 
-    def get_current_question(self, state: dict) -> Optional[dict]:
+    def get_current_question(self, state: dict) -> dict | None:
         """
         Get current question from state.
 
@@ -344,7 +344,7 @@ class QuizEngine:
             self,
             current_question_id: int,
             scores: dict,
-            answer: Any = None) -> Optional[int]:
+            answer: Any = None) -> int | None:
         """
         Determine next question based on transitions and scores.
 
@@ -370,11 +370,11 @@ class QuizEngine:
 
     def _execute_api_calls(
         self,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         timing: RequestTiming,
-        context: Dict[str, Any],
-        question_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+        question_id: int | None = None
+    ) -> dict[str, Any]:
         """
         Execute API calls for the given timing.
 
@@ -413,7 +413,7 @@ class QuizEngine:
 
         return state
 
-    def _create_api_context(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_api_context(self, state: dict[str, Any]) -> dict[str, Any]:
         """
         Create API context for use in expressions.
 
@@ -443,7 +443,7 @@ class QuizEngine:
         self.logger.debug(f"Final API context: {api_context}")
         return api_context
 
-    def _apply_question_templating(self, question: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_question_templating(self, question: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
         """
         Apply templating to question text by replacing placeholders.
 

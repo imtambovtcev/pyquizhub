@@ -7,7 +7,7 @@ This module implements the multi-tier permission system:
 - API access control based on permissions
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Any
 from urllib.parse import urlparse, parse_qs
 import re
 
@@ -46,7 +46,7 @@ class PermissionEnforcer:
         creator_tier: CreatorPermissionTier,
         user_level: UserPermissionLevel,
         variable_store: VariableStore,
-        allowlist_manager: Optional[APIAllowlistManager] = None
+        allowlist_manager: APIAllowlistManager | None = None
     ):
         """
         Initialize permission enforcer.
@@ -70,7 +70,7 @@ class PermissionEnforcer:
             f"user={user_level.value}"
         )
 
-    def validate_api_integration(self, api_config: Dict[str, Any]) -> None:
+    def validate_api_integration(self, api_config: dict[str, Any]) -> None:
         """
         Validate that API integration is allowed for creator tier.
 
@@ -123,7 +123,7 @@ class PermissionEnforcer:
 
         logger.debug(f"API integration validated for tier {self.creator_tier.value}")
 
-    def _validate_variable_usage_in_url(self, url: str, api_config: Dict[str, Any]) -> None:
+    def _validate_variable_usage_in_url(self, url: str, api_config: dict[str, Any]) -> None:
         """
         Validate that variable usage in URL is allowed for creator tier.
 
@@ -208,7 +208,7 @@ class PermissionEnforcer:
         if method not in allowed_methods:
             raise ValueError(f"Invalid HTTP method: {method}")
 
-    def _validate_query_param_variables(self, query_params: Dict[str, Any]) -> None:
+    def _validate_query_param_variables(self, query_params: dict[str, Any]) -> None:
         """
         Validate that variables used in query parameters are safe.
 
@@ -248,7 +248,7 @@ class PermissionEnforcer:
                     f"Only safe variables (numeric, enum strings) allowed in URLs."
                 )
 
-    def _validate_param_source_variables(self, param_source: Dict[str, str]) -> None:
+    def _validate_param_source_variables(self, param_source: dict[str, str]) -> None:
         """
         Validate variables referenced in param_source mapping.
 
@@ -295,7 +295,7 @@ class PermissionEnforcer:
         """Check if text contains template variable syntax."""
         return "{" in text or "}" in text or "${" in text
 
-    def _extract_variable_references(self, text: str) -> List[str]:
+    def _extract_variable_references(self, text: str) -> list[str]:
         """
         Extract variable names from template string.
 
@@ -329,7 +329,7 @@ class PermissionEnforcer:
 
         return var_names
 
-    def check_user_can_access_api(self, api_config: Dict[str, Any]) -> bool:
+    def check_user_can_access_api(self, api_config: dict[str, Any]) -> bool:
         """
         Check if user's permission level allows access to this API.
 
@@ -380,7 +380,7 @@ class PermissionEnforcer:
 
 def validate_creator_permissions(
     creator_tier: CreatorPermissionTier,
-    quiz_data: Dict[str, Any],
+    quiz_data: dict[str, Any],
     variable_store: VariableStore
 ) -> None:
     """

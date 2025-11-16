@@ -28,14 +28,14 @@ PyQuizHub is a flexible quiz management system with a modular architecture that 
 
 ### System Requirements
 
-- Python 3.10+
+- Python 3.12+
 - PostgreSQL (optional)
 - Redis (optional)
 
 ## Installation
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.12+
 - Poetry (for dependency management)
 - PostgreSQL (optional, for production deployment)
 

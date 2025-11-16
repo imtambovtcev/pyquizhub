@@ -1,13 +1,13 @@
 from pydantic import BaseModel, model_validator
-from typing import Optional, Any
+from typing import Any
 
 
 # Metadata Models
 class MetadataModel(BaseModel):
     title: str
-    description: Optional[str] = None
-    author: Optional[str] = None
-    version: Optional[str] = None
+    description: str | None = None
+    author: str | None = None
+    version: str | None = None
 
 
 # Quiz Models
@@ -17,7 +17,7 @@ class QuizModel(BaseModel):
     transitions: dict[str, list[dict]]
     # Support new (variables) format only
     variables: dict[str, dict]
-    api_integrations: Optional[list[dict]] = None
+    api_integrations: list[dict | None] = None
 
 
 class QuizContentModel(BaseModel):
@@ -71,7 +71,7 @@ class AnswerRequestModel(BaseModel):
 class QuestionModel(BaseModel):
     id: int | None
     data: dict[str, Any] | None
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class SubmitAnswerResponseModel(BaseModel):
@@ -79,7 +79,7 @@ class SubmitAnswerResponseModel(BaseModel):
     user_id: str
     session_id: str
     title: str
-    question: Optional[QuestionModel] = None
+    question: QuestionModel | None = None
 
 
 # Result Models
@@ -101,7 +101,7 @@ class NextQuestionResponseModel(BaseModel):
     user_id: str
     session_id: str
     title: str
-    question: Optional[QuestionModel | None] = None
+    question: QuestionModel | None | None = None
 
 
 # User Models
@@ -111,7 +111,7 @@ class ParticipatedUsersResponseModel(BaseModel):
 
 # Config Models
 class ConfigPathResponseModel(BaseModel):
-    config_path: Optional[str] = None
+    config_path: str | None = None
     config_data: dict[str, Any]
 
 
@@ -144,7 +144,7 @@ class SessionDetailModel(BaseModel):
     quiz_id: str
     created_at: str
     updated_at: str
-    current_question_id: Optional[int] = None
+    current_question_id: int | None = None
     completed: bool = False
 
 

@@ -6,12 +6,11 @@ This module provides validation capabilities for quiz JSON structures to ensure:
 - Data types are correct
 - Expressions and conditions are valid
 - Quiz flow is properly defined
-- Variable definitions are valid (new format)
-- Backward compatibility with old 'scores' format
+- Variable definitions are valid
 """
 
 import json
-from typing import Dict, Any, List, Set
+from typing import Any
 from .safe_evaluator import SafeEvaluator
 from .variable_types import (
     VariableDefinition, VariableType, VariableTag, MutableBy,
@@ -75,28 +74,12 @@ class QuizJSONValidator:
             errors.append("Top-level JSON structure must be a dictionary.")
             return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
 
-        # Check for new vs old format
-        has_variables = "variables" in quiz_data
-        has_scores = "scores" in quiz_data
-
-        # Validate top-level keys (support both formats)
-        if has_variables:
-            required_keys = {"metadata", "variables", "questions", "transitions"}
-        else:
-            required_keys = {"metadata", "scores", "questions", "transitions"}
-
+        # Validate top-level keys (variables format only)
+        required_keys = {"metadata", "variables", "questions", "transitions"}
         missing_keys = required_keys - quiz_data.keys()
         if missing_keys:
             errors.append(f"Missing required top-level keys: {missing_keys}")
             return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
-
-        # Deprecation warning for old format
-        if has_scores and not has_variables:
-            warnings.append(
-                "DEPRECATED: Using old 'scores' format. "
-                "Please migrate to new 'variables' format with type definitions and tags. "
-                "See documentation for migration guide."
-            )
 
         # Validate and build variable definitions
         variable_definitions = {}
@@ -504,8 +487,8 @@ class QuizJSONValidator:
     @staticmethod
     def _auto_apply_constraints(
         var_type: VariableType,
-        mutable_by: List[MutableBy],
-        tags: Set[VariableTag]
+        mutable_by: list[MutableBy],
+        tags: set[VariableTag]
     ) -> VariableConstraints:
         """
         Auto-apply reasonable default constraints to prevent abuse.
@@ -726,7 +709,7 @@ class QuizJSONValidator:
         return (errors, warnings)
 
     @staticmethod
-    def _validate_permissions(quiz_data: dict, creator_tier: CreatorPermissionTier) -> List[str]:
+    def _validate_permissions(quiz_data: dict, creator_tier: CreatorPermissionTier) -> list[str]:
         """
         Validate that the creator's permission tier allows the features used in the quiz.
 

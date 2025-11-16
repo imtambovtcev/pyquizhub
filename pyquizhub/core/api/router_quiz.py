@@ -24,7 +24,6 @@ from pyquizhub.models import (
 )
 import uuid
 from datetime import datetime
-from typing import Dict
 import os
 from pyquizhub.logging.setup import get_logger
 

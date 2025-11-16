@@ -11,7 +11,7 @@ This module provides comprehensive input sanitization to prevent:
 """
 
 import re
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import quote_plus, quote
 from pyquizhub.logging.setup import get_logger
 
@@ -197,7 +197,7 @@ class InputSanitizer:
         return quote(str_value, safe='/')
 
     @staticmethod
-    def sanitize_dict(data: Dict[str, Any], max_depth: int = 10) -> Dict[str, Any]:
+    def sanitize_dict(data: dict[str, Any], max_depth: int = 10) -> dict[str, Any]:
         """
         Recursively sanitize dictionary values.
 

@@ -8,7 +8,7 @@ access to unauthorized operations.
 
 import ast
 import operator
-from typing import Any, Dict
+from typing import Any
 import logging
 from pyquizhub.logging.setup import get_logger
 
@@ -102,22 +102,12 @@ class SafeEvaluator:
             elif isinstance(node, ast.Subscript):
                 # Handle subscript access like 'api["weather"]' or 'results[0]'
                 value = _eval(node.value)
-                # Python 3.9+ uses ast.Constant for all constants
-                # ast.Index was removed in Python 3.9
-                try:
-                    # Python 3.8 compatibility - ast.Index exists
-                    if isinstance(node.slice, ast.Index):
-                        index = _eval(node.slice.value)
-                    else:
-                        index = _eval(node.slice)
-                except AttributeError:
-                    # Python 3.9+ - ast.Index doesn't exist
-                    index = _eval(node.slice)
+                # Python 3.9+ simplified - ast.Index removed, use node.slice directly
+                index = _eval(node.slice)
                 return value[index]
-            elif isinstance(node, ast.Constant):  # Python 3.8+ (replaces ast.Num, ast.Str, etc.)
+            elif isinstance(node, ast.Constant):
+                # Python 3.8+ - ast.Constant replaces ast.Num, ast.Str, etc.
                 return node.value
-            elif isinstance(node, (int, float, str, bool, type(None))):  # Fallback for direct values
-                return node
             elif isinstance(node, ast.Name):
                 # Handle JSON booleans: true/false
                 if node.id == "true":

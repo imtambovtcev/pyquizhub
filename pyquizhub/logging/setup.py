@@ -23,15 +23,15 @@ Usage:
 import logging
 import logging.config
 import os
-from typing import Dict, Any, Optional
+from typing import Any
 from pyquizhub.logging.log_manager import LogManager
 
 
 _logging_configured = False
-_log_manager: Optional[LogManager] = None
+_log_manager: LogManager | None = None
 
 
-def setup_logging(logging_config: Dict[str, Any]) -> None:
+def setup_logging(logging_config: dict[str, Any]) -> None:
     """
     Initialize logging system with configuration.
 
