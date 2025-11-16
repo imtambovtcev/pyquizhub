@@ -13,7 +13,7 @@ This module provides comprehensive input sanitization to prevent:
 import re
 from typing import Any, Dict
 from urllib.parse import quote_plus, quote
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 

@@ -18,7 +18,7 @@ from pyquizhub.core.engine.variable_types import (
     VariableTag
 )
 from pyquizhub.core.engine.url_validator import URLValidator, APIAllowlistManager
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 

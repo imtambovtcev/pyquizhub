@@ -28,7 +28,7 @@ from pyquizhub.models import (
 )
 from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_logic, get_quiz_logic, get_participated_users_logic, get_results_by_quiz_logic
 import os
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 from pyquizhub.core.storage.storage_manager import StorageManager
 
 logger = get_logger(__name__)

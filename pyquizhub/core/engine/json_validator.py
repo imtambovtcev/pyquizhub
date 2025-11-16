@@ -17,7 +17,7 @@ from .variable_types import (
     VariableDefinition, VariableType, VariableTag, MutableBy,
     VariableConstraints, VariableStore, CreatorPermissionTier
 )
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 

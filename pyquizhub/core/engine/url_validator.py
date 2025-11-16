@@ -14,7 +14,7 @@ import ipaddress
 import re
 from urllib.parse import urlparse, parse_qs
 from typing import Tuple, Optional
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 

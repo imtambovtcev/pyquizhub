@@ -20,7 +20,7 @@ import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from enum import Enum
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 
 class AuthType(str, Enum):

@@ -20,7 +20,7 @@ from typing import Optional, Dict, Any
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
 from .api_integration import APIIntegrationManager, RequestTiming
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 
 class QuizEngine:

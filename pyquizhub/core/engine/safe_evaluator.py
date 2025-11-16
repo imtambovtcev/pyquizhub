@@ -10,7 +10,7 @@ import ast
 import operator
 from typing import Any, Dict
 import logging
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -104,15 +104,20 @@ class SafeEvaluator:
                 value = _eval(node.value)
                 # Python 3.9+ uses ast.Constant for all constants
                 # ast.Index was removed in Python 3.9
-                if hasattr(ast, 'Index') and isinstance(node.slice, ast.Index):  # Python 3.8 compatibility
-                    index = _eval(node.slice.value)
-                else:  # Python 3.9+
+                try:
+                    # Python 3.8 compatibility - ast.Index exists
+                    if isinstance(node.slice, ast.Index):
+                        index = _eval(node.slice.value)
+                    else:
+                        index = _eval(node.slice)
+                except AttributeError:
+                    # Python 3.9+ - ast.Index doesn't exist
                     index = _eval(node.slice)
                 return value[index]
             elif isinstance(node, ast.Constant):  # Python 3.8+ (replaces ast.Num, ast.Str, etc.)
                 return node.value
-            elif hasattr(ast, 'Num') and isinstance(node, ast.Num):  # Python 3.8 backwards compatibility
-                return node.value  # Use node.value instead of deprecated node.n
+            elif isinstance(node, (int, float, str, bool, type(None))):  # Fallback for direct values
+                return node
             elif isinstance(node, ast.Name):
                 # Handle JSON booleans: true/false
                 if node.id == "true":
