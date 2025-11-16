@@ -1,0 +1,22 @@
+{
+  "simple_quiz": {
+    "quiz_id": "SIMPLEQUIZACQ7HE",
+    "token": "Q9UT24VVZARX7KL3"
+  },
+  "complex_weather_quiz": {
+    "quiz_id": "COMPLEXWEA6OLGA1",
+    "token": "XGNVHE6XV46ENDY8"
+  },
+  "joke_quiz_static_api": {
+    "quiz_id": "JOKEQUIZSTLRKN57",
+    "token": "FGP8S6U4HADCS3JV"
+  },
+  "joke_quiz_dynamic_api": {
+    "quiz_id": "JOKEQUIZDYVVWVN5",
+    "token": "15YQ2P16EC5RZVBC"
+  },
+  "python_knowledge_quiz": {
+    "quiz_id": "PYTHONPROGKZF9GA",
+    "token": "30B75A63P88079PS"
+  }
+}

@@ -1,148 +1,191 @@
 {
-    "metadata": {
-        "title": "Weather Prediction Quiz (New Format)",
-        "description": "Predict the temperature using the new variables system with tags!",
-        "author": "Variable System Demo",
-        "version": "2.0"
+  "metadata": {
+    "title": "Weather Prediction Quiz (New Format)",
+    "description": "Predict the temperature using the new variables system with tags!",
+    "author": "Variable System Demo",
+    "version": "2.0"
+  },
+  "variables": {
+    "user_prediction": {
+      "type": "float",
+      "mutable_by": [
+        "user",
+        "engine"
+      ],
+      "tags": [
+        "user_input",
+        "public"
+      ],
+      "description": "User's temperature prediction (displayed but not used in leaderboard)",
+      "constraints": {
+        "min_value": -50.0,
+        "max_value": 50.0
+      }
     },
-    "variables": {
-        "user_prediction": {
-            "type": "float",
-            "mutable_by": ["user", "engine"],
-            "tags": ["user_input", "public"],
-            "description": "User's temperature prediction (displayed but not used in leaderboard)",
-            "constraints": {
-                "min_value": -50.0,
-                "max_value": 50.0
-            }
-        },
-        "actual_temp": {
-            "type": "float",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "private"],
-            "description": "Actual temperature from weather API (type-validated)",
-            "constraints": {
-                "min_value": -100.0,
-                "max_value": 100.0
-            }
-        },
-        "accuracy_score": {
-            "type": "integer",
-            "mutable_by": ["engine"],
-            "tags": ["leaderboard"],
-            "description": "THE primary score for leaderboard ranking (0-100)",
-            "constraints": {
-                "min_value": 0,
-                "max_value": 100
-            }
-        },
-        "city_choice": {
-            "type": "string",
-            "mutable_by": ["user"],
-            "tags": ["user_input", "private"],
-            "description": "Selected city (safe for API use due to enum constraint)",
-            "constraints": {
-                "enum": ["berlin", "london", "paris", "tokyo"]
-            }
-        }
+    "actual_temp": {
+      "type": "float",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "private"
+      ],
+      "description": "Actual temperature from weather API (type-validated)",
+      "constraints": {
+        "min_value": -100.0,
+        "max_value": 100.0
+      }
     },
-    "api_integrations": [
-        {
-            "id": "temp",
-            "method": "GET",
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
-            "auth": {
-                "type": "none"
-            },
-            "extract_response": {
-                "variables": {
-                    "actual_temp": {
-                        "path": "current.temperature_2m",
-                        "type": "float"
-                    }
-                }
-            }
-        }
-    ],
-    "questions": [
-        {
-            "id": 1,
-            "data": {
-                "text": "What do you think the current temperature is in Berlin, Germany? (Enter temperature in °C)",
-                "type": "float",
-                "hint": "Think about the current season!"
-            },
-            "score_updates": [
-                {
-                    "condition": "true",
-                    "update": {
-                        "user_prediction": "answer"
-                    }
-                }
-            ]
-        },
-        {
-            "id": 2,
-            "data": {
-                "text": "Weather Results:\n\n🌡️  Your prediction: {variables.user_prediction}°C\n🌡️  Actual temperature: {variables.actual_temp}°C\n\n📊 Your accuracy score: {variables.accuracy_score}/100\n\nWould you like to try again?",
-                "type": "multiple_choice",
-                "options": [
-                    {"value": "yes", "label": "Yes, let me try again!"},
-                    {"value": "no", "label": "No, I'm done"}
-                ]
-            },
-            "score_updates": [
-                {
-                    "condition": "user_prediction >= actual_temp - 1 and user_prediction <= actual_temp + 1",
-                    "update": {
-                        "accuracy_score": "100"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 3 and user_prediction <= actual_temp + 3",
-                    "update": {
-                        "accuracy_score": "80"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 5 and user_prediction <= actual_temp + 5",
-                    "update": {
-                        "accuracy_score": "60"
-                    }
-                },
-                {
-                    "condition": "user_prediction >= actual_temp - 10 and user_prediction <= actual_temp + 10",
-                    "update": {
-                        "accuracy_score": "40"
-                    }
-                },
-                {
-                    "condition": "true",
-                    "update": {
-                        "accuracy_score": "20"
-                    }
-                }
-            ]
-        },
-        {
-            "id": 3,
-            "data": {
-                "text": "Final Results:\n\n🌡️  Your prediction: {variables.user_prediction}°C\n🌡️  Actual temperature: {variables.actual_temp}°C\n📊 Final accuracy score: {variables.accuracy_score}/100\n\nThank you for playing!",
-                "type": "text"
-            },
-            "score_updates": []
-        }
-    ],
-    "transitions": {
-        "1": [
-            {"expression": "true", "next_question_id": 2}
-        ],
-        "2": [
-            {"expression": "answer == 'yes'", "next_question_id": 1},
-            {"expression": "true", "next_question_id": 3}
-        ],
-        "3": [
-            {"expression": "true", "next_question_id": null}
+    "accuracy_score": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "leaderboard"
+      ],
+      "description": "THE primary score for leaderboard ranking (0-100)",
+      "constraints": {
+        "min_value": 0,
+        "max_value": 100
+      }
+    },
+    "city_choice": {
+      "type": "string",
+      "mutable_by": [
+        "user"
+      ],
+      "tags": [
+        "user_input",
+        "private"
+      ],
+      "description": "Selected city (safe for API use due to enum constraint)",
+      "constraints": {
+        "enum": [
+          "berlin",
+          "london",
+          "paris",
+          "tokyo"
         ]
+      }
     }
+  },
+  "api_integrations": [
+    {
+      "id": "temp",
+      "method": "GET",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
+      "extract_response": {
+        "variables": {
+          "actual_temp": {
+            "path": "current.temperature_2m",
+            "type": "float"
+          }
+        }
+      },
+      "authentication": {
+        "type": "none"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What do you think the current temperature is in Berlin, Germany? (Enter temperature in \u00b0C)",
+        "type": "float",
+        "hint": "Think about the current season!"
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "user_prediction": "answer"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "text": "Weather Results:\n\n\ud83c\udf21\ufe0f  Your prediction: {variables.user_prediction}\u00b0C\n\ud83c\udf21\ufe0f  Actual temperature: {variables.actual_temp}\u00b0C\n\n\ud83d\udcca Your accuracy score: {variables.accuracy_score}/100\n\nWould you like to try again?",
+        "type": "multiple_choice",
+        "options": [
+          {
+            "value": "yes",
+            "label": "Yes, let me try again!"
+          },
+          {
+            "value": "no",
+            "label": "No, I'm done"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "user_prediction >= actual_temp - 1 and user_prediction <= actual_temp + 1",
+          "update": {
+            "accuracy_score": "100"
+          }
+        },
+        {
+          "condition": "user_prediction >= actual_temp - 3 and user_prediction <= actual_temp + 3",
+          "update": {
+            "accuracy_score": "80"
+          }
+        },
+        {
+          "condition": "user_prediction >= actual_temp - 5 and user_prediction <= actual_temp + 5",
+          "update": {
+            "accuracy_score": "60"
+          }
+        },
+        {
+          "condition": "user_prediction >= actual_temp - 10 and user_prediction <= actual_temp + 10",
+          "update": {
+            "accuracy_score": "40"
+          }
+        },
+        {
+          "condition": "true",
+          "update": {
+            "accuracy_score": "20"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "data": {
+        "text": "Final Results:\n\n\ud83c\udf21\ufe0f  Your prediction: {variables.user_prediction}\u00b0C\n\ud83c\udf21\ufe0f  Actual temperature: {variables.actual_temp}\u00b0C\n\ud83d\udcca Final accuracy score: {variables.accuracy_score}/100\n\nThank you for playing!",
+        "type": "text"
+      },
+      "score_updates": []
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "answer == 'yes'",
+        "next_question_id": 1
+      },
+      {
+        "expression": "true",
+        "next_question_id": 3
+      }
+    ],
+    "3": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
 }

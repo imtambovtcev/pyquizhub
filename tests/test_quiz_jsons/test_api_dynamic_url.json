@@ -1,108 +1,156 @@
 {
-    "metadata": {
-        "title": "Dynamic API URL Test",
-        "description": "API integration with url_template - requires ADVANCED tier",
-        "author": "System Test",
-        "version": "2.0"
-    },
-    "variables": {
-        "city_code": {
-            "type": "string",
-            "mutable_by": ["user"],
-            "tags": ["user_input", "private"],
-            "description": "City code for weather lookup (enum makes it safe for API)",
-            "constraints": {
-                "enum": ["LON", "NYC", "TKY", "PAR", "BER"]
-            }
-        },
-        "units": {
-            "type": "string",
-            "mutable_by": ["engine"],
-            "tags": ["private"],
-            "description": "Temperature units",
-            "constraints": {
-                "enum": ["celsius", "fahrenheit"]
-            }
-        },
-        "temperature": {
-            "type": "float",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "public"],
-            "description": "Temperature from API"
-        },
-        "city_name": {
-            "type": "string",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "private"],
-            "description": "Full city name from API"
-        }
-    },
-    "api_integrations": [
-        {
-            "id": "city_weather",
-            "method": "GET",
-            "auth": {"type": "none"},
-            "prepare_request": {
-                "url_template": "https://api.example.com/weather/{variables.city_code}",
-                "required_variables": ["city_code", "units"],
-                "query_params": {
-                    "units": "{variables.units}",
-                    "format": "json"
-                },
-                "headers": {
-                    "Accept": "application/json"
-                }
-            },
-            "extract_response": {
-                "variables": {
-                    "temperature": {
-                        "path": "main.temp",
-                        "type": "float"
-                    },
-                    "city_name": {
-                        "path": "name",
-                        "type": "string"
-                    }
-                }
-            }
-        }
-    ],
-    "questions": [
-        {
-            "id": 1,
-            "data": {
-                "text": "Select a city to check weather:",
-                "type": "multiple_choice",
-                "options": [
-                    {"value": "LON", "label": "London"},
-                    {"value": "NYC", "label": "New York"},
-                    {"value": "TKY", "label": "Tokyo"}
-                ]
-            },
-            "score_updates": [
-                {
-                    "condition": "true",
-                    "update": {
-                        "city_code": "answer"
-                    }
-                }
-            ]
-        },
-        {
-            "id": 2,
-            "data": {
-                "text": "Weather in {variables.city_name}: {variables.temperature}°C",
-                "type": "text"
-            },
-            "score_updates": []
-        }
-    ],
-    "transitions": {
-        "1": [
-            {"expression": "true", "next_question_id": 2}
-        ],
-        "2": [
-            {"expression": "true", "next_question_id": null}
+  "metadata": {
+    "title": "Dynamic API URL Test",
+    "description": "API integration with url_template - requires ADVANCED tier",
+    "author": "System Test",
+    "version": "2.0"
+  },
+  "variables": {
+    "city_code": {
+      "type": "string",
+      "mutable_by": [
+        "user"
+      ],
+      "tags": [
+        "user_input",
+        "private"
+      ],
+      "description": "City code for weather lookup (enum makes it safe for API)",
+      "constraints": {
+        "enum": [
+          "LON",
+          "NYC",
+          "TKY",
+          "PAR",
+          "BER"
         ]
+      }
+    },
+    "units": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "private"
+      ],
+      "description": "Temperature units",
+      "constraints": {
+        "enum": [
+          "celsius",
+          "fahrenheit"
+        ]
+      }
+    },
+    "temperature": {
+      "type": "float",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "public"
+      ],
+      "description": "Temperature from API"
+    },
+    "city_name": {
+      "type": "string",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "private"
+      ],
+      "description": "Full city name from API"
     }
+  },
+  "api_integrations": [
+    {
+      "id": "city_weather",
+      "method": "GET",
+      "prepare_request": {
+        "url_template": "https://api.example.com/weather/{variables.city_code}",
+        "required_variables": [
+          "city_code",
+          "units"
+        ],
+        "query_params": {
+          "units": "{variables.units}",
+          "format": "json"
+        },
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "extract_response": {
+        "variables": {
+          "temperature": {
+            "path": "main.temp",
+            "type": "float"
+          },
+          "city_name": {
+            "path": "name",
+            "type": "string"
+          }
+        }
+      },
+      "authentication": {
+        "type": "none"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "Select a city to check weather:",
+        "type": "multiple_choice",
+        "options": [
+          {
+            "value": "LON",
+            "label": "London"
+          },
+          {
+            "value": "NYC",
+            "label": "New York"
+          },
+          {
+            "value": "TKY",
+            "label": "Tokyo"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "city_code": "answer"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "text": "Weather in {variables.city_name}: {variables.temperature}\u00b0C",
+        "type": "text"
+      },
+      "score_updates": []
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
 }

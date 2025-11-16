@@ -6,10 +6,11 @@ for the application. It supports configuration via a dictionary and ensures
 log directories are created if they do not exist.
 """
 
+from __future__ import annotations
+
 import logging
 import logging.config
 import os
-from typing import Optional
 
 
 class LogManager:
@@ -20,11 +21,11 @@ class LogManager:
     to retrieve logger instances by name.
 
     Attributes:
-        _instance (Optional[LogManager]): Singleton instance of LogManager
+        _instance (LogManager | None): Singleton instance of LogManager
         logger_settings (dict): Logging configuration settings
     """
 
-    _instance: Optional['LogManager'] = None
+    _instance: 'LogManager' | None = None
 
     def __init__(self, logger_settings: dict):
         """

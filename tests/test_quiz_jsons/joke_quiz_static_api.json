@@ -1,120 +1,165 @@
 {
-    "metadata": {
-        "title": "Joke Quiz - Static API",
-        "description": "A quiz that fetches ONE joke at the start and shows the same joke on loop",
-        "author": "Test - Static API Demo",
-        "version": "2.0",
-        "requires_api": true
+  "metadata": {
+    "title": "Joke Quiz - Static API",
+    "description": "A quiz that fetches ONE joke at the start and shows the same joke on loop",
+    "author": "Test - Static API Demo",
+    "version": "2.0",
+    "requires_api": true
+  },
+  "variables": {
+    "humor_score": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "score",
+        "public"
+      ],
+      "description": "Cumulative humor score from all ratings"
     },
-    "variables": {
-        "humor_score": {
-            "type": "integer",
-            "mutable_by": ["engine"],
-            "tags": ["score", "public"],
-            "description": "Cumulative humor score from all ratings"
-        },
-        "total_ratings": {
-            "type": "integer",
-            "mutable_by": ["engine"],
-            "tags": ["score", "public"],
-            "description": "Total number of joke ratings"
-        },
-        "joke_id": {
-            "type": "integer",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "private"],
-            "description": "Joke ID from API"
-        },
-        "joke_setup": {
-            "type": "string",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "private"],
-            "description": "Joke setup text"
-        },
-        "joke_punchline": {
-            "type": "string",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "private"],
-            "description": "Joke punchline text"
-        },
-        "user_rating": {
-            "type": "integer",
-            "mutable_by": ["user"],
-            "tags": ["user_input", "private"],
-            "description": "User's rating for the joke",
-            "constraints": {
-                "min_value": 1,
-                "max_value": 5
-            }
-        }
+    "total_ratings": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "score",
+        "public"
+      ],
+      "description": "Total number of joke ratings"
     },
-    "api_integrations": [
-        {
-            "id": "joke_api",
-            "timing": "on_quiz_start",
-            "method": "GET",
-            "url": "https://official-joke-api.appspot.com/random_joke",
-            "auth": {
-                "type": "none"
-            },
-            "extract_response": {
-                "variables": {
-                    "joke_id": {
-                        "path": "id",
-                        "type": "integer"
-                    },
-                    "joke_setup": {
-                        "path": "setup",
-                        "type": "string"
-                    },
-                    "joke_punchline": {
-                        "path": "punchline",
-                        "type": "string"
-                    }
-                }
-            }
-        }
-    ],
-    "questions": [
-        {
-            "id": 1,
-            "data": {
-                "text": "Here's a joke:\n\nSetup: {variables.joke_setup}\nPunchline: {variables.joke_punchline}\n\nHow funny is this joke? (1-5)",
-                "type": "integer",
-                "min": 1,
-                "max": 5
-            },
-            "score_updates": [
-                {
-                    "condition": "answer >= 1 and answer <= 5",
-                    "update": {
-                        "user_rating": "answer",
-                        "humor_score": "humor_score + answer",
-                        "total_ratings": "total_ratings + 1"
-                    }
-                }
-            ]
-        },
-        {
-            "id": 2,
-            "data": {
-                "text": "Would you like to hear another joke?",
-                "type": "multiple_choice",
-                "options": [
-                    {"value": "yes", "label": "Yes, tell me another!"},
-                    {"value": "no", "label": "No, that's enough"}
-                ]
-            },
-            "score_updates": []
-        }
-    ],
-    "transitions": {
-        "1": [
-            {"expression": "true", "next_question_id": 2}
-        ],
-        "2": [
-            {"expression": "answer == 'yes'", "next_question_id": 1},
-            {"expression": "true", "next_question_id": null}
-        ]
+    "joke_id": {
+      "type": "integer",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "private"
+      ],
+      "description": "Joke ID from API"
+    },
+    "joke_setup": {
+      "type": "string",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "private"
+      ],
+      "description": "Joke setup text"
+    },
+    "joke_punchline": {
+      "type": "string",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "private"
+      ],
+      "description": "Joke punchline text"
+    },
+    "user_rating": {
+      "type": "integer",
+      "mutable_by": [
+        "user"
+      ],
+      "tags": [
+        "user_input",
+        "private"
+      ],
+      "description": "User's rating for the joke",
+      "constraints": {
+        "min_value": 1,
+        "max_value": 5
+      }
     }
+  },
+  "api_integrations": [
+    {
+      "id": "joke_api",
+      "timing": "on_quiz_start",
+      "method": "GET",
+      "url": "https://official-joke-api.appspot.com/random_joke",
+      "extract_response": {
+        "variables": {
+          "joke_id": {
+            "path": "id",
+            "type": "integer"
+          },
+          "joke_setup": {
+            "path": "setup",
+            "type": "string"
+          },
+          "joke_punchline": {
+            "path": "punchline",
+            "type": "string"
+          }
+        }
+      },
+      "authentication": {
+        "type": "none"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "Here's a joke:\n\nSetup: {variables.joke_setup}\nPunchline: {variables.joke_punchline}\n\nHow funny is this joke? (1-5)",
+        "type": "integer",
+        "min": 1,
+        "max": 5
+      },
+      "score_updates": [
+        {
+          "condition": "answer >= 1 and answer <= 5",
+          "update": {
+            "user_rating": "answer",
+            "humor_score": "humor_score + answer",
+            "total_ratings": "total_ratings + 1"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "text": "Would you like to hear another joke?",
+        "type": "multiple_choice",
+        "options": [
+          {
+            "value": "yes",
+            "label": "Yes, tell me another!"
+          },
+          {
+            "value": "no",
+            "label": "No, that's enough"
+          }
+        ]
+      },
+      "score_updates": []
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "answer == 'yes'",
+        "next_question_id": 1
+      },
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
 }

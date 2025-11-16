@@ -13,8 +13,7 @@ import socket
 import ipaddress
 import re
 from urllib.parse import urlparse, parse_qs
-from typing import Tuple, Optional
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -261,7 +260,7 @@ class DNSValidator:
     def resolve_and_validate(
         hostname: str,
         check_ipv6: bool = True
-    ) -> Tuple[str, bool]:
+    ) -> tuple[str, bool]:
         """
         Resolve hostname and validate IP is not private.
 

@@ -5,10 +5,12 @@ This module defines the variable type system that replaces the old "scores" syst
 It provides strong typing, safety classification, and validation capabilities.
 """
 
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Set, Tuple
+from typing import Any, Literal, Union
 from dataclasses import dataclass, field
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -199,20 +201,20 @@ class VariableConstraints:
     """
 
     # Numeric constraints
-    min_value: Optional[Union[int, float]] = None
-    max_value: Optional[Union[int, float]] = None
+    min_value: Union[int, float | None] = None
+    max_value: Union[int, float | None] = None
 
     # String constraints
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    pattern: Optional[str] = None  # Regex pattern (validated against ReDoS)
-    enum: Optional[List[str]] = None  # Allowed values (makes string safe)
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None  # Regex pattern (validated against ReDoS)
+    enum: list[str | None] = None  # Allowed values (makes string safe)
 
     # Array constraints
-    min_items: Optional[int] = None
-    max_items: Optional[int] = None
+    min_items: int | None = None
+    max_items: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert constraints to dictionary, excluding None values."""
         return {
             k: v for k, v in {
@@ -228,7 +230,7 @@ class VariableConstraints:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'VariableConstraints':
+    def from_dict(cls, data: dict[str, Any]) -> 'VariableConstraints':
         """Create constraints from dictionary."""
         return cls(
             min_value=data.get("min_value"),
@@ -251,14 +253,14 @@ class FallbackConfig:
     """
 
     behavior: FallbackBehavior
-    default_value: Optional[Any] = None
-    reason_message: Optional[str] = None
+    default_value: Any | None = None
+    reason_message: str | None = None
 
     # For DEGRADE behavior
-    hide_questions: Optional[List[int]] = None
-    alternative_flow: Optional[Dict[str, int]] = None  # {"from": 4, "to": 7}
+    hide_questions: list[int | None] = None
+    alternative_flow: dict[str, int | None] = None  # {"from": 4, "to": 7}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         result = {"behavior": self.behavior.value}
 
@@ -274,7 +276,7 @@ class FallbackConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'FallbackConfig':
+    def from_dict(cls, data: dict[str, Any]) -> 'FallbackConfig':
         """Create from dictionary."""
         return cls(
             behavior=FallbackBehavior(data["behavior"]),
@@ -299,19 +301,18 @@ class VariableDefinition:
     name: str
     type: VariableType
     default: Any
-    mutable_by: List[MutableBy]
-    tags: Set[VariableTag] = field(default_factory=set)
-    description: Optional[str] = None
+    mutable_by: list[MutableBy]
+    tags: set[VariableTag] = field(default_factory=set)
+    description: str | None = None
 
     # Array type specification (required for arrays, must be homogeneous)
-    array_item_type: Optional[VariableType] = None
+    array_item_type: VariableType | None = None
 
     # Security and validation
-    constraints: Optional[VariableConstraints] = None
+    constraints: VariableConstraints | None = None
 
-    # Fallback configuration (for API-sourced variables, defined in API
-    # integration)
-    fallback: Optional[FallbackConfig] = None
+    # Fallback configuration (for API-sourced variables, defined in API integration)
+    fallback: FallbackConfig | None = None
 
     def __post_init__(self):
         """Validate variable definition and auto-apply tags."""
@@ -337,20 +338,18 @@ class VariableDefinition:
                     f"Variable '{self.name}' is type 'array' but missing 'array_item_type'. "
                     f"Arrays must specify the type of items they contain (all items must be same type)."
                 )
-            # Validate array_item_type is not ARRAY (no nested arrays for
-            # security)
+            # Validate array_item_type is not ARRAY (no nested arrays for security)
             if self.array_item_type == VariableType.ARRAY:
                 raise ValueError(
                     f"Variable '{self.name}' has array_item_type='array'. "
                     f"Nested arrays are not supported for security reasons."
                 )
         elif self.array_item_type:
-            # If array_item_type is specified but type is not array, that's an
-            # error
+            # If array_item_type is specified but type is not array, that's an error
             raise ValueError(
-                f"Variable '{
-                    self.name}' has array_item_type but type is '{
-                    self.type.value}'. " f"Only array variables can have array_item_type.")
+                f"Variable '{self.name}' has array_item_type but type is '{self.type.value}'. "
+                f"Only array variables can have array_item_type."
+            )
 
         # Convert tags list to set of VariableTag enums
         if isinstance(self.tags, (list, set)):
@@ -373,9 +372,9 @@ class VariableDefinition:
             # Leaderboard variable must be numeric
             if self.type not in (VariableType.INTEGER, VariableType.FLOAT):
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' has 'leaderboard' tag but type is {
-                        self.type.value}. " f"Leaderboard variable must be integer or float.")
+                    f"Variable '{self.name}' has 'leaderboard' tag but type is {self.type.value}. "
+                    f"Leaderboard variable must be integer or float."
+                )
             # LEADERBOARD automatically implies SCORE and PUBLIC
             self.tags.add(VariableTag.SCORE)
             self.tags.add(VariableTag.PUBLIC)
@@ -385,17 +384,14 @@ class VariableDefinition:
             # Scores must be numeric
             if self.type not in (VariableType.INTEGER, VariableType.FLOAT):
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' has 'score' tag but type is {
-                        self.type.value}. " f"Scores must be integer or float.")
+                    f"Variable '{self.name}' has 'score' tag but type is {self.type.value}. "
+                    f"Scores must be integer or float."
+                )
             # Scores are automatically public
             self.tags.add(VariableTag.PUBLIC)
 
         # Numeric types are automatically safe for API use
-        if self.type in (
-                VariableType.INTEGER,
-                VariableType.FLOAT,
-                VariableType.BOOLEAN):
+        if self.type in (VariableType.INTEGER, VariableType.FLOAT, VariableType.BOOLEAN):
             self.tags.add(VariableTag.SAFE_FOR_API)
 
         # Strings with enum constraints are safe for API use
@@ -410,10 +406,9 @@ class VariableDefinition:
             # Numeric types with min/max constraints are considered sanitized
             if self.type in (VariableType.INTEGER, VariableType.FLOAT):
                 if self.constraints and (self.constraints.min_value is not None or
-                                         self.constraints.max_value is not None):
+                                       self.constraints.max_value is not None):
                     self.tags.add(VariableTag.SANITIZED)
-            # User input strings are NOT safe for API unless they have enum
-            # constraint
+            # User input strings are NOT safe for API unless they have enum constraint
             elif self.type == VariableType.STRING:
                 if not (self.constraints and self.constraints.enum):
                     # Remove SAFE_FOR_API if it was added
@@ -428,14 +423,11 @@ class VariableDefinition:
         if VariableTag.IMMUTABLE in self.tags:
             if len(self.mutable_by) > 0:
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' has 'immutable' tag but mutable_by is not empty")
+                    f"Variable '{self.name}' has 'immutable' tag but mutable_by is not empty"
+                )
 
         # Default visibility: if no visibility tag, default to PRIVATE
-        visibility_tags = {
-            VariableTag.PUBLIC,
-            VariableTag.PRIVATE,
-            VariableTag.ADMIN_ONLY}
+        visibility_tags = {VariableTag.PUBLIC, VariableTag.PRIVATE, VariableTag.ADMIN_ONLY}
         if not self.tags & visibility_tags:
             self.tags.add(VariableTag.PRIVATE)
 
@@ -451,12 +443,12 @@ class VariableDefinition:
         # Can't be SAFE_FOR_API and UNTRUSTED (unless sanitized via enum)
         if (VariableTag.SAFE_FOR_API in self.tags and
             VariableTag.UNTRUSTED in self.tags and
-                VariableTag.SANITIZED not in self.tags):
+            VariableTag.SANITIZED not in self.tags):
             # This is allowed only if there's an enum constraint
             if not (self.constraints and self.constraints.enum):
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' cannot be SAFE_FOR_API and UNTRUSTED without sanitization")
+                    f"Variable '{self.name}' cannot be SAFE_FOR_API and UNTRUSTED without sanitization"
+                )
 
     def is_immutable(self) -> bool:
         """Check if variable is immutable."""
@@ -489,7 +481,7 @@ class VariableDefinition:
             return False
         return actor in self.mutable_by
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         result = {
             "name": self.name,
@@ -511,29 +503,20 @@ class VariableDefinition:
         return result
 
     @classmethod
-    def from_dict(cls,
-                  name: str,
-                  data: Dict[str,
-                             Any]) -> 'VariableDefinition':
+    def from_dict(cls, name: str, data: dict[str, Any]) -> 'VariableDefinition':
         """Create VariableDefinition from dictionary."""
         return cls(
             name=name,
-            type=VariableType(
-                data["type"]),
+            type=VariableType(data["type"]),
             default=data["default"],
-            mutable_by=[
-                MutableBy(m) for m in data["mutable_by"]],
-            tags={
-                VariableTag(t) for t in data.get(
-                    "tags",
-                    [])},
-            array_item_type=VariableType(
-                data["array_item_type"]) if "array_item_type" in data else None,
+            mutable_by=[MutableBy(m) for m in data["mutable_by"]],
+            tags={VariableTag(t) for t in data.get("tags", [])},
+            array_item_type=VariableType(data["array_item_type"]) if "array_item_type" in data else None,
             description=data.get("description"),
-            constraints=VariableConstraints.from_dict(
-                data["constraints"]) if "constraints" in data else None,
-            fallback=FallbackConfig.from_dict(
-                data["fallback"]) if "fallback" in data else None,
+            constraints=VariableConstraints.from_dict(data["constraints"])
+            if "constraints" in data else None,
+            fallback=FallbackConfig.from_dict(data["fallback"])
+            if "fallback" in data else None,
         )
 
 
@@ -544,7 +527,7 @@ class VariableStore:
     Provides type-safe get/set operations with validation.
     """
 
-    def __init__(self, definitions: Dict[str, VariableDefinition]):
+    def __init__(self, definitions: dict[str, VariableDefinition]):
         """
         Initialize variable store.
 
@@ -555,7 +538,7 @@ class VariableStore:
             ValueError: If multiple variables have LEADERBOARD tag
         """
         self.definitions = definitions
-        self.values: Dict[str, Any] = {}
+        self.values: dict[str, Any] = {}
 
         # Validate LEADERBOARD tag uniqueness
         leaderboard_vars = [
@@ -572,9 +555,7 @@ class VariableStore:
         for name, defn in definitions.items():
             self.values[name] = defn.default
 
-        logger.debug(
-            f"Initialized variable store with {
-                len(definitions)} variables")
+        logger.debug(f"Initialized variable store with {len(definitions)} variables")
 
     def get(self, name: str) -> Any:
         """
@@ -625,15 +606,9 @@ class VariableStore:
 
         # Set value
         self.values[name] = validated_value
-        logger.debug(
-            f"Set variable '{name}' = {validated_value} (by {
-                actor.value})")
+        logger.debug(f"Set variable '{name}' = {validated_value} (by {actor.value})")
 
-    def _validate_value(
-            self,
-            name: str,
-            value: Any,
-            defn: VariableDefinition) -> Any:
+    def _validate_value(self, name: str, value: Any, defn: VariableDefinition) -> Any:
         """
         Validate value against variable definition.
 
@@ -653,17 +628,13 @@ class VariableStore:
             try:
                 value = int(value)
             except (ValueError, TypeError):
-                raise ValueError(
-                    f"Variable '{name}' expects integer, got {
-                        type(value).__name__}")
+                raise ValueError(f"Variable '{name}' expects integer, got {type(value).__name__}")
 
         elif defn.type == VariableType.FLOAT:
             try:
                 value = float(value)
             except (ValueError, TypeError):
-                raise ValueError(
-                    f"Variable '{name}' expects float, got {
-                        type(value).__name__}")
+                raise ValueError(f"Variable '{name}' expects float, got {type(value).__name__}")
 
         elif defn.type == VariableType.BOOLEAN:
             if not isinstance(value, bool):
@@ -679,25 +650,18 @@ class VariableStore:
 
         elif defn.type == VariableType.ARRAY:
             if not isinstance(value, list):
-                raise ValueError(
-                    f"Variable '{name}' expects array, got {
-                        type(value).__name__}")
+                raise ValueError(f"Variable '{name}' expects array, got {type(value).__name__}")
             # Validate homogeneous array items
             if defn.array_item_type and len(value) > 0:
                 self._validate_array_items(name, value, defn.array_item_type)
 
         # Constraint validation
         if defn.constraints:
-            self._validate_constraints(
-                name, value, defn.constraints, defn.type)
+            self._validate_constraints(name, value, defn.constraints, defn.type)
 
         return value
 
-    def _validate_array_items(
-            self,
-            name: str,
-            value: list,
-            item_type: VariableType) -> None:
+    def _validate_array_items(self, name: str, value: list, item_type: VariableType) -> None:
         """
         Validate that all array items are of the same type (homogeneous array).
 
@@ -714,27 +678,24 @@ class VariableStore:
             if item_type == VariableType.INTEGER:
                 if not isinstance(item, int) or isinstance(item, bool):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be integer, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be integer, got {type(item).__name__}"
+                    )
             elif item_type == VariableType.FLOAT:
-                if not isinstance(
-                        item, (int, float)) or isinstance(
-                        item, bool):
+                if not isinstance(item, (int, float)) or isinstance(item, bool):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be float, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be float, got {type(item).__name__}"
+                    )
             elif item_type == VariableType.BOOLEAN:
                 if not isinstance(item, bool):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be boolean, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be boolean, got {type(item).__name__}"
+                    )
             elif item_type == VariableType.STRING:
                 if not isinstance(item, str):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be string, got {
-                            type(item).__name__}")
-            # ARRAY type not allowed as item_type (already validated in
-            # __post_init__)
+                        f"Variable '{name}' array item at index {idx} must be string, got {type(item).__name__}"
+                    )
+            # ARRAY type not allowed as item_type (already validated in __post_init__)
 
     def _validate_constraints(
         self,
@@ -759,61 +720,52 @@ class VariableStore:
         if var_type in (VariableType.INTEGER, VariableType.FLOAT):
             if constraints.min_value is not None and value < constraints.min_value:
                 raise ValueError(
-                    f"Variable '{name}' value {value} below minimum {
-                        constraints.min_value}")
+                    f"Variable '{name}' value {value} below minimum {constraints.min_value}"
+                )
             if constraints.max_value is not None and value > constraints.max_value:
                 raise ValueError(
-                    f"Variable '{name}' value {value} above maximum {
-                        constraints.max_value}")
+                    f"Variable '{name}' value {value} above maximum {constraints.max_value}"
+                )
 
         # String constraints
         if var_type == VariableType.STRING:
-            if constraints.min_length is not None and len(
-                    value) < constraints.min_length:
+            if constraints.min_length is not None and len(value) < constraints.min_length:
                 raise ValueError(
-                    f"Variable '{name}' length {
-                        len(value)} below minimum {
-                        constraints.min_length}")
-            if constraints.max_length is not None and len(
-                    value) > constraints.max_length:
+                    f"Variable '{name}' length {len(value)} below minimum {constraints.min_length}"
+                )
+            if constraints.max_length is not None and len(value) > constraints.max_length:
                 raise ValueError(
-                    f"Variable '{name}' length {
-                        len(value)} above maximum {
-                        constraints.max_length}")
+                    f"Variable '{name}' length {len(value)} above maximum {constraints.max_length}"
+                )
 
             # Enum validation (whitelist)
             if constraints.enum is not None:
                 if value not in constraints.enum:
                     raise ValueError(
-                        f"Variable '{name}' value '{value}' not in allowed values: {
-                            constraints.enum}")
+                        f"Variable '{name}' value '{value}' not in allowed values: {constraints.enum}"
+                    )
 
             # Pattern validation
             if constraints.pattern is not None:
                 import re
-                # Pattern should already be validated for ReDoS in variable
-                # definition
+                # Pattern should already be validated for ReDoS in variable definition
                 if not re.match(constraints.pattern, value):
                     raise ValueError(
-                        f"Variable '{name}' value '{value}' does not match pattern {
-                            constraints.pattern}")
+                        f"Variable '{name}' value '{value}' does not match pattern {constraints.pattern}"
+                    )
 
         # Array constraints
         if var_type == VariableType.ARRAY:
-            if constraints.min_items is not None and len(
-                    value) < constraints.min_items:
+            if constraints.min_items is not None and len(value) < constraints.min_items:
                 raise ValueError(
-                    f"Variable '{name}' has {
-                        len(value)} items, minimum {
-                        constraints.min_items}")
-            if constraints.max_items is not None and len(
-                    value) > constraints.max_items:
+                    f"Variable '{name}' has {len(value)} items, minimum {constraints.min_items}"
+                )
+            if constraints.max_items is not None and len(value) > constraints.max_items:
                 raise ValueError(
-                    f"Variable '{name}' has {
-                        len(value)} items, maximum {
-                        constraints.max_items}")
+                    f"Variable '{name}' has {len(value)} items, maximum {constraints.max_items}"
+                )
 
-    def get_all(self) -> Dict[str, Any]:
+    def get_all(self) -> dict[str, Any]:
         """Get all variable values."""
         return self.values.copy()
 
@@ -823,7 +775,7 @@ class VariableStore:
             return False
         return self.definitions[name].is_safe_for_api_use()
 
-    def get_by_tag(self, tag: VariableTag) -> Dict[str, Any]:
+    def get_by_tag(self, tag: VariableTag) -> dict[str, Any]:
         """
         Get all variables with a specific tag.
 
@@ -839,7 +791,7 @@ class VariableStore:
                 result[name] = self.values[name]
         return result
 
-    def get_scores(self) -> Dict[str, Union[int, float]]:
+    def get_scores(self) -> dict[str, Union[int, float]]:
         """
         Get all score variables (for leaderboards/analytics).
 
@@ -848,7 +800,7 @@ class VariableStore:
         """
         return self.get_by_tag(VariableTag.SCORE)
 
-    def get_public_variables(self) -> Dict[str, Any]:
+    def get_public_variables(self) -> dict[str, Any]:
         """
         Get all public variables (for display in results).
 
@@ -857,7 +809,7 @@ class VariableStore:
         """
         return self.get_by_tag(VariableTag.PUBLIC)
 
-    def get_leaderboard_score(self) -> Optional[Tuple[str, Union[int, float]]]:
+    def get_leaderboard_score(self) -> tuple[str, Union[int, float | None]]:
         """
         Get the leaderboard score variable (the primary score for ranking).
 

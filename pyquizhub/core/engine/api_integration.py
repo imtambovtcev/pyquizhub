@@ -15,12 +15,14 @@ Design Principles:
 - Resilient: Handle timeouts, errors, retries
 """
 
+from __future__ import annotations
+
 import requests
 import json
-from typing import Dict, Any, Optional, List
+from typing import Any
 from datetime import datetime, timedelta
 from enum import Enum
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 
 class AuthType(str, Enum):
@@ -61,10 +63,10 @@ class APIIntegrationManager:
 
     def execute_api_call(
         self,
-        api_config: Dict[str, Any],
-        session_state: Dict[str, Any],
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        api_config: dict[str, Any],
+        session_state: dict[str, Any],
+        context: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """
         Execute an API call and return updated session state.
 
@@ -135,8 +137,8 @@ class APIIntegrationManager:
 
     def _prepare_url(
         self,
-        api_config: Dict[str, Any],
-        context: Dict[str, Any]
+        api_config: dict[str, Any],
+        context: dict[str, Any]
     ) -> str:
         """
         Prepare request URL from either fixed url or prepare_request.url_template.
@@ -164,9 +166,9 @@ class APIIntegrationManager:
 
     def _prepare_headers(
         self,
-        api_config: Dict[str, Any],
-        session_state: Dict[str, Any]
-    ) -> Dict[str, str]:
+        api_config: dict[str, Any],
+        session_state: dict[str, Any]
+    ) -> dict[str, str]:
         """
         Prepare HTTP headers including authentication.
 
@@ -206,8 +208,8 @@ class APIIntegrationManager:
 
     def _get_api_credential(
         self,
-        auth_config: Dict[str, Any],
-        session_state: Dict[str, Any]
+        auth_config: dict[str, Any],
+        session_state: dict[str, Any]
     ) -> str:
         """
         Get API credential from config or session state.
@@ -238,8 +240,8 @@ class APIIntegrationManager:
 
     def _refresh_auth_if_needed(
         self,
-        api_config: Dict[str, Any],
-        session_state: Dict[str, Any]
+        api_config: dict[str, Any],
+        session_state: dict[str, Any]
     ) -> None:
         """
         Refresh OAuth2 token if needed.
@@ -270,8 +272,8 @@ class APIIntegrationManager:
 
     def _refresh_oauth_token(
         self,
-        auth_config: Dict[str, Any],
-        session_state: Dict[str, Any]
+        auth_config: dict[str, Any],
+        session_state: dict[str, Any]
     ) -> None:
         """
         Refresh OAuth2 access token.
@@ -314,9 +316,9 @@ class APIIntegrationManager:
 
     def _prepare_body(
         self,
-        api_config: Dict[str, Any],
-        context: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        api_config: dict[str, Any],
+        context: dict[str, Any]
+    ) -> dict[str, Any | None]:
         """
         Prepare request body from prepare_request.body_template.
 
@@ -341,7 +343,7 @@ class APIIntegrationManager:
 
         return None
 
-    def _render_template(self, template: str, context: Dict[str, Any]) -> str:
+    def _render_template(self, template: str, context: dict[str, Any]) -> str:
         """
         Render a string template with context variables.
 
@@ -363,9 +365,9 @@ class APIIntegrationManager:
 
     def _render_dict_template(
         self,
-        template: Dict[str, Any],
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        template: dict[str, Any],
+        context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Recursively render dictionary template.
 
@@ -396,8 +398,8 @@ class APIIntegrationManager:
         self,
         method: str,
         url: str,
-        headers: Dict[str, str],
-        body: Optional[Dict[str, Any]],
+        headers: dict[str, str],
+        body: dict[str, Any | None],
         timeout: int
     ) -> requests.Response:
         """
@@ -439,8 +441,8 @@ class APIIntegrationManager:
     def _process_response(
         self,
         response: requests.Response,
-        api_config: Dict[str, Any],
-        session_state: Dict[str, Any]
+        api_config: dict[str, Any],
+        session_state: dict[str, Any]
     ) -> Any:
         """
         Process API response and extract variables into session state.
@@ -504,7 +506,7 @@ class APIIntegrationManager:
 
     def get_api_data(
         self,
-        session_state: Dict[str, Any],
+        session_state: dict[str, Any],
         api_id: str,
         default: Any = None
     ) -> Any:

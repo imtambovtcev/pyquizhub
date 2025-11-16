@@ -13,14 +13,16 @@ The engine is completely stateless - it doesn't store any session data.
 All state is passed in and returned from methods.
 """
 
+from __future__ import annotations
+
 import json
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any
 
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
 from .api_integration import APIIntegrationManager, RequestTiming
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 
 class QuizEngine:
@@ -74,19 +76,22 @@ class QuizEngine:
             if quiz_data.get("scores") is None:
                 quiz_data["scores"] = {}
             for var_name, var_config in quiz_data["variables"].items():
-                # Initialize all variables with their default values (0 for
-                # numeric, "" for string, etc.)
-                var_type = var_config.get("type", "integer")
-                if var_type == "integer":
-                    quiz_data["scores"][var_name] = 0
-                elif var_type == "float":
-                    quiz_data["scores"][var_name] = 0.0
-                elif var_type == "string":
-                    quiz_data["scores"][var_name] = ""
-                elif var_type == "boolean":
-                    quiz_data["scores"][var_name] = False
-                elif var_type == "array":
-                    quiz_data["scores"][var_name] = []
+                # Use explicit default if provided, otherwise use type-based defaults
+                if "default" in var_config:
+                    quiz_data["scores"][var_name] = var_config["default"]
+                else:
+                    # Fallback to type-based defaults
+                    var_type = var_config.get("type", "integer")
+                    if var_type == "integer":
+                        quiz_data["scores"][var_name] = 0
+                    elif var_type == "float":
+                        quiz_data["scores"][var_name] = 0.0
+                    elif var_type == "string":
+                        quiz_data["scores"][var_name] = ""
+                    elif var_type == "boolean":
+                        quiz_data["scores"][var_name] = False
+                    elif var_type == "array":
+                        quiz_data["scores"][var_name] = []
         else:
             # Old format: just use scores
             if quiz_data.get("scores") is None:
@@ -118,7 +123,7 @@ class QuizEngine:
 
         initial_state = {
             "current_question_id": first_qs[0]["id"],
-            "scores": {key: 0 for key in self.quiz.get("scores", {}).keys()},
+            "scores": self.quiz.get("scores", {}).copy(),
             "answers": [],
             "completed": False,
             "api_data": {},
@@ -137,15 +142,14 @@ class QuizEngine:
         initial_state = self._execute_api_calls(
             initial_state,
             RequestTiming.BEFORE_QUESTION,
-            context={
-                "question_id": first_question_id,
-                **initial_state["scores"]},
-            question_id=first_question_id)
+            context={"question_id": first_question_id, **initial_state["scores"]},
+            question_id=first_question_id
+        )
 
         self.logger.info("Created initial quiz state")
         return initial_state
 
-    def get_current_question(self, state: dict) -> Optional[dict]:
+    def get_current_question(self, state: dict) -> dict | None:
         """
         Get current question from state.
 
@@ -253,8 +257,7 @@ class QuizEngine:
             }
             self.logger.debug(f"Eval context: {eval_context}")
             if SafeEvaluator.eval_expr(condition, eval_context):
-                for score_key, expr in condition_group.get(
-                        "update", {}).items():
+                for score_key, expr in condition_group.get("update", {}).items():
                     new_state["scores"][score_key] = SafeEvaluator.eval_expr(
                         expr, {
                             "answer": answer,
@@ -278,6 +281,31 @@ class QuizEngine:
 
         new_state["current_question_id"] = next_question_id
         new_state["completed"] = (next_question_id is None)
+
+        # Apply score_updates for final_message questions when transitioning to them
+        if next_question_id is not None:
+            next_question = next(
+                (q for q in self.quiz.get("questions", [])
+                 if q.get("id") == next_question_id),
+                None
+            )
+            if next_question and next_question.get("data", {}).get("type") == "final_message":
+                # Apply score_updates for final_message without requiring an answer
+                score_updates = next_question.get("score_updates", [])
+                for condition_group in score_updates:
+                    condition = condition_group.get("condition", "true")
+                    api_context = self._create_api_context(new_state)
+                    eval_context = {
+                        **new_state["scores"],
+                        "api": api_context
+                    }
+                    if SafeEvaluator.eval_expr(condition, eval_context):
+                        for score_key, expr in condition_group.get("update", {}).items():
+                            new_state["scores"][score_key] = SafeEvaluator.eval_expr(
+                                expr, {
+                                    **new_state["scores"],
+                                    "api": self._create_api_context(new_state)}
+                            )
 
         # Execute BEFORE_QUESTION API calls for next question
         if next_question_id is not None:
@@ -347,7 +375,7 @@ class QuizEngine:
             self,
             current_question_id: int,
             scores: dict,
-            answer: Any = None) -> Optional[int]:
+            answer: Any = None) -> int | None:
         """
         Determine next question based on transitions and scores.
 
@@ -366,20 +394,18 @@ class QuizEngine:
             expression = transition.get("expression", "true")
             next_question_id = transition.get("next_question_id")
             # Include answer in context for transition expressions
-            context = {
-                "answer": answer,
-                **scores} if answer is not None else scores
+            context = {"answer": answer, **scores} if answer is not None else scores
             if SafeEvaluator.eval_expr(expression, context):
                 return next_question_id
         return None
 
     def _execute_api_calls(
         self,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         timing: RequestTiming,
-        context: Dict[str, Any],
-        question_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+        context: dict[str, Any],
+        question_id: int | None = None
+    ) -> dict[str, Any]:
         """
         Execute API calls for the given timing.
 
@@ -418,7 +444,7 @@ class QuizEngine:
 
         return state
 
-    def _create_api_context(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_api_context(self, state: dict[str, Any]) -> dict[str, Any]:
         """
         Create API context for use in expressions.
 
@@ -448,8 +474,7 @@ class QuizEngine:
         self.logger.debug(f"Final API context: {api_context}")
         return api_context
 
-    def _apply_question_templating(
-            self, question: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_question_templating(self, question: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
         """
         Apply templating to question text by replacing placeholders.
 
@@ -480,8 +505,7 @@ class QuizEngine:
         api_placeholders = re.findall(r'\{api\.([^}]+)\}', question_text)
 
         for placeholder in api_placeholders:
-            # Split the placeholder into parts (e.g., "joke_api.setup" ->
-            # ["joke_api", "setup"])
+            # Split the placeholder into parts (e.g., "joke_api.setup" -> ["joke_api", "setup"])
             parts = placeholder.split('.')
             api_id = parts[0]
 
@@ -499,11 +523,9 @@ class QuizEngine:
                     f"{{api.{placeholder}}}",
                     str(value)
                 )
-                self.logger.debug(
-                    f"Replaced {{api.{placeholder}}} with {value}")
+                self.logger.debug(f"Replaced {{api.{placeholder}}} with {value}")
             else:
-                self.logger.warning(
-                    f"Could not resolve placeholder {{api.{placeholder}}}")
+                self.logger.warning(f"Could not resolve placeholder {{api.{placeholder}}}")
 
         # Find and replace {variables.var_name} placeholders
         var_placeholders = re.findall(r'\{variables\.([^}]+)\}', question_text)
@@ -519,10 +541,8 @@ class QuizEngine:
                     f"{{variables.{var_name}}}",
                     str(value)
                 )
-                self.logger.debug(
-                    f"Replaced {{variables.{var_name}}} with {value}")
+                self.logger.debug(f"Replaced {{variables.{var_name}}} with {value}")
             else:
-                self.logger.warning(
-                    f"Could not resolve variable placeholder {{variables.{var_name}}}")
+                self.logger.warning(f"Could not resolve variable placeholder {{variables.{var_name}}}")
 
         return templated_question

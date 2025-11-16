@@ -43,7 +43,7 @@ def start(ctx, user_id, token):
         request_data = StartQuizRequestModel(token=token, user_id=user_id)
         response = requests.post(
             f"{base_url}/quiz/start_quiz",
-            json=request_data.dict(),
+            json=request_data.model_dump(),
             headers=get_headers()
         )
         if response.status_code == 200:
@@ -147,7 +147,7 @@ def submit_answer(ctx, quiz_id, user_id, session_id, answer):
 
         response = requests.post(
             f"{base_url}/quiz/submit_answer/{quiz_id}",
-            json=answer_request.dict(),
+            json=answer_request.model_dump(),
             headers=get_headers()
         )
         if response.status_code == 200:

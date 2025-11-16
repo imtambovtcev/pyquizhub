@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -20,11 +20,8 @@ COPY pyquizhub ./pyquizhub
 RUN poetry config virtualenvs.create false && \
     poetry install --no-interaction --no-ansi --only main
 
-# Install additional Flask dependencies for admin web
-RUN pip install --no-cache-dir \
-    flask==3.0.0 \
-    flask-cors==4.0.0 \
-    requests==2.31.0
+# Note: Flask, flask-cors, and requests are already installed by poetry
+# No need to reinstall with pip (removes version conflict)
 
 # Copy admin web application
 COPY admin_web/ /app/admin_web/

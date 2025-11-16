@@ -25,7 +25,7 @@ from pyquizhub.models import (
     QuizResultResponseModel
 )
 from datetime import datetime
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 logger.debug("Loaded router_admin.py")
@@ -87,7 +87,7 @@ def create_quiz_logic(
     """
     logger.debug(f"Creating quiz with title: {request.quiz.metadata.title}")
     # Validate the quiz structure
-    validation_result = QuizJSONValidator.validate(request.quiz.dict())
+    validation_result = QuizJSONValidator.validate(request.quiz.model_dump())
     if validation_result["errors"]:
         logger.error(f"Quiz validation failed: {validation_result['errors']}")
         raise HTTPException(
@@ -95,7 +95,7 @@ def create_quiz_logic(
 
     # Generate an ID and store it
     quiz_id = generate_quiz_id(request.quiz.metadata.title)
-    quiz_data = request.quiz.dict()
+    quiz_data = request.quiz.model_dump()
     quiz_data["creator_id"] = request.creator_id
     storage_manager.add_quiz(quiz_id, quiz_data, request.creator_id)
 

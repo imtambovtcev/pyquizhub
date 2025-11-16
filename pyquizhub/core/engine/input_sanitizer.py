@@ -11,9 +11,9 @@ This module provides comprehensive input sanitization to prevent:
 """
 
 import re
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import quote_plus, quote
-from pyquizhub.config.settings import get_logger
+from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -30,8 +30,7 @@ class InputSanitizer:
         r"\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|TRUNCATE)\b",
         r"(--|#|/\*|\*/)",  # SQL comments
         r"(\bOR\b\s+[\w\d]+\s*=\s*[\w\d]+)",  # OR clauses
-        # AND clauses (including quoted)
-        r"(\bAND\b\s+[\w\d'\"]+\s*=\s*[\w\d'\"]+)",
+        r"(\bAND\b\s+[\w\d'\"]+\s*=\s*[\w\d'\"]+)",  # AND clauses (including quoted)
         r"(;.*--)",  # Statement terminator with comment
         r"(\bEXEC\s*\()",  # EXEC with parenthesis
         r"(xp_cmdshell|sp_executesql)",  # Dangerous SQL procedures
@@ -121,8 +120,7 @@ class InputSanitizer:
         if not allow_sql:
             for pattern in InputSanitizer.SQL_INJECTION_PATTERNS:
                 if re.search(pattern, value, re.IGNORECASE):
-                    logger.warning(
-                        f"Potential SQL injection detected: {pattern}")
+                    logger.warning(f"Potential SQL injection detected: {pattern}")
                     raise ValueError(
                         f"String contains potential SQL injection pattern"
                     )
@@ -140,8 +138,7 @@ class InputSanitizer:
         if not allow_shell:
             for pattern in InputSanitizer.COMMAND_INJECTION_PATTERNS:
                 if re.search(pattern, value):
-                    logger.warning(
-                        f"Potential command injection detected: {pattern}")
+                    logger.warning(f"Potential command injection detected: {pattern}")
                     raise ValueError(
                         f"String contains potential command injection pattern"
                     )
@@ -150,8 +147,7 @@ class InputSanitizer:
         if not allow_template:
             for pattern in InputSanitizer.TEMPLATE_INJECTION_PATTERNS:
                 if re.search(pattern, value):
-                    logger.warning(
-                        f"Potential template injection detected: {pattern}")
+                    logger.warning(f"Potential template injection detected: {pattern}")
                     raise ValueError(
                         f"String contains potential template injection pattern"
                     )
@@ -201,8 +197,7 @@ class InputSanitizer:
         return quote(str_value, safe='/')
 
     @staticmethod
-    def sanitize_dict(data: Dict[str, Any],
-                      max_depth: int = 10) -> Dict[str, Any]:
+    def sanitize_dict(data: dict[str, Any], max_depth: int = 10) -> dict[str, Any]:
         """
         Recursively sanitize dictionary values.
 
@@ -231,11 +226,9 @@ class InputSanitizer:
             if isinstance(value, str):
                 sanitized[key] = InputSanitizer.sanitize_string(value)
             elif isinstance(value, dict):
-                sanitized[key] = InputSanitizer.sanitize_dict(
-                    value, max_depth - 1)
+                sanitized[key] = InputSanitizer.sanitize_dict(value, max_depth - 1)
             elif isinstance(value, list):
-                sanitized[key] = InputSanitizer.sanitize_list(
-                    value, max_depth - 1)
+                sanitized[key] = InputSanitizer.sanitize_list(value, max_depth - 1)
             elif isinstance(value, (int, float, bool)) or value is None:
                 # Primitives are safe
                 sanitized[key] = value
@@ -268,13 +261,9 @@ class InputSanitizer:
             if isinstance(value, str):
                 sanitized.append(InputSanitizer.sanitize_string(value))
             elif isinstance(value, dict):
-                sanitized.append(
-                    InputSanitizer.sanitize_dict(
-                        value, max_depth - 1))
+                sanitized.append(InputSanitizer.sanitize_dict(value, max_depth - 1))
             elif isinstance(value, list):
-                sanitized.append(
-                    InputSanitizer.sanitize_list(
-                        value, max_depth - 1))
+                sanitized.append(InputSanitizer.sanitize_list(value, max_depth - 1))
             elif isinstance(value, (int, float, bool)) or value is None:
                 sanitized.append(value)
             else:
@@ -309,7 +298,8 @@ class InputSanitizer:
 
         if size_bytes > max_bytes:
             raise ValueError(
-                f"JSON response too large: {size_bytes} bytes > {max_bytes} bytes")
+                f"JSON response too large: {size_bytes} bytes > {max_bytes} bytes"
+            )
 
         # Sanitize based on type
         if isinstance(data, dict):
@@ -339,25 +329,20 @@ class InputSanitizer:
             ValueError: If pattern is potentially dangerous
         """
         if len(pattern) > max_length:
-            raise ValueError(
-                f"Regex pattern too long: {
-                    len(pattern)} > {max_length}")
+            raise ValueError(f"Regex pattern too long: {len(pattern)} > {max_length}")
 
         # Detect catastrophic backtracking patterns
         # Check for nested quantifiers like (a+)+, (a*)*, (a{2,5})*
         if re.search(r'\([^)]*[+*]\)[+*]', pattern):
-            raise ValueError(
-                "Regex pattern contains potential ReDoS: nested quantifiers")
+            raise ValueError("Regex pattern contains potential ReDoS: nested quantifiers")
 
         # Check for alternation with quantifiers like (a|ab)*
         if re.search(r'\([^)]*\|[^)]*\)[+*]', pattern):
-            raise ValueError(
-                "Regex pattern contains potential ReDoS: alternation with quantifiers")
+            raise ValueError("Regex pattern contains potential ReDoS: alternation with quantifiers")
 
         # Check for backreference with quantifiers
         if re.search(r'\\[0-9]\+', pattern):
-            raise ValueError(
-                "Regex pattern contains potential ReDoS: backreference with quantifier")
+            raise ValueError("Regex pattern contains potential ReDoS: backreference with quantifier")
 
         # Try to compile to check validity
         try:
