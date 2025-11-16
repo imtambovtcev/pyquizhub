@@ -66,7 +66,8 @@ for answer_value in correct_answers:
         result = response.json()
         question_data = result.get("question", {})
 
-        if question_data and question_data.get("data", {}).get("type") == "final_message":
+        if question_data and question_data.get(
+                "data", {}).get("type") == "final_message":
             print("✅ Reached final message!")
             final_text = question_data["data"]["text"]
             print("\n" + "=" * 60)

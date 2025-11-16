@@ -9,7 +9,10 @@ import requests
 from pathlib import Path
 
 API_URL = "http://localhost:8000"
-ADMIN_TOKEN = os.getenv("PYQUIZHUB_ADMIN_TOKEN", "your-secret-admin-token-here")
+ADMIN_TOKEN = os.getenv(
+    "PYQUIZHUB_ADMIN_TOKEN",
+    "your-secret-admin-token-here")
+
 
 def upload_quiz(quiz_file_path):
     """Upload a single quiz to the API"""
@@ -74,6 +77,7 @@ def upload_quiz(quiz_file_path):
     finally:
         print("")
 
+
 def main():
     print("🚀 Uploading quizzes to PyQuizHub...")
     print(f"API URL: {API_URL}\n")
@@ -127,6 +131,7 @@ def main():
         json.dump(quizzes_uploaded, f, indent=2)
     print(f"\n💾 Quiz information saved to quiz_tokens.json")
     print("\n🎉 Done!")
+
 
 if __name__ == "__main__":
     main()
