@@ -107,7 +107,8 @@ class SafeEvaluator:
             elif isinstance(node, ast.Subscript):
                 # Handle subscript access like 'api["weather"]' or 'results[0]'
                 value = _eval(node.value)
-                # Python 3.9+ simplified - ast.Index removed, use node.slice directly
+                # Python 3.9+ simplified - ast.Index removed, use node.slice
+                # directly
                 index = _eval(node.slice)
                 return value[index]
             elif isinstance(node, ast.Constant):
