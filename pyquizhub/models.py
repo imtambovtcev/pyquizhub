@@ -19,7 +19,7 @@ class QuizModel(BaseModel):
     transitions: dict[str, list[dict]]
     # Support new (variables) format only
     variables: dict[str, dict]
-    api_integrations: list[dict | None] = None
+    api_integrations: list[dict] | None = None
 
 
 class QuizContentModel(BaseModel):

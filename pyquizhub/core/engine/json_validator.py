@@ -74,33 +74,60 @@ class QuizJSONValidator:
             errors.append("Top-level JSON structure must be a dictionary.")
             return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
 
-        # Validate top-level keys (variables format only)
-        required_keys = {"metadata", "variables", "questions", "transitions"}
-        missing_keys = required_keys - quiz_data.keys()
-        if missing_keys:
-            errors.append(f"Missing required top-level keys: {missing_keys}")
+        # Check which format: new "variables" or old "scores"
+        has_variables = "variables" in quiz_data
+        has_scores = "scores" in quiz_data
+
+        # Validate top-level keys
+        if has_variables:
+            # NEW FORMAT
+            required_keys = {"metadata", "variables", "questions", "transitions"}
+            missing_keys = required_keys - quiz_data.keys()
+            if missing_keys:
+                errors.append(f"Missing required top-level keys: {missing_keys}")
+                return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
+        elif has_scores:
+            # OLD FORMAT - still supported but deprecated
+            warnings.append("DEPRECATED: Using old 'scores' format. Please migrate to 'variables' format.")
+            required_keys = {"metadata", "scores", "questions", "transitions"}
+            missing_keys = required_keys - quiz_data.keys()
+            if missing_keys:
+                errors.append(f"Missing required top-level keys: {missing_keys}")
+                return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
+        else:
+            errors.append("Missing required top-level keys: {'variables'}")
             return {"errors": errors, "warnings": warnings, "permission_errors": permission_errors}
 
         # Validate and build variable definitions
         variable_definitions = {}
         default_variables = {}
 
-        # Validate variables field
-        var_errors, var_warnings, variable_definitions = QuizJSONValidator._validate_variables(
-            quiz_data.get("variables", {})
-        )
-        errors.extend(var_errors)
-        warnings.extend(var_warnings)
+        if has_variables:
+            # NEW FORMAT: Validate variables field
+            var_errors, var_warnings, variable_definitions = QuizJSONValidator._validate_variables(
+                quiz_data.get("variables", {})
+            )
+            errors.extend(var_errors)
+            warnings.extend(var_warnings)
 
-        # Build default values for expression validation
-        for var_name, var_def in variable_definitions.items():
-            default_variables[var_name] = var_def.default
+            # Build default values for expression validation
+            for var_name, var_def in variable_definitions.items():
+                default_variables[var_name] = var_def.default
+        else:
+            # OLD FORMAT: Validate scores field
+            if not isinstance(quiz_data["scores"], dict):
+                errors.append("The 'scores' field must be a dictionary.")
+            elif "answer" in quiz_data["scores"]:
+                errors.append(
+                    "The 'scores' field must not contain the special variable 'answer'."
+                )
+            default_variables = quiz_data.get("scores", {}).copy()
 
         # Validate API integrations structure if present
         if "api_integrations" in quiz_data and quiz_data["api_integrations"]:
             api_errors, api_warnings = QuizJSONValidator._validate_api_integrations(
                 quiz_data["api_integrations"],
-                variable_definitions
+                variable_definitions if has_variables else {}
             )
             errors.extend(api_errors)
             warnings.extend(api_warnings)
