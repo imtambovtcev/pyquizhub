@@ -1,103 +1,128 @@
 {
-    "metadata": {
-        "title": "Weather Quiz",
-        "description": "A quiz that uses real-time weather data from an external API",
-        "author": "API Integration Demo",
-        "version": "2.0",
-        "requires_api": true
+  "metadata": {
+    "title": "Weather Quiz",
+    "description": "A quiz that uses real-time weather data from an external API",
+    "author": "API Integration Demo",
+    "version": "2.0",
+    "requires_api": true
+  },
+  "variables": {
+    "correct_answers": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "score",
+        "public"
+      ],
+      "description": "Number of correct answers"
     },
-    "variables": {
-        "correct_answers": {
-            "type": "integer",
-            "mutable_by": ["engine"],
-            "tags": ["score", "public"],
-            "description": "Number of correct answers"
-        },
-        "current_temperature": {
-            "type": "float",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "private"],
-            "description": "Current temperature from weather API",
-            "constraints": {
-                "min_value": -100.0,
-                "max_value": 100.0
-            }
-        }
-    },
-    "api_integrations": [
-        {
-            "id": "weather",
-            "method": "GET",
-            "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
-            "auth": {
-                "type": "none"
-            },
-            "extract_response": {
-                "variables": {
-                    "current_temperature": {
-                        "path": "current.temperature_2m",
-                        "type": "float"
-                    }
-                }
-            }
-        }
-    ],
-    "questions": [
-        {
-            "id": 1,
-            "data": {
-                "text": "What is the current temperature in Berlin (°C)? Guess within ±5°C to earn a point!",
-                "type": "float",
-                "hint": "Check the weather forecast online if you need help!"
-            },
-            "score_updates": [
-                {
-                    "condition": "answer >= (current_temperature - 5) and answer <= (current_temperature + 5)",
-                    "update": {
-                        "correct_answers": "correct_answers + 1"
-                    }
-                }
-            ]
-        },
-        {
-            "id": 2,
-            "data": {
-                "text": "Based on the temperature ({variables.current_temperature}°C), would you say it's cold (< 10°C), mild (10-20°C), or warm (> 20°C)?",
-                "type": "multiple_choice",
-                "options": [
-                    {"value": "cold", "label": "Cold (< 10°C)"},
-                    {"value": "mild", "label": "Mild (10-20°C)"},
-                    {"value": "warm", "label": "Warm (> 20°C)"}
-                ]
-            },
-            "score_updates": [
-                {
-                    "condition": "answer == 'cold' and current_temperature < 10",
-                    "update": {
-                        "correct_answers": "correct_answers + 1"
-                    }
-                },
-                {
-                    "condition": "answer == 'mild' and current_temperature >= 10 and current_temperature <= 20",
-                    "update": {
-                        "correct_answers": "correct_answers + 1"
-                    }
-                },
-                {
-                    "condition": "answer == 'warm' and current_temperature > 20",
-                    "update": {
-                        "correct_answers": "correct_answers + 1"
-                    }
-                }
-            ]
-        }
-    ],
-    "transitions": {
-        "1": [
-            {"expression": "true", "next_question_id": 2}
-        ],
-        "2": [
-            {"expression": "true", "next_question_id": null}
-        ]
+    "current_temperature": {
+      "type": "float",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "private"
+      ],
+      "description": "Current temperature from weather API",
+      "constraints": {
+        "min_value": -100.0,
+        "max_value": 100.0
+      }
     }
+  },
+  "api_integrations": [
+    {
+      "id": "weather",
+      "method": "GET",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
+      "extract_response": {
+        "variables": {
+          "current_temperature": {
+            "path": "current.temperature_2m",
+            "type": "float"
+          }
+        }
+      },
+      "authentication": {
+        "type": "none"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What is the current temperature in Berlin (\u00b0C)? Guess within \u00b15\u00b0C to earn a point!",
+        "type": "float",
+        "hint": "Check the weather forecast online if you need help!"
+      },
+      "score_updates": [
+        {
+          "condition": "answer >= (current_temperature - 5) and answer <= (current_temperature + 5)",
+          "update": {
+            "correct_answers": "correct_answers + 1"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "text": "Based on the temperature ({variables.current_temperature}\u00b0C), would you say it's cold (< 10\u00b0C), mild (10-20\u00b0C), or warm (> 20\u00b0C)?",
+        "type": "multiple_choice",
+        "options": [
+          {
+            "value": "cold",
+            "label": "Cold (< 10\u00b0C)"
+          },
+          {
+            "value": "mild",
+            "label": "Mild (10-20\u00b0C)"
+          },
+          {
+            "value": "warm",
+            "label": "Warm (> 20\u00b0C)"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'cold' and current_temperature < 10",
+          "update": {
+            "correct_answers": "correct_answers + 1"
+          }
+        },
+        {
+          "condition": "answer == 'mild' and current_temperature >= 10 and current_temperature <= 20",
+          "update": {
+            "correct_answers": "correct_answers + 1"
+          }
+        },
+        {
+          "condition": "answer == 'warm' and current_temperature > 20",
+          "update": {
+            "correct_answers": "correct_answers + 1"
+          }
+        }
+      ]
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
 }

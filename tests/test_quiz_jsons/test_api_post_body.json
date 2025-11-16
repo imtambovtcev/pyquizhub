@@ -1,110 +1,138 @@
 {
-    "metadata": {
-        "title": "POST API with Body Test",
-        "description": "API integration with POST and body_template - requires ADVANCED tier",
-        "author": "System Test",
-        "version": "2.0"
+  "metadata": {
+    "title": "POST API with Body Test",
+    "description": "API integration with POST and body_template - requires ADVANCED tier",
+    "author": "System Test",
+    "version": "2.0"
+  },
+  "variables": {
+    "search_query": {
+      "type": "string",
+      "mutable_by": [
+        "user"
+      ],
+      "tags": [
+        "user_input",
+        "private"
+      ],
+      "description": "Search term (free text, NOT safe for API URL but OK in body after sanitization)"
     },
-    "variables": {
-        "search_query": {
-            "type": "string",
-            "mutable_by": ["user"],
-            "tags": ["user_input", "private"],
-            "description": "Search term (free text, NOT safe for API URL but OK in body after sanitization)"
-        },
-        "max_results": {
-            "type": "integer",
-            "mutable_by": ["engine"],
-            "tags": ["private"],
-            "description": "Maximum results to return (numeric, safe for API)",
-            "constraints": {
-                "min_value": 1,
-                "max_value": 100
-            }
-        },
-        "result_count": {
-            "type": "integer",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "public"],
-            "description": "Total results found"
-        },
-        "top_result": {
-            "type": "string",
-            "mutable_by": ["api"],
-            "tags": ["api_data", "public"],
-            "description": "Title of top result"
-        }
+    "max_results": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "private"
+      ],
+      "description": "Maximum results to return (numeric, safe for API)",
+      "constraints": {
+        "min_value": 1,
+        "max_value": 100
+      }
     },
-    "api_integrations": [
-        {
-            "id": "search",
-            "method": "POST",
-            "url": "https://api.example.com/search",
-            "auth": {
-                "type": "bearer",
-                "token": "test_token_placeholder"
-            },
-            "prepare_request": {
-                "required_variables": ["search_query", "max_results"],
-                "body_template": {
-                    "query": "{variables.search_query}",
-                    "limit": "{variables.max_results}",
-                    "filters": {
-                        "type": "article",
-                        "language": "en"
-                    }
-                },
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                }
-            },
-            "extract_response": {
-                "variables": {
-                    "result_count": {
-                        "path": "meta.total",
-                        "type": "integer"
-                    },
-                    "top_result": {
-                        "path": "results[0].title",
-                        "type": "string"
-                    }
-                }
-            }
-        }
-    ],
-    "questions": [
-        {
-            "id": 1,
-            "data": {
-                "text": "Enter your search query:",
-                "type": "text"
-            },
-            "score_updates": [
-                {
-                    "condition": "true",
-                    "update": {
-                        "search_query": "answer",
-                        "max_results": "10"
-                    }
-                }
-            ]
-        },
-        {
-            "id": 2,
-            "data": {
-                "text": "Found {variables.result_count} results. Top result: {variables.top_result}",
-                "type": "text"
-            },
-            "score_updates": []
-        }
-    ],
-    "transitions": {
-        "1": [
-            {"expression": "true", "next_question_id": 2}
-        ],
-        "2": [
-            {"expression": "true", "next_question_id": null}
-        ]
+    "result_count": {
+      "type": "integer",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "public"
+      ],
+      "description": "Total results found"
+    },
+    "top_result": {
+      "type": "string",
+      "mutable_by": [
+        "api"
+      ],
+      "tags": [
+        "api_data",
+        "public"
+      ],
+      "description": "Title of top result"
     }
+  },
+  "api_integrations": [
+    {
+      "id": "search",
+      "method": "POST",
+      "url": "https://api.example.com/search",
+      "prepare_request": {
+        "required_variables": [
+          "search_query",
+          "max_results"
+        ],
+        "body_template": {
+          "query": "{variables.search_query}",
+          "limit": "{variables.max_results}",
+          "filters": {
+            "type": "article",
+            "language": "en"
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        }
+      },
+      "extract_response": {
+        "variables": {
+          "result_count": {
+            "path": "meta.total",
+            "type": "integer"
+          },
+          "top_result": {
+            "path": "results[0].title",
+            "type": "string"
+          }
+        }
+      },
+      "authentication": {
+        "type": "bearer",
+        "token": "test_token_placeholder"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "Enter your search query:",
+        "type": "text"
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "search_query": "answer",
+            "max_results": "10"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "text": "Found {variables.result_count} results. Top result: {variables.top_result}",
+        "type": "text"
+      },
+      "score_updates": []
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
 }

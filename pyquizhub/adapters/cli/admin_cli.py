@@ -49,7 +49,7 @@ def add(ctx, file, creator_id):
             quiz=quiz_data, creator_id=creator_id)
         response = requests.post(
             f"{base_url}/admin/create_quiz",
-            json=request_data.dict(),
+            json=request_data.model_dump(),
             headers=get_headers(),
         )
         if response.status_code == 200:
@@ -80,7 +80,7 @@ def token(ctx, quiz_id, token_type):
         request_data = TokenRequestModel(quiz_id=quiz_id, type=token_type)
         response = requests.post(
             f"{base_url}/admin/generate_token",
-            json=request_data.dict(),
+            json=request_data.model_dump(),
             headers=get_headers())
         if response.status_code == 200:
             response_data = TokenResponseModel(**response.json())

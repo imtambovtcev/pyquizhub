@@ -47,7 +47,7 @@ PyQuizHub now supports integration with external REST APIs, enabling quizzes to:
             "timing": "on_quiz_start",
             "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
             "method": "GET",
-            "auth": {"type": "none"},
+            "authentication": {"type": "none"},
             "response_path": "current.temperature_2m"
         }
     ],
@@ -81,7 +81,7 @@ Each API integration has the following structure:
     "timing": "when_to_execute",
     "url": "https://api.example.com/endpoint",
     "method": "GET|POST|PUT|DELETE|PATCH",
-    "auth": { /* authentication config */ },
+    "authentication": { /* authentication config */ },
     "headers": { /* additional headers */ },
     "body": { /* request body template */ },
     "response_path": "path.to.data",
@@ -118,7 +118,7 @@ This API call will only execute before question 2.
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "none"
     }
 }
@@ -128,7 +128,7 @@ This API call will only execute before question 2.
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "api_key",
         "key_name": "X-API-Key",
         "credential": "your-api-key-here"
@@ -140,7 +140,7 @@ This API call will only execute before question 2.
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "bearer",
         "credential": "your-bearer-token"
     }
@@ -151,7 +151,7 @@ This API call will only execute before question 2.
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "basic",
         "username": "your-username",
         "credential": "your-password"
@@ -163,7 +163,7 @@ This API call will only execute before question 2.
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "oauth2",
         "id": "oauth_service",
         "token_url": "https://oauth.example.com/token",
@@ -326,7 +326,7 @@ Result: `22.5` (accessible as `api.weather` if id is "weather")
             "timing": "on_quiz_start",
             "url": "https://api.stockservice.com/auth",
             "method": "POST",
-            "auth": {
+            "authentication": {
                 "type": "basic",
                 "username": "api_user",
                 "credential": "api_password"
@@ -339,7 +339,7 @@ Result: `22.5` (accessible as `api.weather` if id is "weather")
             "question_id": 1,
             "url": "https://api.stockservice.com/v1/price/AAPL",
             "method": "GET",
-            "auth": {
+            "authentication": {
                 "type": "bearer",
                 "credential": "{api.auth}"
             },
@@ -351,7 +351,7 @@ Result: `22.5` (accessible as `api.weather` if id is "weather")
             "question_id": 1,
             "url": "https://api.stockservice.com/v1/predictions",
             "method": "POST",
-            "auth": {
+            "authentication": {
                 "type": "bearer",
                 "credential": "{api.auth}"
             },
@@ -439,7 +439,7 @@ Sessions can be resumed after any time period (seconds, days, years):
 ❌ **Don't** store credentials in plain text:
 ```json
 {
-    "auth": {
+    "authentication": {
         "credential": "my-secret-key"
     }
 }

@@ -102,15 +102,17 @@ class SafeEvaluator:
             elif isinstance(node, ast.Subscript):
                 # Handle subscript access like 'api["weather"]' or 'results[0]'
                 value = _eval(node.value)
-                if isinstance(node.slice, ast.Index):  # Python 3.8
+                # Python 3.9+ uses ast.Constant for all constants
+                # ast.Index was removed in Python 3.9
+                if hasattr(ast, 'Index') and isinstance(node.slice, ast.Index):  # Python 3.8 compatibility
                     index = _eval(node.slice.value)
                 else:  # Python 3.9+
                     index = _eval(node.slice)
                 return value[index]
-            elif isinstance(node, ast.Num):  # For Python 3.8 and earlier
-                return node.n
-            elif isinstance(node, ast.Constant):  # For Python 3.9+
+            elif isinstance(node, ast.Constant):  # Python 3.8+ (replaces ast.Num, ast.Str, etc.)
                 return node.value
+            elif hasattr(ast, 'Num') and isinstance(node, ast.Num):  # Python 3.8 backwards compatibility
+                return node.value  # Use node.value instead of deprecated node.n
             elif isinstance(node, ast.Name):
                 # Handle JSON booleans: true/false
                 if node.id == "true":

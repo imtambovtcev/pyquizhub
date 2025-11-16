@@ -90,7 +90,7 @@ class TestQuizEngine:
             quiz_id=self.quiz_id, type="permanent")
         response = api_client.post(
             "/admin/generate_token",
-            json=request_data.dict(),
+            json=request_data.model_dump(),
             headers=admin_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         TestQuizEngine.token = response.json()["token"]
@@ -114,7 +114,7 @@ class TestQuizEngine:
             token=self.token, user_id=self.user_id)
         response = api_client.post(
             f"/quiz/start_quiz",
-            json=request_data.dict(),
+            json=request_data.model_dump(),
             headers=user_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
@@ -133,14 +133,14 @@ class TestQuizEngine:
             answer={"answer": "yes"}
         )
         response = api_client.post(
-            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request.dict(), headers=user_headers)
+            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request.model_dump(), headers=user_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
         assert "question" in data, "Response should include next question"
         assert data["question"]['id'] == 2
         # pear question
         response = api_client.post(
-            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request.dict(), headers=user_headers)
+            f"/quiz/submit_answer/{self.quiz_id}", json=answer_request.model_dump(), headers=user_headers)
         assert response.status_code == 200, f"Unexpected status code: {response.status_code}, detail: {response.json()}"
         data = response.json()
 

@@ -184,7 +184,7 @@ Defines external API calls to fetch data during the quiz. New in v2.0!
             "timing": "on_quiz_start",
             "url": "https://api.weather.com/current",
             "method": "GET",
-            "auth": {
+            "authentication": {
                 "type": "none"
             },
             "response_path": "temperature"
@@ -497,7 +497,7 @@ API integrations allow quizzes to fetch data from external REST APIs. This enabl
     "question_id": 1,
     "url": "https://api.example.com/data",
     "method": "GET",
-    "auth": {
+    "authentication": {
         "type": "bearer",
         "credential": "your_token_here"
     },
@@ -611,7 +611,7 @@ Supported methods: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "none"
     }
 }
@@ -623,7 +623,7 @@ Supported methods: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "api_key",
         "key_name": "X-API-Key",
         "credential": "your_api_key_here"
@@ -639,7 +639,7 @@ The API key is added to request headers: `X-API-Key: your_api_key_here`
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "bearer",
         "credential": "your_bearer_token"
     }
@@ -654,7 +654,7 @@ Adds header: `Authorization: Bearer your_bearer_token`
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "basic",
         "username": "user",
         "password": "pass"
@@ -670,7 +670,7 @@ Encodes credentials in Base64 and adds header: `Authorization: Basic <encoded>`
 
 ```json
 {
-    "auth": {
+    "authentication": {
         "type": "oauth2",
         "token_url": "https://auth.example.com/token",
         "client_id": "your_client_id",
@@ -1108,7 +1108,7 @@ For security, the following are **NOT** allowed:
             "timing": "on_quiz_start",
             "url": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m",
             "method": "GET",
-            "auth": {"type": "none"},
+            "authentication": {"type": "none"},
             "response_path": "current.temperature_2m",
             "description": "Fetch current temperature in Berlin"
         }
@@ -1157,7 +1157,7 @@ For security, the following are **NOT** allowed:
             "question_id": 1,
             "url": "https://official-joke-api.appspot.com/random_joke",
             "method": "GET",
-            "auth": {"type": "none"},
+            "authentication": {"type": "none"},
             "description": "Fetch a random joke"
         },
         {
@@ -1166,7 +1166,7 @@ For security, the following are **NOT** allowed:
             "question_id": 1,
             "url": "https://httpbin.org/post",
             "method": "POST",
-            "auth": {
+            "authentication": {
                 "type": "api_key",
                 "key_name": "X-API-Key",
                 "credential": "demo-key-123"
