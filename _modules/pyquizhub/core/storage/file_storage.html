@@ -81,11 +81,13 @@
 <span class="sd">the filesystem for persistent storage of users, quizzes, tokens, results, and sessions.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.storage_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">StorageManager</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyquizhub.config.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyquizhub.logging.setup</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 
 
@@ -228,7 +230,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_users">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_users">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_users</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_users</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all users with statistics.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all users&quot;</span><span class="p">)</span>
 
@@ -276,7 +278,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.add_users">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_users">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_users</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">users</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_users</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">users</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add or update users.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adding users: </span><span class="si">{</span><span class="n">users</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">users</span><span class="p">)</span>
@@ -285,7 +287,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_quiz">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch a quiz by its ID.&quot;&quot;&quot;</span>
         <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;quizzes&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -298,7 +300,7 @@
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_quiz">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                 <span class="n">quiz_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span>
+                 <span class="n">quiz_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span>
                                  <span class="n">Any</span><span class="p">],</span>
                  <span class="n">creator_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add or update a quiz.&quot;&quot;&quot;</span>
@@ -310,7 +312,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.update_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.update_quiz">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update an existing quiz.&quot;&quot;&quot;</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updating quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -362,7 +364,7 @@
 <div class="viewcode-block" id="FileStorageManager.get_results">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+                    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch results for a specific user, quiz, and session.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Fetching results for user </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">, quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">, session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -382,7 +384,7 @@
 <div class="viewcode-block" id="FileStorageManager.add_results">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_results">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add or update results.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Adding results for user </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">, quiz </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">, session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -398,7 +400,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_all_results">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_all_results">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all results.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all results&quot;</span><span class="p">)</span>
         <span class="n">results_by_user</span> <span class="o">=</span> <span class="p">{}</span>
@@ -422,7 +424,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_results_by_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results_by_quiz">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_results_by_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_results_by_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch results for a specific quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching results by quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">results_by_user</span> <span class="o">=</span> <span class="p">{}</span>
@@ -447,7 +449,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_results_by_user">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results_by_user">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_results_by_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_results_by_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch results for a specific user.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching results by user ID: </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">results_by_quiz</span> <span class="o">=</span> <span class="p">{}</span>
@@ -469,7 +471,7 @@
 <div class="viewcode-block" id="FileStorageManager.get_results_by_quiz_and_user">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results_by_quiz_and_user">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_results_by_quiz_and_user</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch results for a specific quiz and user.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Fetching results for quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> and user ID: </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -490,7 +492,7 @@
     <span class="c1"># Tokens</span>
 <div class="viewcode-block" id="FileStorageManager.get_tokens">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_tokens">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all tokens.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all tokens&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span></div>
@@ -498,7 +500,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.add_tokens">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.add_tokens">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add or update tokens.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Adding tokens: </span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
@@ -516,7 +518,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_all_tokens">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_all_tokens">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all tokens grouped by quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all tokens grouped by quiz&quot;</span><span class="p">)</span>
         <span class="n">tokens_by_quiz</span> <span class="o">=</span> <span class="p">{}</span>
@@ -530,7 +532,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_tokens_by_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_tokens_by_quiz">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_tokens_by_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tokens_by_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch tokens for a specific quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching tokens for quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span> <span class="k">if</span> <span class="n">token</span><span class="p">[</span><span class="s2">&quot;quiz_id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">quiz_id</span><span class="p">]</span></div>
@@ -538,7 +540,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_token_type">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_token_type">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_token_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_token_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch the type of a token.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching token type for token: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">token_entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
@@ -561,7 +563,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_participated_users">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_participated_users">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_participated_users</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_participated_users</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch users who participated in a specific quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Fetching users who participated in quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -574,7 +576,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_quiz_id_by_token">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_quiz_id_by_token">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_quiz_id_by_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_quiz_id_by_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch the quiz ID associated with a token.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching quiz ID for token: </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">token_entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
@@ -585,7 +587,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_all_quizzes">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_all_quizzes">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_quizzes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_quizzes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all quizzes.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all quizzes&quot;</span><span class="p">)</span>
         <span class="n">quizzes_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">,</span> <span class="s2">&quot;quizzes&quot;</span><span class="p">)</span>
@@ -600,7 +602,7 @@
 <div class="viewcode-block" id="FileStorageManager.get_results_by_user_and_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_results_by_user_and_quiz">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_results_by_user_and_quiz</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch results for a specific user and quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Fetching results for user ID: </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2"> and quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -610,7 +612,7 @@
 <div class="viewcode-block" id="FileStorageManager.get_session_ids_by_user_and_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_session_ids_by_user_and_quiz">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_session_ids_by_user_and_quiz</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch session IDs for a specific user and quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Fetching session IDs for user ID: </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2"> and quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -620,7 +622,7 @@
     <span class="c1"># Sessions</span>
 <div class="viewcode-block" id="FileStorageManager.get_all_sessions">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_all_sessions">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch all sessions grouped by user.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching all sessions grouped by user&quot;</span><span class="p">)</span>
         <span class="n">sessions_by_user</span> <span class="o">=</span> <span class="p">{}</span>
@@ -655,7 +657,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_sessions_by_user">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_sessions_by_user">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_sessions_by_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sessions_by_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch sessions for a specific user.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching sessions for user ID: </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">sessions</span> <span class="o">=</span> <span class="p">[]</span>
@@ -666,7 +668,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.get_sessions_by_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_sessions_by_quiz">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_sessions_by_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sessions_by_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch sessions for a specific quiz.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fetching sessions for quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">sessions</span> <span class="o">=</span> <span class="p">[]</span>
@@ -679,7 +681,7 @@
 <div class="viewcode-block" id="FileStorageManager.get_sessions_by_quiz_and_user">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.get_sessions_by_quiz_and_user">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_sessions_by_quiz_and_user</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetch sessions for a specific quiz and user.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Fetching sessions for quiz ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2"> and user ID: </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -688,7 +690,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.save_session_state">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.save_session_state">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save complete session state to filesystem.</span>
 
@@ -703,7 +705,7 @@
 
 <div class="viewcode-block" id="FileStorageManager.load_session_state">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.load_session_state">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">load_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load session state from filesystem.</span>
 
@@ -726,7 +728,7 @@
 <div class="viewcode-block" id="FileStorageManager.update_session_state">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.file_storage.FileStorageManager.update_session_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_session_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                             <span class="n">session_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+                             <span class="n">session_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update existing session state in filesystem.</span>
 
