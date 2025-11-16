@@ -52,7 +52,7 @@
           {"label": "list = (1, 2, 3)", "value": "tuple"},
           {"label": "list = [1, 2, 3]", "value": "correct"},
           {"label": "list = {1, 2, 3}", "value": "set"},
-          {"label": "list = <1, 2, 3>", "value": "invalid"}
+          {"label": "list = angle_brackets", "value": "invalid"}
         ]
       },
       "score_updates": [
@@ -93,10 +93,10 @@
         "type": "multiple_choice",
         "text": "What is the output of: type(5.0)?",
         "options": [
-          {"label": "<class 'int'>", "value": "int"},
-          {"label": "<class 'float'>", "value": "correct"},
-          {"label": "<class 'double'>", "value": "double"},
-          {"label": "<class 'number'>", "value": "number"}
+          {"label": "class 'int'", "value": "int"},
+          {"label": "class 'float'", "value": "correct"},
+          {"label": "class 'double'", "value": "double"},
+          {"label": "class 'number'", "value": "number"}
         ]
       },
       "score_updates": [
@@ -267,7 +267,7 @@
       "id": 11,
       "data": {
         "type": "final_message",
-        "text": "🎉 Quiz Completed!\n\n📊 Your Results:\n━━━━━━━━━━━━━━━━\nScore: {score}/100\nCorrect Answers: {correct_answers}/{total_questions}\n\n🎯 Performance: {level}\n\nThank you for taking the Python Knowledge Quiz!"
+        "text": "🎉 Quiz Completed!\n\n📊 Your Results:\n━━━━━━━━━━━━━━━━\nScore: {variables.score}/100\nCorrect Answers: {variables.correct_answers}/{variables.total_questions}\n\n🎯 Performance: {variables.level}\n\nThank you for taking the Python Knowledge Quiz!"
       },
       "score_updates": [
         {

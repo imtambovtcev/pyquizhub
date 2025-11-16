@@ -187,3 +187,6 @@ docs/.doctrees/
 docs/.buildinfo
 
 config.yaml
+
+# Claude AI assistant notes
+CLAUDE.md

@@ -5,6 +5,8 @@ This module defines the variable type system that replaces the old "scores" syst
 It provides strong typing, safety classification, and validation capabilities.
 """
 
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any, Literal, Union
 from dataclasses import dataclass, field

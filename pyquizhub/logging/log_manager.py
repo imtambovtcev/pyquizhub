@@ -6,6 +6,8 @@ for the application. It supports configuration via a dictionary and ensures
 log directories are created if they do not exist.
 """
 
+from __future__ import annotations
+
 import logging
 import logging.config
 import os

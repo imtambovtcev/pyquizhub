@@ -85,33 +85,22 @@ class QuizJSONValidator:
         variable_definitions = {}
         default_variables = {}
 
-        if has_variables:
-            # NEW FORMAT: Validate variables field
-            var_errors, var_warnings, variable_definitions = QuizJSONValidator._validate_variables(
-                quiz_data.get("variables", {})
-            )
-            errors.extend(var_errors)
-            warnings.extend(var_warnings)
+        # Validate variables field
+        var_errors, var_warnings, variable_definitions = QuizJSONValidator._validate_variables(
+            quiz_data.get("variables", {})
+        )
+        errors.extend(var_errors)
+        warnings.extend(var_warnings)
 
-            # Build default values for expression validation
-            for var_name, var_def in variable_definitions.items():
-                default_variables[var_name] = var_def.default
-
-        else:
-            # OLD FORMAT: Validate scores field
-            if not isinstance(quiz_data["scores"], dict):
-                errors.append("The 'scores' field must be a dictionary.")
-            elif "answer" in quiz_data["scores"]:
-                errors.append(
-                    "The 'scores' field must not contain the special variable 'answer'."
-                )
-            default_variables = quiz_data.get("scores", {}).copy()
+        # Build default values for expression validation
+        for var_name, var_def in variable_definitions.items():
+            default_variables[var_name] = var_def.default
 
         # Validate API integrations structure if present
         if "api_integrations" in quiz_data and quiz_data["api_integrations"]:
             api_errors, api_warnings = QuizJSONValidator._validate_api_integrations(
                 quiz_data["api_integrations"],
-                variable_definitions if has_variables else {}
+                variable_definitions
             )
             errors.extend(api_errors)
             warnings.extend(api_warnings)

@@ -5,6 +5,8 @@ This module provides an implementation of the StorageManager interface using
 the filesystem for persistent storage of users, quizzes, tokens, results, and sessions.
 """
 
+from __future__ import annotations
+
 import os
 import json
 from typing import Any

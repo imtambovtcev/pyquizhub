@@ -15,6 +15,8 @@ Design Principles:
 - Resilient: Handle timeouts, errors, retries
 """
 
+from __future__ import annotations
+
 import requests
 import json
 from typing import Any

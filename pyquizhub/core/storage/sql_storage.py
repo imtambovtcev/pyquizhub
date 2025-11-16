@@ -5,6 +5,8 @@ This module provides an implementation of the StorageManager interface using
 an SQL database for persistent storage of users, quizzes, tokens, results, and sessions.
 """
 
+from __future__ import annotations
+
 from sqlalchemy import create_engine, MetaData, Table, Column, String, JSON, select, insert, update, delete, inspect
 from sqlalchemy.exc import IntegrityError
 from typing import Any

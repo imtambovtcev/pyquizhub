@@ -7,6 +7,8 @@ This module implements the multi-tier permission system:
 - API access control based on permissions
 """
 
+from __future__ import annotations
+
 from typing import Any
 from urllib.parse import urlparse, parse_qs
 import re

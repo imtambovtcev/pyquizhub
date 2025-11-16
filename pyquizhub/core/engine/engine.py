@@ -13,6 +13,8 @@ The engine is completely stateless - it doesn't store any session data.
 All state is passed in and returned from methods.
 """
 
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from typing import Any
@@ -74,18 +76,22 @@ class QuizEngine:
             if quiz_data.get("scores") is None:
                 quiz_data["scores"] = {}
             for var_name, var_config in quiz_data["variables"].items():
-                # Initialize all variables with their default values (0 for numeric, "" for string, etc.)
-                var_type = var_config.get("type", "integer")
-                if var_type == "integer":
-                    quiz_data["scores"][var_name] = 0
-                elif var_type == "float":
-                    quiz_data["scores"][var_name] = 0.0
-                elif var_type == "string":
-                    quiz_data["scores"][var_name] = ""
-                elif var_type == "boolean":
-                    quiz_data["scores"][var_name] = False
-                elif var_type == "array":
-                    quiz_data["scores"][var_name] = []
+                # Use explicit default if provided, otherwise use type-based defaults
+                if "default" in var_config:
+                    quiz_data["scores"][var_name] = var_config["default"]
+                else:
+                    # Fallback to type-based defaults
+                    var_type = var_config.get("type", "integer")
+                    if var_type == "integer":
+                        quiz_data["scores"][var_name] = 0
+                    elif var_type == "float":
+                        quiz_data["scores"][var_name] = 0.0
+                    elif var_type == "string":
+                        quiz_data["scores"][var_name] = ""
+                    elif var_type == "boolean":
+                        quiz_data["scores"][var_name] = False
+                    elif var_type == "array":
+                        quiz_data["scores"][var_name] = []
         else:
             # Old format: just use scores
             if quiz_data.get("scores") is None:
@@ -117,7 +123,7 @@ class QuizEngine:
 
         initial_state = {
             "current_question_id": first_qs[0]["id"],
-            "scores": {key: 0 for key in self.quiz.get("scores", {}).keys()},
+            "scores": self.quiz.get("scores", {}).copy(),
             "answers": [],
             "completed": False,
             "api_data": {},
@@ -275,6 +281,31 @@ class QuizEngine:
 
         new_state["current_question_id"] = next_question_id
         new_state["completed"] = (next_question_id is None)
+
+        # Apply score_updates for final_message questions when transitioning to them
+        if next_question_id is not None:
+            next_question = next(
+                (q for q in self.quiz.get("questions", [])
+                 if q.get("id") == next_question_id),
+                None
+            )
+            if next_question and next_question.get("data", {}).get("type") == "final_message":
+                # Apply score_updates for final_message without requiring an answer
+                score_updates = next_question.get("score_updates", [])
+                for condition_group in score_updates:
+                    condition = condition_group.get("condition", "true")
+                    api_context = self._create_api_context(new_state)
+                    eval_context = {
+                        **new_state["scores"],
+                        "api": api_context
+                    }
+                    if SafeEvaluator.eval_expr(condition, eval_context):
+                        for score_key, expr in condition_group.get("update", {}).items():
+                            new_state["scores"][score_key] = SafeEvaluator.eval_expr(
+                                expr, {
+                                    **new_state["scores"],
+                                    "api": self._create_api_context(new_state)}
+                            )
 
         # Execute BEFORE_QUESTION API calls for next question
         if next_question_id is not None:

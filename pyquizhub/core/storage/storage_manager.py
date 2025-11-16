@@ -5,6 +5,8 @@ This module defines the abstract base class for storage management, which
 includes methods for managing users, quizzes, tokens, results, and sessions.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from abc import ABC, abstractmethod
 from datetime import datetime

@@ -15,6 +15,8 @@ Key features:
 5. Backward-compatible API
 """
 
+from __future__ import annotations
+
 import os
 import yaml
 import logging
