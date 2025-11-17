@@ -292,8 +292,16 @@ class TelegramQuizBot:
             # Clear awaiting input flag
             session["awaiting_input"] = None
 
-            # Send next question
-            await self.send_question(update, data["question"])
+            # Send next question (or final message if quiz is complete)
+            if "question" in data and data["question"]:
+                await self.send_question(update, data["question"])
+            else:
+                # Quiz completed without final message
+                await update.effective_message.reply_text(
+                    "🎉 Quiz completed!\n\nUse /quiz to start another quiz."
+                )
+                if user_id in self.user_sessions:
+                    del self.user_sessions[user_id]
 
         except Exception as e:
             logger.error(f"Error submitting answer: {e}")
