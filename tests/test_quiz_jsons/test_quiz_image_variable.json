@@ -27,7 +27,12 @@
             "data": {
                 "text": "What format is this image?",
                 "type": "multiple_choice",
-                "image_url": "https://httpbin.org/image/{variables.image_type}",
+                "attachments": [
+                    {
+                        "type": "image",
+                        "url": "https://httpbin.org/image/{variables.image_type}"
+                    }
+                ],
                 "options": [
                     {
                         "value": "png",

@@ -216,16 +216,28 @@ class DiscordQuizBot(commands.Bot):
         """Send a question to the user."""
         question = question_data["data"]
         question_type = question.get("type")
-        image_url = question.get("image_url")
+        attachments = question.get("attachments", [])
+
+        # Extract image attachments
+        image_attachments = [att for att in attachments if att.get("type") == "image"]
 
         # Check if it's a final message
         if question_type == "final_message":
             final_text = f"🎉 {question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
 
-            if image_url:
+            if image_attachments:
+                # Send first image as embed
                 embed = discord.Embed(description=final_text, color=discord.Color.green())
-                embed.set_image(url=image_url)
+                embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed)
+
+                # Send additional images if present
+                for attachment in image_attachments[1:]:
+                    embed = discord.Embed(color=discord.Color.green())
+                    embed.set_image(url=attachment["url"])
+                    if attachment.get("caption"):
+                        embed.description = attachment["caption"]
+                    await channel.send(embed=embed)
             else:
                 await channel.send(final_text)
 
@@ -244,10 +256,18 @@ class DiscordQuizBot(commands.Bot):
             # Create buttons for options
             view = QuizButtonView(self, question["options"])
 
-            if image_url:
+            if image_attachments:
                 embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=image_url)
+                embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed, view=view)
+
+                # Send additional images
+                for attachment in image_attachments[1:]:
+                    embed = discord.Embed(color=discord.Color.blue())
+                    embed.set_image(url=attachment["url"])
+                    if attachment.get("caption"):
+                        embed.description = attachment["caption"]
+                    await channel.send(embed=embed)
             else:
                 await channel.send(text, view=view)
 
@@ -255,10 +275,17 @@ class DiscordQuizBot(commands.Bot):
             text += "\n💡 Select multiple options (comma-separated) or click buttons:\n"
             view = QuizButtonView(self, question["options"])
 
-            if image_url:
+            if image_attachments:
                 embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=image_url)
+                embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed, view=view)
+
+                for attachment in image_attachments[1:]:
+                    embed = discord.Embed(color=discord.Color.blue())
+                    embed.set_image(url=attachment["url"])
+                    if attachment.get("caption"):
+                        embed.description = attachment["caption"]
+                    await channel.send(embed=embed)
             else:
                 await channel.send(text, view=view)
 
@@ -275,10 +302,17 @@ class DiscordQuizBot(commands.Bot):
             }
             text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
 
-            if image_url:
+            if image_attachments:
                 embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=image_url)
+                embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed)
+
+                for attachment in image_attachments[1:]:
+                    embed = discord.Embed(color=discord.Color.blue())
+                    embed.set_image(url=attachment["url"])
+                    if attachment.get("caption"):
+                        embed.description = attachment["caption"]
+                    await channel.send(embed=embed)
             else:
                 await channel.send(text)
 
@@ -290,10 +324,17 @@ class DiscordQuizBot(commands.Bot):
         else:
             text_with_hint = text + "\n💡 Please type your answer:"
 
-            if image_url:
+            if image_attachments:
                 embed = discord.Embed(description=text_with_hint, color=discord.Color.blue())
-                embed.set_image(url=image_url)
+                embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed)
+
+                for attachment in image_attachments[1:]:
+                    embed = discord.Embed(color=discord.Color.blue())
+                    embed.set_image(url=attachment["url"])
+                    if attachment.get("caption"):
+                        embed.description = attachment["caption"]
+                    await channel.send(embed=embed)
             else:
                 await channel.send(text_with_hint)
 

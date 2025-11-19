@@ -33,7 +33,12 @@
       "data": {
         "type": "multiple_choice",
         "text": "What color do you see in this image?",
-        "image_url": "https://via.placeholder.com/300/FF0000/FFFFFF?text=Red",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://via.placeholder.com/300/FF0000/FFFFFF?text=Red"
+          }
+        ],
         "options": [
           {"label": "Red", "value": "red"},
           {"label": "Blue", "value": "blue"},
@@ -75,7 +80,12 @@
       "data": {
         "type": "multiple_choice",
         "text": "Here's an image in your chosen format. What shape do you see?",
-        "image_url": "https://httpbin.org/image/{variables.image_format}",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://httpbin.org/image/{variables.image_format}"
+          }
+        ],
         "options": [
           {"label": "Square", "value": "square"},
           {"label": "Circle", "value": "circle"},
@@ -97,7 +107,12 @@
       "data": {
         "type": "integer",
         "text": "How many pixels wide is this image? (Hint: Look at the URL)",
-        "image_url": "https://via.placeholder.com/600x400/0000FF/FFFFFF?text=Blue+Rectangle"
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://via.placeholder.com/600x400/0000FF/FFFFFF?text=Blue+Rectangle"
+          }
+        ]
       },
       "score_updates": [
         {
@@ -119,7 +134,12 @@
       "data": {
         "type": "final_message",
         "text": "🎉 Quiz Complete!\n\nYour Score: {variables.score}/35\nLevel: {variables.level}\n\nThank you for testing image support!",
-        "image_url": "https://via.placeholder.com/400/00FF00/000000?text=Congratulations!"
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://via.placeholder.com/400/00FF00/000000?text=Congratulations!"
+          }
+        ]
       },
       "score_updates": [
         {

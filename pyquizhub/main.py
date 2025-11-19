@@ -9,6 +9,7 @@ from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.api.router_quiz import router as quiz_router
 from pyquizhub.core.api.router_creator import router as creator_router
 from pyquizhub.core.api.router_admin import router as admin_router
+from pyquizhub.core.api.router_files import router as files_router
 from fastapi.middleware import Middleware
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
@@ -103,6 +104,7 @@ async def validation_exception_handler(
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
 app.include_router(creator_router, prefix="/creator", tags=["creator"])
 app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
+app.include_router(files_router, prefix="/api", tags=["files"])
 
 
 if __name__ == "__main__":

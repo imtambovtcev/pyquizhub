@@ -36,7 +36,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/random/image.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/random/image.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -80,7 +85,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://i.imgur.com/abc123.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://i.imgur.com/abc123.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -122,7 +132,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://images.unsplash.com/photo-123?w=800",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-123?w=800"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -164,7 +179,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -214,7 +234,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                         "data": {
                             "text": "Question",
                             "type": "multiple_choice",
-                            "image_url": url,
+                            "attachments": [
+                                {
+                                    "type": "image",
+                                    "url": url
+                                }
+                            ],
                             "options": [
                                 {"label": "A", "value": "a"}
                             ]
@@ -256,7 +281,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://httpbin.org/image/png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://httpbin.org/image/png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -305,7 +335,12 @@ class TestRESTRICTEDTierPatternRestrictions:
                         "data": {
                             "text": "Question",
                             "type": "multiple_choice",
-                            "image_url": url,
+                            "attachments": [
+                                {
+                                    "type": "image",
+                                    "url": url
+                                }
+                            ],
                             "options": [
                                 {"label": "A", "value": "a"}
                             ]
@@ -356,7 +391,12 @@ class TestHigherTiersBypassRestrictions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://some-random-server.com/path/to/image.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://some-random-server.com/path/to/image.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -405,7 +445,12 @@ class TestVariableImageURLsExemptFromPatternCheck:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://random-site.com/image.{variables.image_type}",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://random-site.com/image.{variables.image_type}"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]

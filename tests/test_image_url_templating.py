@@ -37,7 +37,12 @@ class TestFixedImageURL:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/test.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/test.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -54,7 +59,7 @@ class TestFixedImageURL:
 
         question = engine.get_current_question(state)
 
-        assert question["data"]["image_url"] == "https://example.com/test.png"
+        assert question["data"]["attachments"][0]["url"] == "https://example.com/test.png"
 
 
 class TestVariableSubstitutionInImageURL:
@@ -88,7 +93,12 @@ class TestVariableSubstitutionInImageURL:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://httpbin.org/image/{variables.image_format}",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://httpbin.org/image/{variables.image_format}"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -106,7 +116,7 @@ class TestVariableSubstitutionInImageURL:
         question = engine.get_current_question(state)
 
         # Variable should be substituted
-        assert question["data"]["image_url"] == "https://httpbin.org/image/png"
+        assert question["data"]["attachments"][0]["url"] == "https://httpbin.org/image/png"
 
     def test_multiple_variables_in_image_url(self):
         """Test multiple variables in image URL are substituted."""
@@ -142,7 +152,12 @@ class TestVariableSubstitutionInImageURL:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/{variables.category}/{variables.image_id}.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/{variables.category}/{variables.image_id}.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -160,7 +175,7 @@ class TestVariableSubstitutionInImageURL:
         question = engine.get_current_question(state)
 
         # Both variables should be substituted
-        assert question["data"]["image_url"] == "https://example.com/dogs/42.png"
+        assert question["data"]["attachments"][0]["url"] == "https://example.com/dogs/42.png"
 
     def test_variable_changes_reflected_in_image_url(self):
         """Test that variable changes are reflected in image URL."""
@@ -209,7 +224,12 @@ class TestVariableSubstitutionInImageURL:
                     "data": {
                         "text": "Question 2 - Level: {variables.level}",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/{variables.level}.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/{variables.level}.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -231,7 +251,7 @@ class TestVariableSubstitutionInImageURL:
         question = engine.get_current_question(state)
 
         # Level should be updated to 'advanced' in image URL
-        assert question["data"]["image_url"] == "https://example.com/advanced.png"
+        assert question["data"]["attachments"][0]["url"] == "https://example.com/advanced.png"
         assert "advanced" in question["data"]["text"]
 
 
@@ -283,7 +303,12 @@ class TestAPIBasedImageURL:
                     "data": {
                         "text": "Do you like this dog?",
                         "type": "multiple_choice",
-                        "image_url": "{variables.dog_image_url}",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "{variables.dog_image_url}"
+                            }
+                        ],
                         "options": [
                             {"label": "Yes", "value": "yes"},
                             {"label": "No", "value": "no"}
@@ -314,8 +339,8 @@ class TestAPIBasedImageURL:
             question = engine.get_current_question(state)
 
             # Verify the API-fetched image URL is substituted
-            assert question["data"]["image_url"] == "https://images.dog.ceo/breeds/hound-afghan/n02088094_1003.jpg", \
-                f"Expected dog image URL, got: {question['data'].get('image_url')}, state.scores={state['scores']}"
+            assert question["data"]["attachments"][0]["url"] == "https://images.dog.ceo/breeds/hound-afghan/n02088094_1003.jpg", \
+                f"Expected dog image URL, got: {question['data'].get('attachments', [{}])[0].get('url')}, state.scores={state['scores']}"
 
             # Verify the variable was set from API
             assert state["scores"]["dog_image_url"] == "https://images.dog.ceo/breeds/hound-afghan/n02088094_1003.jpg"
@@ -361,8 +386,8 @@ class TestEdgeCases:
 
         question = engine.get_current_question(state)
 
-        # Should not have image_url field
-        assert "image_url" not in question["data"]
+        # Should not have attachments field
+        assert "attachments" not in question["data"]
 
     def test_empty_image_url(self):
         """Test empty image_url is handled gracefully."""
@@ -385,7 +410,12 @@ class TestEdgeCases:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": ""
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -403,4 +433,4 @@ class TestEdgeCases:
         question = engine.get_current_question(state)
 
         # Empty string should remain empty
-        assert question["data"]["image_url"] == ""
+        assert question["data"]["attachments"][0]["url"] == ""

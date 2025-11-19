@@ -11,12 +11,16 @@ This module tests the Discord bot adapter functionality including:
 """
 from __future__ import annotations
 
+import asyncio
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 import discord
 from discord.ext import commands
 
 from pyquizhub.adapters.discord.bot import DiscordQuizBot, QuizButtonView
+
+
+pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
@@ -209,7 +213,12 @@ class TestQuestionDisplay:
             "data": {
                 "type": "multiple_choice",
                 "text": "What animal is this?",
-                "image_url": "https://example.com/dog.jpg",
+                "attachments": [
+                    {
+                        "type": "image",
+                        "url": "https://example.com/dog.jpg"
+                    }
+                ],
                 "options": [
                     {"label": "Dog", "value": "dog"},
                     {"label": "Cat", "value": "cat"}

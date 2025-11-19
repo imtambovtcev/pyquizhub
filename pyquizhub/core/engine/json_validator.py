@@ -195,40 +195,85 @@ class QuizJSONValidator:
                 errors.append(f"Invalid question data format: {data}")
                 continue
 
-            # Validate image_url if present
-            if "image_url" in data:
-                image_url = data["image_url"]
-                if not isinstance(image_url, str):
+            # Validate attachments if present
+            if "attachments" in data:
+                attachments = data["attachments"]
+                if not isinstance(attachments, list):
                     errors.append(
-                        f"Question {question['id']}: image_url must be a string, got {type(image_url).__name__}")
-                elif image_url:  # Only validate non-empty URLs
-                    # Check if URL has variable placeholders
-                    if ImageURLValidator.has_variable_placeholders(image_url):
-                        # Extract and validate variable references
-                        var_names = ImageURLValidator.extract_variable_names(image_url)
-                        for var_name in var_names:
-                            # Check if variables exist
-                            # Variable names are in format "variables.varname" or "api.id.field"
-                            parts = var_name.split('.')
-                            if parts[0] == 'variables' and len(parts) == 2:
-                                if parts[1] not in variable_definitions:
-                                    errors.append(
-                                        f"Question {question['id']}: image_url references undefined variable '{parts[1]}'"
-                                    )
-                            # API variables checked separately in API integrations validation
-                    else:
-                        # Fixed URL - validate it immediately
-                        try:
-                            # Don't verify content during validation (no network calls)
-                            ImageURLValidator.validate_image_url(
-                                image_url,
-                                verify_content=False,
-                                allow_http=True  # Allow HTTP during validation (warn later in permissions)
-                            )
-                        except ValueError as e:
+                        f"Question {question['id']}: attachments must be a list, got {type(attachments).__name__}")
+                else:
+                    for idx, attachment in enumerate(attachments):
+                        if not isinstance(attachment, dict):
                             errors.append(
-                                f"Question {question['id']}: invalid image_url: {e}"
-                            )
+                                f"Question {question['id']}: attachment at index {idx} must be a dictionary")
+                            continue
+
+                        # Validate required fields
+                        if "type" not in attachment:
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} missing required 'type' field")
+                            continue
+
+                        # Validate attachment type
+                        valid_types = ["image", "video", "audio", "document", "file"]
+                        if attachment["type"] not in valid_types:
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} has invalid type '{attachment['type']}'. "
+                                f"Valid types: {valid_types}")
+
+                        # Validate URL field (required for all attachment types)
+                        if "url" not in attachment:
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} missing required 'url' field")
+                            continue
+
+                        url = attachment["url"]
+                        if not isinstance(url, str):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} url must be a string, got {type(url).__name__}")
+                            continue
+
+                        if not url:  # Skip empty URLs
+                            continue
+
+                        # For image attachments, validate URL
+                        if attachment["type"] == "image":
+                            # Check if URL has variable placeholders
+                            if ImageURLValidator.has_variable_placeholders(url):
+                                # Extract and validate variable references
+                                var_names = ImageURLValidator.extract_variable_names(url)
+                                for var_name in var_names:
+                                    # Check if variables exist
+                                    # Variable names are in format "variables.varname" or "api.id.field"
+                                    parts = var_name.split('.')
+                                    if parts[0] == 'variables' and len(parts) == 2:
+                                        if parts[1] not in variable_definitions:
+                                            errors.append(
+                                                f"Question {question['id']}: attachment at index {idx} url references undefined variable '{parts[1]}'"
+                                            )
+                                    # API variables checked separately in API integrations validation
+                            else:
+                                # Fixed URL - validate it immediately
+                                try:
+                                    # Don't verify content during validation (no network calls)
+                                    ImageURLValidator.validate_image_url(
+                                        url,
+                                        verify_content=False,
+                                        allow_http=True  # Allow HTTP during validation (warn later in permissions)
+                                    )
+                                except ValueError as e:
+                                    errors.append(
+                                        f"Question {question['id']}: attachment at index {idx} invalid url: {e}"
+                                    )
+
+                        # Validate optional fields if present
+                        if "alt_text" in attachment and not isinstance(attachment["alt_text"], str):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} alt_text must be a string")
+
+                        if "caption" in attachment and not isinstance(attachment["caption"], str):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} caption must be a string")
 
             current_answer_type = None
             if data["type"] == "multiple_choice":
@@ -919,7 +964,7 @@ class QuizJSONValidator:
                             f"Only ADVANCED tier and above can use custom auth. Upgrade required."
                         )
 
-        # Check image URL permissions
+        # Check attachment permissions
         questions = quiz_data.get("questions", [])
         for question in questions:
             if not isinstance(question, dict):
@@ -928,57 +973,69 @@ class QuizJSONValidator:
             question_id = question.get("id", "unknown")
             data = question.get("data", {})
 
-            if "image_url" in data:
-                image_url = data["image_url"]
+            if "attachments" in data:
+                attachments = data["attachments"]
 
-                if not isinstance(image_url, str):
+                if not isinstance(attachments, list):
                     continue
 
-                # Check for variable substitution in image URLs
-                has_variables = ImageURLValidator.has_variable_placeholders(image_url)
+                for idx, attachment in enumerate(attachments):
+                    if not isinstance(attachment, dict):
+                        continue
 
-                if has_variables:
-                    # Extract variable names
-                    var_names = ImageURLValidator.extract_variable_names(image_url)
+                    # Only validate image attachments for URL permissions
+                    if attachment.get("type") != "image":
+                        continue
 
-                    # Check permission tier for variable usage
-                    if creator_tier == CreatorPermissionTier.RESTRICTED:
-                        # RESTRICTED tier: No variable substitution allowed
-                        permission_errors.append(
-                            f"Permission denied: Question {question_id} uses variable substitution in image_url. "
-                            f"RESTRICTED tier only allows fixed image URLs. Upgrade to STANDARD tier."
-                        )
-                    elif creator_tier == CreatorPermissionTier.STANDARD:
-                        # STANDARD tier: Only SAFE_FOR_API variables allowed
-                        for var_name in var_names:
-                            parts = var_name.split('.')
-                            if parts[0] == 'variables' and len(parts) == 2:
-                                var_def = variable_definitions.get(parts[1])
-                                if var_def and not var_def.is_safe_for_api_use():
-                                    permission_errors.append(
-                                        f"Permission denied: Question {question_id} uses unsafe variable '{parts[1]}' in image_url. "
-                                        f"STANDARD tier only allows SAFE_FOR_API variables. Upgrade to ADVANCED tier or use a sanitized variable."
-                                    )
-                    # ADVANCED and ADMIN tiers: All variables allowed (still validated for safety)
+                    attachment_url = attachment.get("url", "")
+                    if not isinstance(attachment_url, str) or not attachment_url:
+                        continue
 
-                # Check for HTTP vs HTTPS
-                if not image_url.startswith('https://') and not has_variables:
-                    # Only warn for RESTRICTED tier (others can use HTTP if needed)
-                    if creator_tier == CreatorPermissionTier.RESTRICTED:
-                        permission_errors.append(
-                            f"Permission denied: Question {question_id} uses non-HTTPS image URL. "
-                            f"RESTRICTED tier requires HTTPS. Upgrade tier or use HTTPS."
-                        )
+                    # Check for variable substitution in attachment URLs
+                    has_variables = ImageURLValidator.has_variable_placeholders(attachment_url)
 
-                # Check URL pattern restrictions for RESTRICTED tier
-                if creator_tier == CreatorPermissionTier.RESTRICTED and not has_variables:
-                    # RESTRICTED tier: Only whitelisted image services allowed
-                    if not ImageURLValidator.check_url_against_patterns(image_url):
-                        permission_errors.append(
-                            f"Permission denied: Question {question_id} uses image URL from non-whitelisted service. "
-                            f"RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur, "
-                            f"Unsplash, placeholder services, or direct HTTPS URLs to image files). "
-                            f"Upgrade to STANDARD tier or use an approved service."
-                        )
+                    if has_variables:
+                        # Extract variable names
+                        var_names = ImageURLValidator.extract_variable_names(attachment_url)
+
+                        # Check permission tier for variable usage
+                        if creator_tier == CreatorPermissionTier.RESTRICTED:
+                            # RESTRICTED tier: No variable substitution allowed
+                            permission_errors.append(
+                                f"Permission denied: Question {question_id} attachment {idx} uses variable substitution in url. "
+                                f"RESTRICTED tier only allows fixed image URLs. Upgrade to STANDARD tier."
+                            )
+                        elif creator_tier == CreatorPermissionTier.STANDARD:
+                            # STANDARD tier: Only SAFE_FOR_API variables allowed
+                            for var_name in var_names:
+                                parts = var_name.split('.')
+                                if parts[0] == 'variables' and len(parts) == 2:
+                                    var_def = variable_definitions.get(parts[1])
+                                    if var_def and not var_def.is_safe_for_api_use():
+                                        permission_errors.append(
+                                            f"Permission denied: Question {question_id} attachment {idx} uses unsafe variable '{parts[1]}' in url. "
+                                            f"STANDARD tier only allows SAFE_FOR_API variables. Upgrade to ADVANCED tier or use a sanitized variable."
+                                        )
+                        # ADVANCED and ADMIN tiers: All variables allowed (still validated for safety)
+
+                    # Check for HTTP vs HTTPS
+                    if not attachment_url.startswith('https://') and not has_variables:
+                        # Only warn for RESTRICTED tier (others can use HTTP if needed)
+                        if creator_tier == CreatorPermissionTier.RESTRICTED:
+                            permission_errors.append(
+                                f"Permission denied: Question {question_id} attachment {idx} uses non-HTTPS image URL. "
+                                f"RESTRICTED tier requires HTTPS. Upgrade tier or use HTTPS."
+                            )
+
+                    # Check URL pattern restrictions for RESTRICTED tier
+                    if creator_tier == CreatorPermissionTier.RESTRICTED and not has_variables:
+                        # RESTRICTED tier: Only whitelisted image services allowed
+                        if not ImageURLValidator.check_url_against_patterns(attachment_url):
+                            permission_errors.append(
+                                f"Permission denied: Question {question_id} attachment {idx} uses image URL from non-whitelisted service. "
+                                f"RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur, "
+                                f"Unsplash, placeholder services, or direct HTTPS URLs to image files). "
+                                f"Upgrade to STANDARD tier or use an approved service."
+                            )
 
         return permission_errors

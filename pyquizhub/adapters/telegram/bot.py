@@ -212,19 +212,34 @@ class TelegramQuizBot:
         """Send a question to the user."""
         question = question_data["data"]
         question_type = question.get("type")
-        image_url = question.get("image_url")
+        attachments = question.get("attachments", [])
+
+        # Extract image attachments
+        image_attachments = [att for att in attachments if att.get("type") == "image"]
 
         # Check if it's a final message
         if question_type == "final_message":
-            # Send final message with image if present
+            # Send final message with images if present
             final_text = f"🎉 {question['text']}\n\nQuiz completed! Use /quiz to start another quiz."
 
-            if image_url:
+            if image_attachments:
+                # Send first image with caption, then remaining images if any
                 try:
+                    first_attachment = image_attachments[0]
                     await update.effective_message.reply_photo(
-                        photo=image_url,
+                        photo=first_attachment["url"],
                         caption=final_text
                     )
+                    # Send additional images if present
+                    for attachment in image_attachments[1:]:
+                        try:
+                            caption = attachment.get("caption", "")
+                            await update.effective_message.reply_photo(
+                                photo=attachment["url"],
+                                caption=caption
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send additional image: {e}")
                 except Exception as e:
                     logger.warning(f"Failed to send image in final message: {e}")
                     # Fallback to text only
@@ -255,14 +270,25 @@ class TelegramQuizBot:
                 )
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            # Send with image if available
-            if image_url:
+            # Send with images if available
+            if image_attachments:
                 try:
+                    first_attachment = image_attachments[0]
                     await update.effective_message.reply_photo(
-                        photo=image_url,
+                        photo=first_attachment["url"],
                         caption=text,
                         reply_markup=reply_markup
                     )
+                    # Send additional images without buttons
+                    for attachment in image_attachments[1:]:
+                        try:
+                            caption = attachment.get("caption", "")
+                            await update.effective_message.reply_photo(
+                                photo=attachment["url"],
+                                caption=caption
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send additional image: {e}")
                 except Exception as e:
                     logger.warning(f"Failed to send image with question: {e}")
                     # Fallback to text only
@@ -283,14 +309,24 @@ class TelegramQuizBot:
                 )
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            # Send with image if available
-            if image_url:
+            # Send with images if available
+            if image_attachments:
                 try:
+                    first_attachment = image_attachments[0]
                     await update.effective_message.reply_photo(
-                        photo=image_url,
+                        photo=first_attachment["url"],
                         caption=text,
                         reply_markup=reply_markup
                     )
+                    for attachment in image_attachments[1:]:
+                        try:
+                            caption = attachment.get("caption", "")
+                            await update.effective_message.reply_photo(
+                                photo=attachment["url"],
+                                caption=caption
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send additional image: {e}")
                 except Exception as e:
                     logger.warning(f"Failed to send image with question: {e}")
                     # Fallback to text only
@@ -311,13 +347,23 @@ class TelegramQuizBot:
             }
             text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
 
-            # Send with image if available
-            if image_url:
+            # Send with images if available
+            if image_attachments:
                 try:
+                    first_attachment = image_attachments[0]
                     await update.effective_message.reply_photo(
-                        photo=image_url,
+                        photo=first_attachment["url"],
                         caption=text
                     )
+                    for attachment in image_attachments[1:]:
+                        try:
+                            caption = attachment.get("caption", "")
+                            await update.effective_message.reply_photo(
+                                photo=attachment["url"],
+                                caption=caption
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send additional image: {e}")
                 except Exception as e:
                     logger.warning(f"Failed to send image with question: {e}")
                     # Fallback to text only
@@ -333,13 +379,23 @@ class TelegramQuizBot:
         else:
             text_with_hint = text + "\n💡 Please type your answer:"
 
-            # Send with image if available
-            if image_url:
+            # Send with images if available
+            if image_attachments:
                 try:
+                    first_attachment = image_attachments[0]
                     await update.effective_message.reply_photo(
-                        photo=image_url,
+                        photo=first_attachment["url"],
                         caption=text_with_hint
                     )
+                    for attachment in image_attachments[1:]:
+                        try:
+                            caption = attachment.get("caption", "")
+                            await update.effective_message.reply_photo(
+                                photo=attachment["url"],
+                                caption=caption
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send additional image: {e}")
                 except Exception as e:
                     logger.warning(f"Failed to send image with question: {e}")
                     # Fallback to text only

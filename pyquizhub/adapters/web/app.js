@@ -11,18 +11,8 @@ class QuizApp {
 
         this.currentQuiz = null;
         this.userId = uuidv4();  // Use uuidv4 to generate a UUID
-        this.authToken = null;
-        this.loadAuthToken();
 
         this.initializeEventListeners();
-    }
-
-    async loadAuthToken() {
-        const response = await fetch(`${API_BASE_URL}/auth/user_token`);
-        if (response.ok) {
-            const data = await response.json();
-            this.authToken = data.token;
-        }
     }
 
     initializeEventListeners() {
@@ -136,7 +126,7 @@ class QuizApp {
             this.showResults({
                 title: this.currentQuiz.title,
                 finalMessage: question.data.text,
-                imageUrl: question.data.image_url
+                attachments: question.data.attachments
             });
             return;
         }
@@ -144,20 +134,50 @@ class QuizApp {
         this.startScreen.style.display = 'none';
         this.quizScreen.style.display = 'block';
 
-        // Handle image URL if present
+        // Handle attachments if present
         const imageContainer = document.getElementById('question-image-container');
-        const imageElement = document.getElementById('question-image');
+        imageContainer.innerHTML = ''; // Clear previous images
 
-        if (question.data.image_url) {
-            imageElement.src = question.data.image_url;
-            imageElement.onerror = () => {
-                // Hide image if it fails to load
-                imageContainer.style.display = 'none';
-                console.warn('Failed to load image:', question.data.image_url);
-            };
-            imageElement.onload = () => {
+        if (question.data.attachments && question.data.attachments.length > 0) {
+            // Filter for image attachments only
+            const imageAttachments = question.data.attachments.filter(att => att.type === 'image');
+
+            if (imageAttachments.length > 0) {
                 imageContainer.style.display = 'block';
-            };
+
+                imageAttachments.forEach((attachment, idx) => {
+                    const imageElement = document.createElement('img');
+                    imageElement.className = 'question-image';
+                    imageElement.src = attachment.url;
+
+                    if (attachment.alt_text) {
+                        imageElement.alt = attachment.alt_text;
+                    }
+
+                    imageElement.onerror = () => {
+                        // Remove failed image
+                        imageElement.remove();
+                        console.warn('Failed to load image:', attachment.url);
+
+                        // Hide container if all images failed
+                        if (imageContainer.children.length === 0) {
+                            imageContainer.style.display = 'none';
+                        }
+                    };
+
+                    imageContainer.appendChild(imageElement);
+
+                    // Add caption if present
+                    if (attachment.caption) {
+                        const captionElement = document.createElement('p');
+                        captionElement.className = 'image-caption';
+                        captionElement.textContent = attachment.caption;
+                        imageContainer.appendChild(captionElement);
+                    }
+                });
+            } else {
+                imageContainer.style.display = 'none';
+            }
         } else {
             imageContainer.style.display = 'none';
         }
@@ -223,16 +243,28 @@ class QuizApp {
 
         // If there's a final message, show only that with the "Take Another Quiz" button
         if (data.finalMessage) {
-            const imageHtml = data.imageUrl
-                ? `<div style="text-align: center; margin-bottom: 20px;">
-                       <img src="${data.imageUrl}" alt="Quiz completion image"
-                            style="max-width: 100%; max-height: 400px; border-radius: 8px;"
-                            onerror="this.style.display='none'">
-                   </div>`
-                : '';
+            // Generate HTML for attachments
+            let attachmentsHtml = '';
+            if (data.attachments && data.attachments.length > 0) {
+                const imageAttachments = data.attachments.filter(att => att.type === 'image');
+                if (imageAttachments.length > 0) {
+                    attachmentsHtml = '<div style="text-align: center; margin-bottom: 20px;">';
+                    imageAttachments.forEach(attachment => {
+                        const altText = attachment.alt_text || 'Quiz completion image';
+                        attachmentsHtml += `
+                            <img src="${attachment.url}" alt="${altText}"
+                                 style="max-width: 100%; max-height: 400px; border-radius: 8px; margin: 10px 0;"
+                                 onerror="this.style.display='none'">`;
+                        if (attachment.caption) {
+                            attachmentsHtml += `<p class="image-caption" style="font-size: 0.9em; color: #666; margin-top: 5px;">${attachment.caption}</p>`;
+                        }
+                    });
+                    attachmentsHtml += '</div>';
+                }
+            }
 
             this.quizScreen.innerHTML = `
-                ${imageHtml}
+                ${attachmentsHtml}
                 <div class="final-message">${data.finalMessage.split('\n').map(line => line ? `<p>${line}</p>` : '<br>').join('')}</div>
                 <div style="text-align: center; margin-top: 20px;">
                     <button onclick="location.reload()">Take Another Quiz</button>

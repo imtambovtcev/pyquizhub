@@ -38,7 +38,12 @@ class TestRestrictedTierImagePermissions:
                     "data": {
                         "text": "Question with image",
                         "type": "multiple_choice",
-                        "image_url": "https://i.imgur.com/abc123.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://i.imgur.com/abc123.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -78,7 +83,12 @@ class TestRestrictedTierImagePermissions:
                     "data": {
                         "text": "Question with HTTP image",
                         "type": "multiple_choice",
-                        "image_url": "http://example.com/image.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "http://example.com/image.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -127,7 +137,12 @@ class TestRestrictedTierImagePermissions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/{variables.image_id}.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/{variables.image_id}.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -180,7 +195,12 @@ class TestStandardTierImagePermissions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://httpbin.org/image/{variables.image_format}",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://httpbin.org/image/{variables.image_format}"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -226,7 +246,12 @@ class TestStandardTierImagePermissions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/{variables.user_input}.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/{variables.user_input}.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -268,7 +293,12 @@ class TestStandardTierImagePermissions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "http://example.com/image.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "http://example.com/image.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -320,7 +350,12 @@ class TestAdvancedTierImagePermissions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "{variables.api_image_url}",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "{variables.api_image_url}"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -359,7 +394,12 @@ class TestAdvancedTierImagePermissions:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "http://example.com/image.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "http://example.com/image.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -402,7 +442,12 @@ class TestImageURLValidationErrors:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "not a valid url",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "not a valid url"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -420,7 +465,7 @@ class TestImageURLValidationErrors:
         )
 
         assert any(
-            "invalid image_url" in err for err in result["errors"]
+            "attachment" in err and "invalid url" in err for err in result["errors"]
         )
 
     def test_image_url_must_be_string(self):
@@ -443,7 +488,12 @@ class TestImageURLValidationErrors:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": 12345,  # Not a string
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": 12345  # Not a string
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]
@@ -461,7 +511,7 @@ class TestImageURLValidationErrors:
         )
 
         assert any(
-            "image_url must be a string" in err for err in result["errors"]
+            "url must be a string" in err for err in result["errors"]
         )
 
     def test_undefined_variable_in_image_url(self):
@@ -484,7 +534,12 @@ class TestImageURLValidationErrors:
                     "data": {
                         "text": "Question",
                         "type": "multiple_choice",
-                        "image_url": "https://example.com/{variables.undefined_var}.png",
+                        "attachments": [
+                            {
+                                "type": "image",
+                                "url": "https://example.com/{variables.undefined_var}.png"
+                            }
+                        ],
                         "options": [
                             {"label": "A", "value": "a"}
                         ]

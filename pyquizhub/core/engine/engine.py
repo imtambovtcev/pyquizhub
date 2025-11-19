@@ -486,7 +486,7 @@ class QuizEngine:
     def _apply_question_templating(
             self, question: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
         """
-        Apply templating to question text and image URLs by replacing placeholders.
+        Apply templating to question text and attachment URLs by replacing placeholders.
 
         Replaces placeholders like:
         - {api.joke_api.setup} with actual API response data
@@ -497,7 +497,7 @@ class QuizEngine:
             state: Current session state with api_data and scores
 
         Returns:
-            Question dictionary with templated text and image_url
+            Question dictionary with templated text and attachment URLs
         """
         import copy
         import re
@@ -508,62 +508,106 @@ class QuizEngine:
         # Get API context
         api_context = self._create_api_context(state)
 
-        # Get the question text and image_url
+        # Get the question text
         question_text = templated_question.get("data", {}).get("text", "")
-        image_url = templated_question.get("data", {}).get("image_url", "")
 
-        # Apply templating to both text and image_url
-        for field_name, field_value in [("text", question_text), ("image_url", image_url)]:
-            if not field_value:
-                continue
+        # Apply templating to text
+        if question_text:
+            templated_question["data"]["text"] = self._apply_templating_to_string(
+                question_text, api_context, state.get("scores", {}), "text"
+            )
 
-            # Find and replace {api.api_id.field} placeholders
-            api_placeholders = re.findall(r'\{api\.([^}]+)\}', field_value)
-
-            for placeholder in api_placeholders:
-                # Split the placeholder into parts (e.g., "joke_api.setup" ->
-                # ["joke_api", "setup"])
-                parts = placeholder.split('.')
-                api_id = parts[0]
-
-                # Navigate through the API context
-                value = api_context.get(api_id)
-                for part in parts[1:]:
-                    if isinstance(value, dict):
-                        value = value.get(part)
-                    else:
-                        break
-
-                # Replace the placeholder with the actual value
-                if value is not None:
-                    templated_question["data"][field_name] = templated_question["data"][field_name].replace(
-                        f"{{api.{placeholder}}}",
-                        str(value)
+        # Apply templating to attachments array
+        attachments = templated_question.get("data", {}).get("attachments", [])
+        if attachments:
+            for idx, attachment in enumerate(attachments):
+                # Template the URL field
+                if "url" in attachment and attachment["url"]:
+                    templated_url = self._apply_templating_to_string(
+                        attachment["url"], api_context, state.get("scores", {}), f"attachment[{idx}].url"
                     )
-                    self.logger.debug(
-                        f"Replaced {{api.{placeholder}}} in {field_name} with {value}")
-                else:
-                    self.logger.warning(
-                        f"Could not resolve placeholder {{api.{placeholder}}} in {field_name}")
+                    templated_question["data"]["attachments"][idx]["url"] = templated_url
 
-            # Find and replace {variables.var_name} placeholders
-            var_placeholders = re.findall(r'\{variables\.([^}]+)\}', field_value)
-
-            for var_name in var_placeholders:
-                # Get variable value from state scores
-                scores = state.get("scores", {})
-                value = scores.get(var_name)
-
-                # Replace the placeholder with the actual value
-                if value is not None:
-                    templated_question["data"][field_name] = templated_question["data"][field_name].replace(
-                        f"{{variables.{var_name}}}",
-                        str(value)
+                # Template optional caption field
+                if "caption" in attachment and attachment["caption"]:
+                    templated_caption = self._apply_templating_to_string(
+                        attachment["caption"], api_context, state.get("scores", {}), f"attachment[{idx}].caption"
                     )
-                    self.logger.debug(
-                        f"Replaced {{variables.{var_name}}} in {field_name} with {value}")
-                else:
-                    self.logger.warning(
-                        f"Could not resolve variable placeholder {{variables.{var_name}}} in {field_name}")
+                    templated_question["data"]["attachments"][idx]["caption"] = templated_caption
+
+                # Template optional alt_text field
+                if "alt_text" in attachment and attachment["alt_text"]:
+                    templated_alt_text = self._apply_templating_to_string(
+                        attachment["alt_text"], api_context, state.get("scores", {}), f"attachment[{idx}].alt_text"
+                    )
+                    templated_question["data"]["attachments"][idx]["alt_text"] = templated_alt_text
 
         return templated_question
+
+    def _apply_templating_to_string(
+            self, field_value: str, api_context: dict[str, Any], scores: dict[str, Any], field_name: str) -> str:
+        """
+        Apply templating to a string field by replacing placeholders.
+
+        Args:
+            field_value: The string to template
+            api_context: API context dictionary
+            scores: Current variable values
+            field_name: Name of the field (for logging)
+
+        Returns:
+            Templated string
+        """
+        import re
+
+        result = field_value
+
+        # Find and replace {api.api_id.field} placeholders
+        api_placeholders = re.findall(r'\{api\.([^}]+)\}', result)
+
+        for placeholder in api_placeholders:
+            # Split the placeholder into parts (e.g., "joke_api.setup" ->
+            # ["joke_api", "setup"])
+            parts = placeholder.split('.')
+            api_id = parts[0]
+
+            # Navigate through the API context
+            value = api_context.get(api_id)
+            for part in parts[1:]:
+                if isinstance(value, dict):
+                    value = value.get(part)
+                else:
+                    break
+
+            # Replace the placeholder with the actual value
+            if value is not None:
+                result = result.replace(
+                    f"{{api.{placeholder}}}",
+                    str(value)
+                )
+                self.logger.debug(
+                    f"Replaced {{api.{placeholder}}} in {field_name} with {value}")
+            else:
+                self.logger.warning(
+                    f"Could not resolve placeholder {{api.{placeholder}}} in {field_name}")
+
+        # Find and replace {variables.var_name} placeholders
+        var_placeholders = re.findall(r'\{variables\.([^}]+)\}', result)
+
+        for var_name in var_placeholders:
+            # Get variable value from state scores
+            value = scores.get(var_name)
+
+            # Replace the placeholder with the actual value
+            if value is not None:
+                result = result.replace(
+                    f"{{variables.{var_name}}}",
+                    str(value)
+                )
+                self.logger.debug(
+                    f"Replaced {{variables.{var_name}}} in {field_name} with {value}")
+            else:
+                self.logger.warning(
+                    f"Could not resolve variable placeholder {{variables.{var_name}}} in {field_name}")
+
+        return result

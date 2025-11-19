@@ -41,7 +41,12 @@
             "data": {
                 "text": "Do you like this dog?",
                 "type": "multiple_choice",
-                "image_url": "{variables.dog_image_url}",
+                "attachments": [
+                    {
+                        "type": "image",
+                        "url": "{variables.dog_image_url}"
+                    }
+                ],
                 "options": [
                     {
                         "value": "yes",

@@ -18,7 +18,12 @@
             "data": {
                 "text": "What animal is shown in this image?",
                 "type": "multiple_choice",
-                "image_url": "https://httpbin.org/image?format=png",
+                "attachments": [
+                    {
+                        "type": "image",
+                        "url": "https://via.placeholder.com/600/0000FF/FFFFFF.png?text=Test+Image"
+                    }
+                ],
                 "options": [
                     {
                         "value": "dog",
