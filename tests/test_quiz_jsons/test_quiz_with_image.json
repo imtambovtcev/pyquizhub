@@ -1,0 +1,68 @@
+{
+    "metadata": {
+        "title": "Quiz with Fixed Image",
+        "description": "Demonstrates quiz with fixed image URL (RESTRICTED tier compatible). Correct answer: dog",
+        "author": "Test Author",
+        "version": "2.0"
+    },
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What animal is shown in this image?",
+                "type": "multiple_choice",
+                "image_url": "https://httpbin.org/image?format=png",
+                "options": [
+                    {
+                        "value": "dog",
+                        "label": "Dog"
+                    },
+                    {
+                        "value": "cat",
+                        "label": "Cat"
+                    },
+                    {
+                        "value": "bird",
+                        "label": "Bird"
+                    }
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'dog'",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "data": {
+                "text": "Your score: {variables.score_a}",
+                "type": "final_message"
+            }
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "expression": "true",
+                "next_question_id": 2
+            }
+        ],
+        "2": [
+            {
+                "expression": "true",
+                "next_question_id": null
+            }
+        ]
+    }
+}

@@ -135,13 +135,32 @@ class QuizApp {
         if (question.data.type === 'final_message') {
             this.showResults({
                 title: this.currentQuiz.title,
-                finalMessage: question.data.text
+                finalMessage: question.data.text,
+                imageUrl: question.data.image_url
             });
             return;
         }
 
         this.startScreen.style.display = 'none';
         this.quizScreen.style.display = 'block';
+
+        // Handle image URL if present
+        const imageContainer = document.getElementById('question-image-container');
+        const imageElement = document.getElementById('question-image');
+
+        if (question.data.image_url) {
+            imageElement.src = question.data.image_url;
+            imageElement.onerror = () => {
+                // Hide image if it fails to load
+                imageContainer.style.display = 'none';
+                console.warn('Failed to load image:', question.data.image_url);
+            };
+            imageElement.onload = () => {
+                imageContainer.style.display = 'block';
+            };
+        } else {
+            imageContainer.style.display = 'none';
+        }
 
         document.getElementById('question-text').textContent = question.data.text;
         const choicesDiv = document.getElementById('choices');
@@ -204,7 +223,16 @@ class QuizApp {
 
         // If there's a final message, show only that with the "Take Another Quiz" button
         if (data.finalMessage) {
+            const imageHtml = data.imageUrl
+                ? `<div style="text-align: center; margin-bottom: 20px;">
+                       <img src="${data.imageUrl}" alt="Quiz completion image"
+                            style="max-width: 100%; max-height: 400px; border-radius: 8px;"
+                            onerror="this.style.display='none'">
+                   </div>`
+                : '';
+
             this.quizScreen.innerHTML = `
+                ${imageHtml}
                 <div class="final-message">${data.finalMessage.split('\n').map(line => line ? `<p>${line}</p>` : '<br>').join('')}</div>
                 <div style="text-align: center; margin-top: 20px;">
                     <button onclick="location.reload()">Take Another Quiz</button>

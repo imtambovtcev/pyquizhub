@@ -212,12 +212,26 @@ class TelegramQuizBot:
         """Send a question to the user."""
         question = question_data["data"]
         question_type = question.get("type")
+        image_url = question.get("image_url")
 
         # Check if it's a final message
         if question_type == "final_message":
-            await update.effective_message.reply_text(
-                f"🎉 {question['text']}\n\n" "Quiz completed! Use /quiz to start another quiz."
-            )
+            # Send final message with image if present
+            final_text = f"🎉 {question['text']}\n\nQuiz completed! Use /quiz to start another quiz."
+
+            if image_url:
+                try:
+                    await update.effective_message.reply_photo(
+                        photo=image_url,
+                        caption=final_text
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send image in final message: {e}")
+                    # Fallback to text only
+                    await update.effective_message.reply_text(final_text)
+            else:
+                await update.effective_message.reply_text(final_text)
+
             # Clear session
             user_id = update.effective_user.id
             if user_id in self.user_sessions:
@@ -240,7 +254,21 @@ class TelegramQuizBot:
                     ]
                 )
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.effective_message.reply_text(text, reply_markup=reply_markup)
+
+            # Send with image if available
+            if image_url:
+                try:
+                    await update.effective_message.reply_photo(
+                        photo=image_url,
+                        caption=text,
+                        reply_markup=reply_markup
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send image with question: {e}")
+                    # Fallback to text only
+                    await update.effective_message.reply_text(text, reply_markup=reply_markup)
+            else:
+                await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
         elif question_type == "multiple_select":
             text += "\n💡 Select multiple options (comma-separated) or click buttons:\n"
@@ -254,7 +282,22 @@ class TelegramQuizBot:
                     ]
                 )
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.effective_message.reply_text(text, reply_markup=reply_markup)
+
+            # Send with image if available
+            if image_url:
+                try:
+                    await update.effective_message.reply_photo(
+                        photo=image_url,
+                        caption=text,
+                        reply_markup=reply_markup
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send image with question: {e}")
+                    # Fallback to text only
+                    await update.effective_message.reply_text(text, reply_markup=reply_markup)
+            else:
+                await update.effective_message.reply_text(text, reply_markup=reply_markup)
+
             # Mark that we're awaiting text input
             user_id = update.effective_user.id
             if user_id in self.user_sessions:
@@ -267,16 +310,43 @@ class TelegramQuizBot:
                 "text": "text",
             }
             text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
-            await update.effective_message.reply_text(text)
+
+            # Send with image if available
+            if image_url:
+                try:
+                    await update.effective_message.reply_photo(
+                        photo=image_url,
+                        caption=text
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send image with question: {e}")
+                    # Fallback to text only
+                    await update.effective_message.reply_text(text)
+            else:
+                await update.effective_message.reply_text(text)
+
             # Mark that we're awaiting text input
             user_id = update.effective_user.id
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = question_type
 
         else:
-            await update.effective_message.reply_text(
-                text + "\n💡 Please type your answer:"
-            )
+            text_with_hint = text + "\n💡 Please type your answer:"
+
+            # Send with image if available
+            if image_url:
+                try:
+                    await update.effective_message.reply_photo(
+                        photo=image_url,
+                        caption=text_with_hint
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send image with question: {e}")
+                    # Fallback to text only
+                    await update.effective_message.reply_text(text_with_hint)
+            else:
+                await update.effective_message.reply_text(text_with_hint)
+
             user_id = update.effective_user.id
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = "text"

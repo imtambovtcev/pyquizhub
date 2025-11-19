@@ -7,7 +7,10 @@ This module provides validation capabilities for quiz JSON structures to ensure:
 - Expressions and conditions are valid
 - Quiz flow is properly defined
 - Variable definitions are valid
+- Image URLs are safe and valid
 """
+
+from __future__ import annotations
 
 import json
 from typing import Any
@@ -16,6 +19,7 @@ from .variable_types import (
     VariableDefinition, VariableType, VariableTag, MutableBy,
     VariableConstraints, VariableStore, CreatorPermissionTier
 )
+from .url_validator import ImageURLValidator
 from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
@@ -191,6 +195,41 @@ class QuizJSONValidator:
                 errors.append(f"Invalid question data format: {data}")
                 continue
 
+            # Validate image_url if present
+            if "image_url" in data:
+                image_url = data["image_url"]
+                if not isinstance(image_url, str):
+                    errors.append(
+                        f"Question {question['id']}: image_url must be a string, got {type(image_url).__name__}")
+                elif image_url:  # Only validate non-empty URLs
+                    # Check if URL has variable placeholders
+                    if ImageURLValidator.has_variable_placeholders(image_url):
+                        # Extract and validate variable references
+                        var_names = ImageURLValidator.extract_variable_names(image_url)
+                        for var_name in var_names:
+                            # Check if variables exist
+                            # Variable names are in format "variables.varname" or "api.id.field"
+                            parts = var_name.split('.')
+                            if parts[0] == 'variables' and len(parts) == 2:
+                                if parts[1] not in variable_definitions:
+                                    errors.append(
+                                        f"Question {question['id']}: image_url references undefined variable '{parts[1]}'"
+                                    )
+                            # API variables checked separately in API integrations validation
+                    else:
+                        # Fixed URL - validate it immediately
+                        try:
+                            # Don't verify content during validation (no network calls)
+                            ImageURLValidator.validate_image_url(
+                                image_url,
+                                verify_content=False,
+                                allow_http=True  # Allow HTTP during validation (warn later in permissions)
+                            )
+                        except ValueError as e:
+                            errors.append(
+                                f"Question {question['id']}: invalid image_url: {e}"
+                            )
+
             current_answer_type = None
             if data["type"] == "multiple_choice":
                 current_answer_type = str
@@ -317,7 +356,7 @@ class QuizJSONValidator:
         # Validate permissions - check if creator_tier has rights to use
         # requested features
         perm_errors = QuizJSONValidator._validate_permissions(
-            quiz_data, creator_tier)
+            quiz_data, creator_tier, variable_definitions if has_variables else {})
         permission_errors.extend(perm_errors)
 
         return {
@@ -760,7 +799,8 @@ class QuizJSONValidator:
     @staticmethod
     def _validate_permissions(
             quiz_data: dict,
-            creator_tier: CreatorPermissionTier) -> list[str]:
+            creator_tier: CreatorPermissionTier,
+            variable_definitions: dict[str, VariableDefinition] = None) -> list[str]:
         """
         Validate that the creator's permission tier allows the features used in the quiz.
 
@@ -770,112 +810,175 @@ class QuizJSONValidator:
         Args:
             quiz_data: The quiz JSON data
             creator_tier: The permission tier of the creator
+            variable_definitions: Dictionary of variable definitions (for checking image URL variables)
 
         Returns:
             List of permission error messages (empty if all permissions are satisfied)
         """
         permission_errors = []
 
+        if variable_definitions is None:
+            variable_definitions = {}
+
         # Get API integrations if present
         api_integrations = quiz_data.get("api_integrations", [])
 
-        if not api_integrations:
-            # No API integrations, no permission checks needed
-            return permission_errors
+        # Check API integration count limits (only if there are API integrations)
+        if api_integrations:
+            api_count = len(api_integrations)
+            max_apis = {
+                CreatorPermissionTier.RESTRICTED: 5,
+                CreatorPermissionTier.STANDARD: 20,
+                CreatorPermissionTier.ADVANCED: 50,
+                CreatorPermissionTier.ADMIN: float('inf')
+            }
 
-        # Check API integration count limits
-        api_count = len(api_integrations)
-        max_apis = {
-            CreatorPermissionTier.RESTRICTED: 5,
-            CreatorPermissionTier.STANDARD: 20,
-            CreatorPermissionTier.ADVANCED: 50,
-            CreatorPermissionTier.ADMIN: float('inf')
-        }
+            if api_count > max_apis.get(creator_tier, 0):
+                permission_errors.append(
+                    f"Permission denied: {creator_tier.value} tier allows max {max_apis[creator_tier]} "
+                    f"API integrations, but quiz has {api_count}. Upgrade to a higher tier."
+                )
 
-        if api_count > max_apis.get(creator_tier, 0):
-            permission_errors.append(
-                f"Permission denied: {creator_tier.value} tier allows max {max_apis[creator_tier]} "
-                f"API integrations, but quiz has {api_count}. Upgrade to a higher tier."
-            )
+            # Validate each API integration
+            for idx, api_config in enumerate(api_integrations):
+                api_id = api_config.get("id", f"api_{idx}")
 
-        # Validate each API integration
-        for idx, api_config in enumerate(api_integrations):
-            api_id = api_config.get("id", f"api_{idx}")
-
-            # Check HTTP method permissions
-            method = api_config.get("method", "GET").upper()
-
-            if creator_tier == CreatorPermissionTier.RESTRICTED:
-                if method != "GET":
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses {method} method. "
-                        f"RESTRICTED tier only allows GET requests. Upgrade to ADVANCED tier."
-                    )
-            elif creator_tier == CreatorPermissionTier.STANDARD:
-                if method != "GET":
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses {method} method. "
-                        f"STANDARD tier only allows GET requests. Upgrade to ADVANCED tier."
-                    )
-
-            # Check URL template permissions (dynamic URLs)
-            # In the new format, url_template is inside prepare_request block
-            prepare_request = api_config.get("prepare_request", {})
-            has_url_template = "url_template" in prepare_request
-            has_fixed_url = "url" in api_config
-
-            if has_url_template:
-                if creator_tier == CreatorPermissionTier.RESTRICTED:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
-                        f"RESTRICTED tier only allows fixed URLs. Use 'url' field or upgrade to ADVANCED tier."
-                    )
-                elif creator_tier == CreatorPermissionTier.STANDARD:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
-                        f"STANDARD tier only allows variables in query parameters. Upgrade to ADVANCED tier."
-                    )
-
-            # STANDARD tier can use variables in query params with fixed base
-            # URL
-            if creator_tier == CreatorPermissionTier.STANDARD and has_fixed_url:
-                # Check if query parameters contain variables (this is allowed for STANDARD)
-                # The actual URL should be fixed, only query params can have
-                # variables
-                pass  # This is allowed
-
-            # Check request body permissions (for POST/PUT)
-            # In the new format, body_template is inside prepare_request block
-            has_body_template = "body_template" in prepare_request
-            if has_body_template:
-                if creator_tier in [
-                        CreatorPermissionTier.RESTRICTED,
-                        CreatorPermissionTier.STANDARD]:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses request body template. "
-                        f"Only ADVANCED tier and above can use body templates. Upgrade required."
-                    )
-
-            # Check custom authentication
-            auth_config = api_config.get("authentication", {})
-            if auth_config:
-                auth_type = auth_config.get("type", "")
+                # Check HTTP method permissions
+                method = api_config.get("method", "GET").upper()
 
                 if creator_tier == CreatorPermissionTier.RESTRICTED:
-                    # Restricted can only use pre-configured/fixed auth
-                    if auth_type not in ["none", "fixed"]:
+                    if method != "GET":
                         permission_errors.append(
-                            f"Permission denied: API '{api_id}' uses '{auth_type}' authentication. "
-                            f"RESTRICTED tier only allows fixed authentication. Upgrade required."
+                            f"Permission denied: API '{api_id}' uses {method} method. "
+                            f"RESTRICTED tier only allows GET requests. Upgrade to ADVANCED tier."
+                        )
+                elif creator_tier == CreatorPermissionTier.STANDARD:
+                    if method != "GET":
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses {method} method. "
+                            f"STANDARD tier only allows GET requests. Upgrade to ADVANCED tier."
                         )
 
-                # Custom auth schemes require ADVANCED
-                if auth_type in [
-                    "custom",
-                        "dynamic"] and creator_tier != CreatorPermissionTier.ADVANCED and creator_tier != CreatorPermissionTier.ADMIN:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses custom authentication scheme. "
-                        f"Only ADVANCED tier and above can use custom auth. Upgrade required."
-                    )
+                # Check URL template permissions (dynamic URLs)
+                # In the new format, url_template is inside prepare_request block
+                prepare_request = api_config.get("prepare_request", {})
+                has_url_template = "url_template" in prepare_request
+                has_fixed_url = "url" in api_config
+
+                if has_url_template:
+                    if creator_tier == CreatorPermissionTier.RESTRICTED:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
+                            f"RESTRICTED tier only allows fixed URLs. Use 'url' field or upgrade to ADVANCED tier."
+                        )
+                    elif creator_tier == CreatorPermissionTier.STANDARD:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
+                            f"STANDARD tier only allows variables in query parameters. Upgrade to ADVANCED tier."
+                        )
+
+                # STANDARD tier can use variables in query params with fixed base
+                # URL
+                if creator_tier == CreatorPermissionTier.STANDARD and has_fixed_url:
+                    # Check if query parameters contain variables (this is allowed for STANDARD)
+                    # The actual URL should be fixed, only query params can have
+                    # variables
+                    pass  # This is allowed
+
+                # Check request body permissions (for POST/PUT)
+                # In the new format, body_template is inside prepare_request block
+                has_body_template = "body_template" in prepare_request
+                if has_body_template:
+                    if creator_tier in [
+                            CreatorPermissionTier.RESTRICTED,
+                            CreatorPermissionTier.STANDARD]:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses request body template. "
+                            f"Only ADVANCED tier and above can use body templates. Upgrade required."
+                        )
+
+                # Check custom authentication
+                auth_config = api_config.get("authentication", {})
+                if auth_config:
+                    auth_type = auth_config.get("type", "")
+
+                    if creator_tier == CreatorPermissionTier.RESTRICTED:
+                        # Restricted can only use pre-configured/fixed auth
+                        if auth_type not in ["none", "fixed"]:
+                            permission_errors.append(
+                                f"Permission denied: API '{api_id}' uses '{auth_type}' authentication. "
+                                f"RESTRICTED tier only allows fixed authentication. Upgrade required."
+                            )
+
+                    # Custom auth schemes require ADVANCED
+                    if auth_type in [
+                        "custom",
+                            "dynamic"] and creator_tier != CreatorPermissionTier.ADVANCED and creator_tier != CreatorPermissionTier.ADMIN:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses custom authentication scheme. "
+                            f"Only ADVANCED tier and above can use custom auth. Upgrade required."
+                        )
+
+        # Check image URL permissions
+        questions = quiz_data.get("questions", [])
+        for question in questions:
+            if not isinstance(question, dict):
+                continue
+
+            question_id = question.get("id", "unknown")
+            data = question.get("data", {})
+
+            if "image_url" in data:
+                image_url = data["image_url"]
+
+                if not isinstance(image_url, str):
+                    continue
+
+                # Check for variable substitution in image URLs
+                has_variables = ImageURLValidator.has_variable_placeholders(image_url)
+
+                if has_variables:
+                    # Extract variable names
+                    var_names = ImageURLValidator.extract_variable_names(image_url)
+
+                    # Check permission tier for variable usage
+                    if creator_tier == CreatorPermissionTier.RESTRICTED:
+                        # RESTRICTED tier: No variable substitution allowed
+                        permission_errors.append(
+                            f"Permission denied: Question {question_id} uses variable substitution in image_url. "
+                            f"RESTRICTED tier only allows fixed image URLs. Upgrade to STANDARD tier."
+                        )
+                    elif creator_tier == CreatorPermissionTier.STANDARD:
+                        # STANDARD tier: Only SAFE_FOR_API variables allowed
+                        for var_name in var_names:
+                            parts = var_name.split('.')
+                            if parts[0] == 'variables' and len(parts) == 2:
+                                var_def = variable_definitions.get(parts[1])
+                                if var_def and not var_def.is_safe_for_api_use():
+                                    permission_errors.append(
+                                        f"Permission denied: Question {question_id} uses unsafe variable '{parts[1]}' in image_url. "
+                                        f"STANDARD tier only allows SAFE_FOR_API variables. Upgrade to ADVANCED tier or use a sanitized variable."
+                                    )
+                    # ADVANCED and ADMIN tiers: All variables allowed (still validated for safety)
+
+                # Check for HTTP vs HTTPS
+                if not image_url.startswith('https://') and not has_variables:
+                    # Only warn for RESTRICTED tier (others can use HTTP if needed)
+                    if creator_tier == CreatorPermissionTier.RESTRICTED:
+                        permission_errors.append(
+                            f"Permission denied: Question {question_id} uses non-HTTPS image URL. "
+                            f"RESTRICTED tier requires HTTPS. Upgrade tier or use HTTPS."
+                        )
+
+                # Check URL pattern restrictions for RESTRICTED tier
+                if creator_tier == CreatorPermissionTier.RESTRICTED and not has_variables:
+                    # RESTRICTED tier: Only whitelisted image services allowed
+                    if not ImageURLValidator.check_url_against_patterns(image_url):
+                        permission_errors.append(
+                            f"Permission denied: Question {question_id} uses image URL from non-whitelisted service. "
+                            f"RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur, "
+                            f"Unsplash, placeholder services, or direct HTTPS URLs to image files). "
+                            f"Upgrade to STANDARD tier or use an approved service."
+                        )
 
         return permission_errors

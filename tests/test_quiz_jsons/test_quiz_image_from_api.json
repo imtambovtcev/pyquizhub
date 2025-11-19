@@ -1,0 +1,86 @@
+{
+    "metadata": {
+        "title": "Quiz with API Image URL",
+        "description": "Demonstrates quiz with image URL from API response (ADVANCED tier required). Correct answer: yes",
+        "author": "Test Author",
+        "version": "2.0"
+    },
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        },
+        "dog_image_url": {
+            "type": "string",
+            "mutable_by": ["api"],
+            "tags": ["api_data", "public"]
+        }
+    },
+    "api_integrations": [
+        {
+            "id": "random_dog",
+            "url": "https://dog.ceo/api/breeds/image/random",
+            "method": "GET",
+            "timing": "before_question",
+            "question_id": 1,
+            "extract_response": {
+                "variables": {
+                    "dog_image_url": {
+                        "path": "message",
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    ],
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "Do you like this dog?",
+                "type": "multiple_choice",
+                "image_url": "{variables.dog_image_url}",
+                "options": [
+                    {
+                        "value": "yes",
+                        "label": "Yes, cute dog!"
+                    },
+                    {
+                        "value": "no",
+                        "label": "Not my favorite"
+                    }
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == 'yes'",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "data": {
+                "text": "Your score: {variables.score_a}",
+                "type": "final_message"
+            }
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "expression": "true",
+                "next_question_id": 2
+            }
+        ],
+        "2": [
+            {
+                "expression": "true",
+                "next_question_id": null
+            }
+        ]
+    }
+}

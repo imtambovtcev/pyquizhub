@@ -117,6 +117,25 @@ def main():
     else:
         print(f"⚠️  File not found: {practical_quiz}\n")
 
+    # Upload image quizzes
+    print("=== Image Quizzes (Feature Demonstration) ===")
+    image_quizzes = [
+        "quizzes/image_quiz_fixed.json",      # RESTRICTED tier - fixed image URL
+        "quizzes/image_quiz_variable.json",   # STANDARD tier - variable substitution
+        "quizzes/image_quiz_api.json"         # ADVANCED tier - API-based image
+    ]
+
+    for quiz_file in image_quizzes:
+        if os.path.exists(quiz_file):
+            quiz_id, token = upload_quiz(quiz_file)
+            if quiz_id:
+                quizzes_uploaded[Path(quiz_file).stem] = {
+                    "quiz_id": quiz_id,
+                    "token": token
+                }
+        else:
+            print(f"⚠️  File not found: {quiz_file}\n")
+
     # Print summary
     print("=" * 60)
     print("📋 Upload Summary")
@@ -126,10 +145,15 @@ def main():
         print(f"  Quiz ID: {info['quiz_id']}")
         print(f"  Token:   {info['token']}")
 
-    # Save to file for easy reference
-    with open("quiz_tokens.json", "w") as f:
-        json.dump(quizzes_uploaded, f, indent=2)
-    print(f"\n💾 Quiz information saved to quiz_tokens.json")
+    print("\n" + "=" * 60)
+    print("📡 Retrieving Quiz Tokens via API")
+    print("=" * 60)
+    print("\nTo retrieve all tokens later, use:")
+    print(f"  curl -H 'Authorization: {ADMIN_TOKEN}' {API_URL}/admin/all_tokens")
+
+    print("\nTo get tokens for a specific quiz:")
+    print(f"  curl -H 'Authorization: {ADMIN_TOKEN}' {API_URL}/admin/all_tokens | jq '.tokens[\"QUIZ_ID\"]'")
+
     print("\n🎉 Done!")
 
 

@@ -1,0 +1,81 @@
+{
+    "metadata": {
+        "title": "Quiz with Variable Image URL",
+        "description": "Demonstrates quiz with variable substitution in image URL (STANDARD tier required). Correct answer: png",
+        "author": "Test Author",
+        "version": "2.0"
+    },
+    "variables": {
+        "score_a": {
+            "type": "integer",
+            "mutable_by": ["engine"],
+            "tags": ["score", "public"]
+        },
+        "image_type": {
+            "type": "string",
+            "mutable_by": ["engine"],
+            "tags": ["public", "safe_for_api"],
+            "constraints": {
+                "enum": ["png", "jpeg", "webp", "svg"]
+            },
+            "default": "png"
+        }
+    },
+    "questions": [
+        {
+            "id": 1,
+            "data": {
+                "text": "What format is this image?",
+                "type": "multiple_choice",
+                "image_url": "https://httpbin.org/image/{variables.image_type}",
+                "options": [
+                    {
+                        "value": "png",
+                        "label": "PNG"
+                    },
+                    {
+                        "value": "jpeg",
+                        "label": "JPEG"
+                    },
+                    {
+                        "value": "webp",
+                        "label": "WebP"
+                    },
+                    {
+                        "value": "svg",
+                        "label": "SVG"
+                    }
+                ]
+            },
+            "score_updates": [
+                {
+                    "condition": "answer == image_type",
+                    "update": {
+                        "score_a": "score_a + 1"
+                    }
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "data": {
+                "text": "Your score: {variables.score_a}. You identified the {variables.image_type} format!",
+                "type": "final_message"
+            }
+        }
+    ],
+    "transitions": {
+        "1": [
+            {
+                "expression": "true",
+                "next_question_id": 2
+            }
+        ],
+        "2": [
+            {
+                "expression": "true",
+                "next_question_id": null
+            }
+        ]
+    }
+}

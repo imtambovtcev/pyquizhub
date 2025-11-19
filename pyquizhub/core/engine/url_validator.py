@@ -1,5 +1,5 @@
 """
-URL validation for SSRF protection.
+URL validation for SSRF protection and image URL validation.
 
 This module provides comprehensive URL validation to prevent:
 - SSRF attacks against internal services
@@ -7,15 +7,69 @@ This module provides comprehensive URL validation to prevent:
 - Cloud metadata service access
 - Private network access
 - Redirect-based bypasses
+
+Also provides image-specific validation:
+- Content-Type verification
+- Image extension validation
+- File size limits
 """
+
+from __future__ import annotations
 
 import socket
 import ipaddress
 import re
 from urllib.parse import urlparse, parse_qs
+import requests
 from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
+
+# Allowed image extensions
+ALLOWED_IMAGE_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'
+}
+
+# Allowed image MIME types
+ALLOWED_IMAGE_MIME_TYPES = {
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'image/svg+xml', 'image/bmp', 'image/x-icon', 'image/vnd.microsoft.icon'
+}
+
+# Default allowed image URL patterns for RESTRICTED tier
+# These are safe, public image hosting services and CDNs
+# RESTRICTED tier is limited to these services to prevent resource abuse
+DEFAULT_ALLOWED_IMAGE_URL_PATTERNS = [
+    # CDN services
+    r'^https://.*\.cloudinary\.com/',
+    r'^https://.*\.imgix\.net/',
+    r'^https://.*\.cloudfront\.net/',
+    r'^https://.*\.fastly\.net/',
+    r'^https://cdn\.jsdelivr\.net/',
+
+    # Image hosting services
+    r'^https://i\.imgur\.com/',
+    r'^https://imgur\.com/.*\.(jpg|jpeg|png|gif|webp)$',
+    r'^https://.*\.unsplash\.com/',
+    r'^https://images\.unsplash\.com/',
+
+    # Placeholder services (for development/testing)
+    r'^https://via\.placeholder\.com/',
+    r'^https://placehold\.co/',
+    r'^https://picsum\.photos/',
+    r'^https://dummyimage\.com/',
+
+    # HTTPBin (testing only)
+    r'^https://httpbin\.org/image',
+
+    # Well-known domains with specific image paths (more restrictive)
+    # GitHub user content
+    r'^https://raw\.githubusercontent\.com/.*\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$',
+    r'^https://user-images\.githubusercontent\.com/.*\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$',
+
+    # Wikipedia/Wikimedia
+    r'^https://upload\.wikimedia\.org/.*\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$',
+]
 
 
 class URLValidator:
@@ -462,3 +516,239 @@ class APIAllowlistManager:
                 return True
 
         return False
+
+
+class ImageURLValidator:
+    """
+    Validates image URLs with security and content checks.
+
+    Combines SSRF protection from URLValidator with image-specific validation:
+    - Extension checking
+    - Content-Type verification
+    - File size limits
+    """
+
+    @staticmethod
+    def validate_image_extension(url: str) -> None:
+        """
+        Validate URL has an image extension.
+
+        Args:
+            url: URL to check
+
+        Raises:
+            ValueError: If URL doesn't have image extension
+        """
+        # Extract path from URL
+        parsed = urlparse(url)
+        path = parsed.path.lower()
+
+        # Check if path ends with image extension
+        has_valid_extension = any(
+            path.endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS
+        )
+
+        if not has_valid_extension:
+            # Allow URLs without extensions if they have image-like query params
+            # (e.g., CDN URLs like cloudinary, imgix)
+            query = parsed.query.lower()
+            if not any(ext.lstrip('.') in query for ext in ALLOWED_IMAGE_EXTENSIONS):
+                raise ValueError(
+                    f"URL must have image extension. "
+                    f"Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
+                )
+
+    @staticmethod
+    def check_url_against_patterns(
+        url: str,
+        allowed_patterns: list[str] | None = None
+    ) -> bool:
+        """
+        Check if URL matches any of the allowed patterns.
+
+        This is used to restrict image URLs to approved domains/patterns
+        for RESTRICTED tier users.
+
+        Args:
+            url: URL to check
+            allowed_patterns: List of regex patterns. If None, uses default patterns.
+
+        Returns:
+            True if URL matches at least one pattern, False otherwise
+        """
+        if allowed_patterns is None:
+            allowed_patterns = DEFAULT_ALLOWED_IMAGE_URL_PATTERNS
+
+        # If no patterns specified, allow all
+        if not allowed_patterns:
+            return True
+
+        # Check if URL matches any pattern
+        for pattern in allowed_patterns:
+            if re.match(pattern, url, re.IGNORECASE):
+                logger.debug(f"URL {url} matched pattern: {pattern}")
+                return True
+
+        return False
+
+    @staticmethod
+    def validate_url_pattern_restriction(
+        url: str,
+        allowed_patterns: list[str] | None = None,
+        error_message: str | None = None
+    ) -> None:
+        """
+        Validate URL against allowed patterns and raise error if not matched.
+
+        Args:
+            url: URL to validate
+            allowed_patterns: List of regex patterns
+            error_message: Custom error message
+
+        Raises:
+            ValueError: If URL doesn't match any allowed pattern
+        """
+        if not ImageURLValidator.check_url_against_patterns(url, allowed_patterns):
+            if error_message is None:
+                error_message = (
+                    f"Image URL does not match allowed patterns. "
+                    f"URL: {url}\n"
+                    f"Allowed services: Cloudinary, Imgix, Imgur, Unsplash, "
+                    f"placeholder services, or direct HTTPS URLs to image files."
+                )
+            raise ValueError(error_message)
+
+    @staticmethod
+    def verify_image_content(
+        url: str,
+        timeout: int = 5,
+        max_size_mb: float = 10.0
+    ) -> bool:
+        """
+        Verify URL points to actual image by checking Content-Type header.
+
+        This makes a HEAD request to check headers without downloading the full image.
+
+        Args:
+            url: URL to verify
+            timeout: Request timeout in seconds
+            max_size_mb: Maximum allowed image size in MB
+
+        Returns:
+            True if URL points to valid image
+
+        Raises:
+            ValueError: If verification fails
+        """
+        try:
+            # Make HEAD request (doesn't download body)
+            response = requests.head(
+                url,
+                timeout=timeout,
+                allow_redirects=True,
+                headers={'User-Agent': 'PyQuizHub-ImageValidator/1.0'}
+            )
+
+            # Check if request was successful
+            if response.status_code >= 400:
+                raise ValueError(
+                    f"Image URL returned error status: {response.status_code}"
+                )
+
+            # Check Content-Type header
+            content_type = response.headers.get('Content-Type', '').lower()
+
+            # Extract MIME type (ignore charset etc.)
+            mime_type = content_type.split(';')[0].strip()
+
+            if mime_type not in ALLOWED_IMAGE_MIME_TYPES:
+                raise ValueError(
+                    f"URL does not point to image. Content-Type: {content_type}. "
+                    f"Allowed: {', '.join(ALLOWED_IMAGE_MIME_TYPES)}"
+                )
+
+            # Check Content-Length if available
+            content_length = response.headers.get('Content-Length')
+            if content_length:
+                try:
+                    size_bytes = int(content_length)
+                except ValueError:
+                    logger.warning(f"Invalid Content-Length header: {content_length}")
+                else:
+                    # Only check size if conversion succeeded
+                    size_mb = size_bytes / (1024 * 1024)
+
+                    if size_mb > max_size_mb:
+                        raise ValueError(
+                            f"Image too large: {size_mb:.2f}MB (max: {max_size_mb}MB)"
+                        )
+
+            logger.debug(f"Image URL verified: {url} ({mime_type})")
+            return True
+
+        except requests.exceptions.Timeout:
+            raise ValueError(f"Image URL request timed out after {timeout}s")
+        except requests.exceptions.ConnectionError:
+            raise ValueError("Failed to connect to image URL")
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Failed to verify image URL: {e}")
+
+    @staticmethod
+    def validate_image_url(
+        url: str,
+        verify_content: bool = False,
+        timeout: int = 5,
+        allow_http: bool = False
+    ) -> None:
+        """
+        Comprehensive image URL validation with SSRF protection.
+
+        Args:
+            url: URL to validate
+            verify_content: Whether to verify URL actually points to image (requires network call)
+            timeout: Timeout for content verification
+            allow_http: Whether to allow HTTP (default: HTTPS only)
+
+        Raises:
+            ValueError: If validation fails
+        """
+        # Step 1: SSRF protection (using existing URLValidator)
+        URLValidator.validate_url(url, allow_http=allow_http)
+
+        # Step 2: Check image extension
+        ImageURLValidator.validate_image_extension(url)
+
+        # Step 3: Optionally verify content
+        if verify_content:
+            ImageURLValidator.verify_image_content(url, timeout)
+
+    @staticmethod
+    def has_variable_placeholders(url: str) -> bool:
+        """
+        Check if URL contains variable placeholders like {variables.name}.
+
+        Args:
+            url: URL to check
+
+        Returns:
+            True if URL contains variable placeholders
+        """
+        # Pattern to match {variables.varname} or {api.id.field}
+        pattern = r'\{(variables|api)\.[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*\}'
+        return bool(re.search(pattern, url))
+
+    @staticmethod
+    def extract_variable_names(url: str) -> list[str]:
+        """
+        Extract variable names from URL template.
+
+        Args:
+            url: URL template with variable placeholders
+
+        Returns:
+            List of variable names (e.g., ['variables.img_url', 'variables.format'])
+        """
+        # Pattern to match {variables.varname} or {api.id.field}
+        pattern = r'\{((variables|api)\.[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}'
+        matches = re.findall(pattern, url)
+        return [match[0] for match in matches]

@@ -1,0 +1,147 @@
+{
+  "metadata": {
+    "title": "Image Quiz Demo",
+    "description": "A quiz demonstrating image URL support with various question types",
+    "version": "2.0"
+  },
+  "variables": {
+    "score": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["score", "public"],
+      "default": 0
+    },
+    "level": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "Beginner"
+    },
+    "image_format": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["safe_for_api", "public"],
+      "constraints": {
+        "enum": ["png", "jpeg", "webp"]
+      },
+      "default": "png"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "type": "multiple_choice",
+        "text": "What color do you see in this image?",
+        "image_url": "https://via.placeholder.com/300/FF0000/FFFFFF?text=Red",
+        "options": [
+          {"label": "Red", "value": "red"},
+          {"label": "Blue", "value": "blue"},
+          {"label": "Green", "value": "green"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'red'",
+          "update": {
+            "score": "score + 10"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "type": "multiple_choice",
+        "text": "What format should we use for the next image?",
+        "options": [
+          {"label": "PNG", "value": "png"},
+          {"label": "JPEG", "value": "jpeg"},
+          {"label": "WebP", "value": "webp"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "image_format": "answer",
+            "score": "score + 5"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "data": {
+        "type": "multiple_choice",
+        "text": "Here's an image in your chosen format. What shape do you see?",
+        "image_url": "https://httpbin.org/image/{variables.image_format}",
+        "options": [
+          {"label": "Square", "value": "square"},
+          {"label": "Circle", "value": "circle"},
+          {"label": "Triangle", "value": "triangle"},
+          {"label": "Mixed shapes", "value": "mixed"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "score": "score + 5"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "data": {
+        "type": "integer",
+        "text": "How many pixels wide is this image? (Hint: Look at the URL)",
+        "image_url": "https://via.placeholder.com/600x400/0000FF/FFFFFF?text=Blue+Rectangle"
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 600",
+          "update": {
+            "score": "score + 15"
+          }
+        },
+        {
+          "condition": "answer >= 500 and answer <= 700",
+          "update": {
+            "score": "score + 5"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "data": {
+        "type": "final_message",
+        "text": "🎉 Quiz Complete!\n\nYour Score: {variables.score}/35\nLevel: {variables.level}\n\nThank you for testing image support!",
+        "image_url": "https://via.placeholder.com/400/00FF00/000000?text=Congratulations!"
+      },
+      "score_updates": [
+        {
+          "condition": "score >= 30",
+          "update": {
+            "level": "'Expert'"
+          }
+        },
+        {
+          "condition": "score >= 20 and score < 30",
+          "update": {
+            "level": "'Intermediate'"
+          }
+        }
+      ]
+    }
+  ],
+  "transitions": {
+    "1": [{"expression": "true", "next_question_id": 2}],
+    "2": [{"expression": "true", "next_question_id": 3}],
+    "3": [{"expression": "true", "next_question_id": 4}],
+    "4": [{"expression": "true", "next_question_id": 5}],
+    "5": [{"expression": "true", "next_question_id": null}]
+  }
+}

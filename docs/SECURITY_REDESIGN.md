@@ -237,6 +237,141 @@ class CreatorPermissionTier(Enum):
 }
 ```
 
+### Image URL Security Restrictions
+
+To prevent resource abuse and ensure security, image URLs in quiz questions are subject to permission-tier based restrictions.
+
+#### RESTRICTED Tier - Whitelisted Services Only
+
+RESTRICTED tier creators can only use image URLs from approved, safe hosting services:
+
+**Allowed Services:**
+- **CDN Services**: Cloudinary, Imgix, CloudFront, Fastly, jsDelivr
+- **Image Hosting**: Imgur, Unsplash
+- **Placeholder Services**: via.placeholder.com, placehold.co, picsum.photos, dummyimage.com
+- **Development/Testing**: httpbin.org/image
+- **Open Content**: GitHub user content, Wikimedia
+
+**Example (Allowed):**
+```json
+{
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What's in this image?",
+        "type": "multiple_choice",
+        "image_url": "https://i.imgur.com/abc123.png",
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+**Example (Blocked):**
+```json
+{
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What's in this image?",
+        "type": "multiple_choice",
+        "image_url": "https://random-website.com/image.png",  // ❌ Not whitelisted
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+**Error Message:**
+```
+Permission denied: Question 1 uses image URL from non-whitelisted service.
+RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur,
+Unsplash, placeholder services, or direct HTTPS URLs to image files).
+Upgrade to STANDARD tier or use an approved service.
+```
+
+#### STANDARD/ADVANCED/ADMIN Tiers - No URL Pattern Restrictions
+
+Higher tiers can use image URLs from any domain (still subject to HTTPS/SSRF validation):
+
+```json
+{
+  "creator_tier": "standard",
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What's in this image?",
+        "type": "multiple_choice",
+        "image_url": "https://my-own-server.com/images/quiz1.jpg",  // ✅ Allowed
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+#### Variable Substitution in Image URLs
+
+Image URLs with variable substitution are NOT checked against the whitelist (they have separate permission rules):
+
+- **RESTRICTED tier**: Cannot use variable substitution at all
+- **STANDARD tier**: Can use `SAFE_FOR_API` variables only
+- **ADVANCED tier**: Can use any variables (still validated for injection)
+
+```json
+{
+  "creator_tier": "standard",
+  "variables": {
+    "image_format": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["safe_for_api"],
+      "constraints": {"enum": ["png", "jpeg", "webp"]},
+      "default": "png"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "Identify the format",
+        "type": "multiple_choice",
+        "image_url": "https://httpbin.org/image/{variables.image_format}",  // ✅ Variable URL
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+#### Implementation Details
+
+URL pattern checking is implemented in `ImageURLValidator.check_url_against_patterns()`:
+
+- Uses regex patterns to match allowed domains
+- Only applies to RESTRICTED tier
+- Only checks fixed URLs (not variable-based URLs)
+- Runs during quiz JSON validation
+
+**Whitelist Patterns (see `url_validator.py`):**
+```python
+DEFAULT_ALLOWED_IMAGE_URL_PATTERNS = [
+    r'^https://.*\.cloudinary\.com/',
+    r'^https://.*\.imgix\.net/',
+    r'^https://i\.imgur\.com/',
+    r'^https://images\.unsplash\.com/',
+    r'^https://via\.placeholder\.com/',
+    r'^https://httpbin\.org/image',
+    r'^https://upload\.wikimedia\.org/.*\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$',
+    # ... more patterns
+]
+```
+
 ## 3. User Permission System
 
 ### User Permission Levels
