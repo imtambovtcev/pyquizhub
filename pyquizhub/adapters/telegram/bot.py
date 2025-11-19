@@ -48,12 +48,14 @@ class TelegramQuizBot:
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
         self.application.add_handler(CommandHandler("quiz", self.quiz_command))
+        self.application.add_handler(CommandHandler("continue", self.continue_command))
+        self.application.add_handler(CommandHandler("status", self.status_command))
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_message)
         )
 
-        # Store user sessions: {user_id: {quiz_id, session_id, awaiting_input}}
+        # Store user sessions: {user_id: {quiz_id, session_id, quiz_token, awaiting_input}}
         self.user_sessions: dict[int, dict[str, Any]] = {}
 
     async def start_command(
@@ -77,19 +79,22 @@ class TelegramQuizBot:
             "📚 PyQuizHub Bot Help\n\n"
             "Commands:\n"
             "/start - Start the bot\n"
-            "/quiz <token> - Start a quiz with the given token\n"
+            "/quiz <token> - Start a quiz or continue existing one\n"
+            "/continue <token> - Continue an unfinished quiz\n"
+            "/status - Check if you have any active quizzes\n"
             "/help - Show this help message\n\n"
             "How to take a quiz:\n"
             "1. Get a quiz token from your quiz administrator\n"
             "2. Use /quiz <token> to start\n"
             "3. Answer questions by clicking buttons or typing answers\n"
-            "4. View your results at the end!"
+            "4. View your results at the end!\n\n"
+            "💡 Tip: If you're in the middle of answering a question, just type your answer - don't use commands!"
         )
 
     async def quiz_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        """Handle /quiz command to start a quiz."""
+        """Handle /quiz command to start a quiz (or continue if active session exists)."""
         if not context.args:
             await update.message.reply_text(
                 "❌ Please provide a quiz token:\n" "/quiz <quiz_token>"
@@ -99,7 +104,7 @@ class TelegramQuizBot:
         quiz_token = context.args[0]
         user_id = update.effective_user.id
 
-        # Call PyQuizHub API to start quiz
+        # Call start_quiz API - it will automatically resume if there's an active session
         try:
             response = requests.post(
                 f"{self.api_base_url}/quiz/start_quiz",
@@ -131,6 +136,77 @@ class TelegramQuizBot:
         except Exception as e:
             logger.error(f"Error starting quiz: {e}")
             await update.message.reply_text(f"❌ Error: {str(e)}")
+
+    async def continue_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle /continue command to continue an unfinished quiz and resend current question."""
+        if not context.args:
+            await update.message.reply_text(
+                "❌ Please provide a quiz token:\n" "/continue <quiz_token>"
+            )
+            return
+
+        quiz_token = context.args[0]
+        user_id = update.effective_user.id
+
+        # Call start_quiz API to get current question (will resume if active session exists)
+        # This is safe - the API returns the already-prepared question from saved state
+        # No API calls or score updates are re-executed
+        try:
+            response = requests.post(
+                f"{self.api_base_url}/quiz/start_quiz",
+                json={"token": quiz_token, "user_id": str(user_id)},
+                headers={"Authorization": self.user_token},
+            )
+
+            if response.status_code != 200:
+                await update.message.reply_text(
+                    f"❌ Failed to continue quiz: {response.json().get('detail', 'Unknown error')}"
+                )
+                return
+
+            data = response.json()
+            quiz_id = data["quiz_id"]
+            session_id = data["session_id"]
+            title = data["title"]
+
+            # Store/update session
+            self.user_sessions[user_id] = {
+                "quiz_id": quiz_id,
+                "session_id": session_id,
+                "awaiting_input": None,
+            }
+
+            # If already had a session, just resend the question
+            await update.message.reply_text(f"🔄 Continuing quiz: {title}\n\n")
+            await self.send_question(update, data["question"])
+
+        except Exception as e:
+            logger.error(f"Error continuing quiz: {e}")
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+
+    async def status_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle /status command to check active quizzes and optionally resend question."""
+        user_id = update.effective_user.id
+
+        # Check in-memory session
+        if user_id in self.user_sessions:
+            session = self.user_sessions[user_id]
+            await update.message.reply_text(
+                f"📊 Active Quiz Session\n\n"
+                f"Session ID: {session['session_id']}\n"
+                f"Quiz ID: {session['quiz_id']}\n\n"
+                f"Just answer the current question to continue!\n\n"
+                f"💡 Tip: If you need to see the question again, use /continue with your quiz token."
+            )
+        else:
+            await update.message.reply_text(
+                "ℹ️ No active quiz session.\n\n"
+                "Use /quiz <token> to start a new quiz, or /continue <token> to resume an unfinished one."
+            )
 
     async def send_question(self, update: Update, question_data: dict) -> None:
         """Send a question to the user."""

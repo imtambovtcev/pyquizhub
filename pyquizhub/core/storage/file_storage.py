@@ -506,7 +506,29 @@ class FileStorageManager(StorageManager):
         """Fetch sessions for a specific quiz and user."""
         self.logger.debug(
             f"Fetching sessions for quiz ID: {quiz_id} and user ID: {user_id}")
-        return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
+
+        session_ids = []
+
+        # Get completed sessions from results
+        session_ids.extend(
+            list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
+        )
+
+        # Get active sessions from sessions directory
+        sessions_dir = os.path.join(self.base_dir, "sessions")
+        if os.path.exists(sessions_dir):
+            for session_file in os.listdir(sessions_dir):
+                if session_file.endswith(".json"):
+                    session_id = os.path.splitext(session_file)[0]
+                    # Load session to check if it matches quiz_id and user_id
+                    session_data = self.load_session_state(session_id)
+                    if (session_data and
+                        session_data.get("quiz_id") == quiz_id and
+                        session_data.get("user_id") == user_id and
+                        session_id not in session_ids):
+                        session_ids.append(session_id)
+
+        return session_ids
 
     def save_session_state(self, session_data: dict[str, Any]) -> None:
         """

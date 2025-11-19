@@ -65,21 +65,128 @@ def _is_final_message(question: dict) -> bool:
     return question["data"].get("type") == "final_message"
 
 
+@router.get("/active_sessions",
+            dependencies=[Depends(user_token_dependency)])
+def get_active_sessions(user_id: str, token: str, req: Request):
+    """
+    Get active (uncompleted) sessions for a user and quiz token.
+
+    Args:
+        user_id: User identifier
+        token: Quiz token
+        req: FastAPI Request object containing application state
+
+    Returns:
+        List of active session data
+
+    Raises:
+        HTTPException: If token is invalid
+    """
+    logger.debug(f"Getting active sessions for user {user_id} with token {token}")
+
+    storage_manager: StorageManager = req.app.state.storage_manager
+
+    # Validate token and get quiz ID
+    quiz_id = storage_manager.get_quiz_id_by_token(token)
+    if not quiz_id:
+        logger.error(f"Invalid or expired token: {token}")
+        raise HTTPException(status_code=404, detail="Invalid or expired token")
+
+    # Get all sessions for this user and quiz
+    session_ids = storage_manager.get_sessions_by_quiz_and_user(quiz_id, user_id)
+
+    # Load session data and filter for uncompleted sessions
+    active_sessions = []
+    for session_id in session_ids:
+        session_data = storage_manager.load_session_state(session_id)
+        if session_data and not session_data.get("completed", True):
+            active_sessions.append(session_data)
+
+    logger.info(
+        f"Found {len(active_sessions)} active sessions for user {user_id} on quiz {quiz_id}")
+
+    return {"active_sessions": active_sessions, "quiz_id": quiz_id}
+
+
+@router.get("/continue_session/{session_id}",
+            response_model=NextQuestionResponseModel,
+            dependencies=[Depends(user_token_dependency)])
+def continue_session(session_id: str, req: Request):
+    """
+    Continue an existing quiz session by getting the current question.
+
+    Args:
+        session_id: Session identifier
+        req: FastAPI Request object containing application state
+
+    Returns:
+        NextQuestionResponseModel: Current question for the session
+
+    Raises:
+        HTTPException: If session not found or already completed
+    """
+    logger.debug(f"Continuing session {session_id}")
+
+    storage_manager: StorageManager = req.app.state.storage_manager
+
+    # Load session state
+    session_data = storage_manager.load_session_state(session_id)
+    if not session_data:
+        logger.error(f"Session {session_id} not found")
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Check if already completed
+    if session_data.get("completed", False):
+        logger.error(f"Session {session_id} is already completed")
+        raise HTTPException(status_code=400, detail="Session is already completed")
+
+    quiz_id = session_data["quiz_id"]
+
+    # Load quiz data
+    quiz_data = storage_manager.get_quiz(quiz_id)
+
+    # Create engine instance
+    engine = QuizEngine(quiz_data)
+
+    # Extract engine state
+    engine_state = {
+        "current_question_id": session_data["current_question_id"],
+        "scores": session_data["scores"],
+        "answers": session_data["answers"],
+        "completed": session_data["completed"],
+        "api_data": session_data.get("api_data", {})
+    }
+
+    # Get current question
+    current_question = engine.get_current_question(engine_state)
+
+    logger.info(f"Resumed session {session_id} for user {session_data['user_id']}")
+
+    return NextQuestionResponseModel(
+        quiz_id=quiz_id,
+        user_id=session_data["user_id"],
+        session_id=session_id,
+        title=quiz_data["metadata"]["title"],
+        question=current_question
+    )
+
+
 @router.post("/start_quiz", response_model=StartQuizResponseModel,
              dependencies=[Depends(user_token_dependency)])
 def start_quiz(request: StartQuizRequestModel, req: Request):
     """
-    Start a new quiz session for a user.
+    Start a new quiz session for a user, or continue an existing active session.
 
-    Creates a new stateless engine instance, generates initial state,
-    and persists the session to storage.
+    If the user has an active (uncompleted) session for this quiz, that session
+    will be resumed instead of creating a new one. This ensures users can continue
+    their quizzes across different adapters (CLI, web, Telegram, etc.).
 
     Args:
         request: StartQuizRequestModel containing token and user ID
         req: FastAPI Request object containing application state
 
     Returns:
-        StartQuizResponseModel: Initial quiz session data and first question
+        StartQuizResponseModel: Quiz session data and current question
 
     Raises:
         HTTPException: If token is invalid or quiz not found
@@ -96,6 +203,48 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     if not quiz_id:
         logger.error(f"Invalid or expired token: {request.token}")
         raise HTTPException(status_code=404, detail="Invalid or expired token")
+
+    # Check for existing active sessions
+    session_ids = storage_manager.get_sessions_by_quiz_and_user(
+        quiz_id, request.user_id
+    )
+
+    # Find the first uncompleted session
+    for session_id in session_ids:
+        session_data = storage_manager.load_session_state(session_id)
+        if session_data and not session_data.get("completed", True):
+            # Found an active session - resume it
+            logger.info(
+                f"Resuming existing session {session_id} for user {
+                    request.user_id} on quiz {quiz_id}"
+            )
+
+            # Load quiz data to get current question
+            quiz_data = storage_manager.get_quiz(quiz_id)
+            engine = QuizEngine(quiz_data)
+
+            # Extract engine state
+            engine_state = {
+                "current_question_id": session_data["current_question_id"],
+                "scores": session_data["scores"],
+                "answers": session_data["answers"],
+                "completed": session_data["completed"],
+                "api_data": session_data.get("api_data", {})
+            }
+
+            # Get current question
+            current_question = engine.get_current_question(engine_state)
+
+            return StartQuizResponseModel(
+                quiz_id=quiz_id,
+                user_id=request.user_id,
+                session_id=session_id,
+                title=quiz_data["metadata"]["title"],
+                question=current_question
+            )
+
+    # No active session found - create a new one
+    logger.info(f"Creating new quiz session for user {request.user_id} on quiz {quiz_id}")
 
     # Check token type and remove if single-use
     token_type = storage_manager.get_token_type(request.token)

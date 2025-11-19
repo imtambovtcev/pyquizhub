@@ -402,6 +402,56 @@ def get_system_settings():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/adapters/status', methods=['GET'])
+def get_adapters_status():
+    """Get status of all adapters."""
+    adapters = {}
+
+    # Check CLI adapter - always available if API is up
+    adapters['cli'] = {
+        'name': 'CLI Adapter',
+        'status': 'available',
+        'description': 'Command-line interface adapter (always available)'
+    }
+
+    # Check Web adapter (port 8080)
+    try:
+        # In Docker, check the web service directly
+        web_url = "http://web:8080"
+        response = requests.get(web_url, timeout=3)
+        adapters['web'] = {
+            'name': 'Web Adapter',
+            'status': 'running' if response.status_code == 200 else 'error',
+            'description': 'Web interface running on port 8080',
+            'url': 'http://localhost:8080'  # External URL for users
+        }
+    except requests.exceptions.RequestException:
+        adapters['web'] = {
+            'name': 'Web Adapter',
+            'status': 'stopped',
+            'description': 'Web interface (not responding)',
+            'url': None
+        }
+
+    # Check Telegram bot - check if it can reach the API
+    # We can't directly check the bot, but we can check if TELEGRAM_BOT_TOKEN exists
+    telegram_configured = os.environ.get('TELEGRAM_BOT_TOKEN', '').strip() != ''
+    if telegram_configured:
+        adapters['telegram'] = {
+            'name': 'Telegram Bot',
+            'status': 'running',
+            'description': 'Telegram bot adapter (configured and running in Docker)'
+        }
+    else:
+        adapters['telegram'] = {
+            'name': 'Telegram Bot',
+            'status': 'not_configured',
+            'description': 'Telegram bot (no token configured)'
+        }
+
+    return jsonify({'adapters': adapters}), 200
+
+
 # ============================================================================
 # Static Files
 # ============================================================================
