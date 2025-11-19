@@ -784,6 +784,88 @@ GET /api/v1/user/permissions
 
 ---
 
+## 11. Image URL Redirect Protection
+
+### Vulnerability: Redirect Bypass
+
+Non-existent URLs on whitelisted domains can redirect to non-whitelisted or malicious domains, bypassing URL pattern restrictions.
+
+**Example Attack**:
+```
+Original URL: https://i.imgur.com/nonexistent.png (whitelisted)
+Redirects to: https://imgur.com/ (homepage, no image extension)
+           or: https://evil.com/malicious.png (non-whitelisted domain)
+```
+
+### Protection Implementation
+
+When `verify_content=True`, the system performs HTTP HEAD requests and checks for redirects:
+
+```python
+# Check for redirects
+if response.history:
+    final_url = response.url
+    if final_url != url:
+        # Three-layer validation for redirected URLs:
+
+        # 1. SSRF Protection
+        URLValidator.validate_url(final_url, allow_http=True)
+
+        # 2. Image Extension Check
+        if not ImageURLValidator.has_image_extension(final_url):
+            raise ValueError("Redirected URL does not have image extension")
+
+        # 3. Pattern Whitelist Check (if provided)
+        if allowed_patterns is not None:
+            if not ImageURLValidator.check_url_against_patterns(
+                final_url, allowed_patterns
+            ):
+                raise ValueError("Redirected URL does not match allowed patterns")
+```
+
+### Blocked Scenarios
+
+1. **Non-whitelisted Domain Redirect**:
+   - `https://i.imgur.com/abc123.png` → `https://evil.com/image.png`
+   - **Blocked**: Final domain doesn't match pattern restrictions
+
+2. **Homepage Redirect**:
+   - `https://i.imgur.com/nonexistent.png` → `https://imgur.com/`
+   - **Blocked**: No image extension on final URL
+
+3. **SSRF via Redirect**:
+   - `https://example.com/image.png` → `http://127.0.0.1/secret.png`
+   - **Blocked**: Private IP addresses not allowed
+
+4. **Multiple Redirect Chain**:
+   - `https://i.imgur.com/a.png` → `https://imgur.com/b.png` → `https://evil.com/c.png`
+   - **Blocked**: Final URL validated against all restrictions
+
+### Allowed Scenarios
+
+1. **No Redirect**:
+   - `https://i.imgur.com/abc123.png` → (direct response)
+   - **Allowed**: No redirect occurred
+
+2. **Whitelisted-to-Whitelisted Redirect**:
+   - `https://imgur.com/abc123` → `https://i.imgur.com/abc123.png`
+   - **Allowed**: Both URLs match pattern restrictions (if using `r'^https://.*\.imgur\.com/'`)
+
+### Usage
+
+Redirect protection is automatically enabled when using `verify_content=True` with RESTRICTED tier image URLs:
+
+```python
+# RESTRICTED tier with pattern restrictions
+ImageURLValidator.validate_image_url(
+    url="https://i.imgur.com/abc123.png",
+    verify_content=True,  # Enables redirect checking
+    allowed_patterns=[r'^https://i\.imgur\.com/']
+)
+```
+
+---
+
 ## Summary
 
 This redesign provides:
@@ -796,5 +878,6 @@ This redesign provides:
 ✅ **Security**: Defense in depth against injection attacks
 ✅ **Flexibility**: Support for complex quiz flows
 ✅ **Backwards Compatible**: Migration path from old system
+✅ **Redirect Protection**: Prevents URL validation bypass via redirects
 
 This system balances security, flexibility, and usability while preventing abuse and protecting against attacks.

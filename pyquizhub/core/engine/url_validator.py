@@ -529,6 +529,35 @@ class ImageURLValidator:
     """
 
     @staticmethod
+    def has_image_extension(url: str) -> bool:
+        """
+        Check if URL has an image extension (non-raising version).
+
+        Args:
+            url: URL to check
+
+        Returns:
+            True if URL has image extension, False otherwise
+        """
+        try:
+            parsed = urlparse(url)
+            path = parsed.path.lower()
+
+            # Check if path ends with image extension
+            has_valid_extension = any(
+                path.endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS
+            )
+
+            if has_valid_extension:
+                return True
+
+            # Check query params for CDN URLs
+            query = parsed.query.lower()
+            return any(ext.lstrip('.') in query for ext in ALLOWED_IMAGE_EXTENSIONS)
+        except Exception:
+            return False
+
+    @staticmethod
     def validate_image_extension(url: str) -> None:
         """
         Validate URL has an image extension.
@@ -539,24 +568,11 @@ class ImageURLValidator:
         Raises:
             ValueError: If URL doesn't have image extension
         """
-        # Extract path from URL
-        parsed = urlparse(url)
-        path = parsed.path.lower()
-
-        # Check if path ends with image extension
-        has_valid_extension = any(
-            path.endswith(ext) for ext in ALLOWED_IMAGE_EXTENSIONS
-        )
-
-        if not has_valid_extension:
-            # Allow URLs without extensions if they have image-like query params
-            # (e.g., CDN URLs like cloudinary, imgix)
-            query = parsed.query.lower()
-            if not any(ext.lstrip('.') in query for ext in ALLOWED_IMAGE_EXTENSIONS):
-                raise ValueError(
-                    f"URL must have image extension. "
-                    f"Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
-                )
+        if not ImageURLValidator.has_image_extension(url):
+            raise ValueError(
+                f"URL must have image extension. "
+                f"Allowed: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"
+            )
 
     @staticmethod
     def check_url_against_patterns(
@@ -622,7 +638,8 @@ class ImageURLValidator:
     def verify_image_content(
         url: str,
         timeout: int = 5,
-        max_size_mb: float = 10.0
+        max_size_mb: float = 10.0,
+        allowed_patterns: list[str] | None = None
     ) -> bool:
         """
         Verify URL points to actual image by checking Content-Type header.
@@ -633,12 +650,15 @@ class ImageURLValidator:
             url: URL to verify
             timeout: Request timeout in seconds
             max_size_mb: Maximum allowed image size in MB
+            allowed_patterns: Optional list of regex patterns for URL whitelisting.
+                            If provided, both original and final (after redirect) URLs
+                            must match at least one pattern.
 
         Returns:
             True if URL points to valid image
 
         Raises:
-            ValueError: If verification fails
+            ValueError: If verification fails or URL doesn't match allowed patterns
         """
         try:
             # Make HEAD request (doesn't download body)
@@ -648,6 +668,35 @@ class ImageURLValidator:
                 allow_redirects=True,
                 headers={'User-Agent': 'PyQuizHub-ImageValidator/1.0'}
             )
+
+            # Check for redirects - ensure final URL is also safe
+            if response.history:
+                # There were redirects
+                final_url = response.url
+                if final_url != url:
+                    # URL was redirected - validate final URL
+                    logger.warning(
+                        f"Image URL redirected from {url} to {final_url}"
+                    )
+
+                    # Re-validate final URL against SSRF checks
+                    URLValidator.validate_url(final_url, allow_http=True)
+
+                    # Check final URL has image extension
+                    if not ImageURLValidator.has_image_extension(final_url):
+                        raise ValueError(
+                            f"Redirected URL does not have image extension: {final_url}"
+                        )
+
+                    # Check final URL against allowed patterns (if provided)
+                    if allowed_patterns is not None:
+                        if not ImageURLValidator.check_url_against_patterns(
+                            final_url, allowed_patterns
+                        ):
+                            raise ValueError(
+                                f"Redirected URL does not match allowed patterns: {final_url}. "
+                                f"Original URL {url} redirected to non-whitelisted domain."
+                            )
 
             # Check if request was successful
             if response.status_code >= 400:
@@ -698,7 +747,8 @@ class ImageURLValidator:
         url: str,
         verify_content: bool = False,
         timeout: int = 5,
-        allow_http: bool = False
+        allow_http: bool = False,
+        allowed_patterns: list[str] | None = None
     ) -> None:
         """
         Comprehensive image URL validation with SSRF protection.
@@ -708,6 +758,7 @@ class ImageURLValidator:
             verify_content: Whether to verify URL actually points to image (requires network call)
             timeout: Timeout for content verification
             allow_http: Whether to allow HTTP (default: HTTPS only)
+            allowed_patterns: Optional list of regex patterns for URL whitelisting
 
         Raises:
             ValueError: If validation fails
@@ -718,9 +769,11 @@ class ImageURLValidator:
         # Step 2: Check image extension
         ImageURLValidator.validate_image_extension(url)
 
-        # Step 3: Optionally verify content
+        # Step 3: Optionally verify content (including redirect checking)
         if verify_content:
-            ImageURLValidator.verify_image_content(url, timeout)
+            ImageURLValidator.verify_image_content(
+                url, timeout, allowed_patterns=allowed_patterns
+            )
 
     @staticmethod
     def has_variable_placeholders(url: str) -> bool:
