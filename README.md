@@ -12,7 +12,7 @@ PyQuizHub is a flexible quiz management system with a modular architecture that 
 - **Admin**
   - Full system access and configuration
   - User management
-  - Storage management 
+  - Storage management
   - Full quiz access
 
 - **Creator**
@@ -21,10 +21,16 @@ PyQuizHub is a flexible quiz management system with a modular architecture that 
   - View quiz results
   - Generate access tokens
 
-- **User** 
+- **User**
   - Take quizzes with valid token
   - View own results
   - Track progress
+
+### Access Adapters
+- **Web Interface** - Interactive HTML/JavaScript quiz interface
+- **CLI** - Command-line quiz interface
+- **Telegram Bot** - Take quizzes via Telegram with inline keyboards
+- **Discord Bot** - Take quizzes via Discord with slash commands and buttons
 
 ### System Requirements
 
@@ -154,12 +160,60 @@ docker-compose up -d
 Services:
 - API: `http://localhost:8000`
 - Web Interface: `http://localhost:8080`
+- Admin Web: `http://localhost:8081`
 - PostgreSQL: `localhost:5433` (mapped from container port 5432)
+- Telegram Bot: (if `TELEGRAM_BOT_TOKEN` configured)
+- Discord Bot: (if `DISCORD_BOT_TOKEN` configured)
 
 4. Stop services:
 ```bash
 docker-compose down
 ```
+
+### Bot Adapters Setup
+
+#### Telegram Bot
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) on Telegram
+2. Copy the bot token
+3. Add to `.env`:
+```bash
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token-here
+```
+4. Start the bot:
+```bash
+# With Docker Compose
+docker-compose up telegram-bot
+
+# Or locally
+poetry run python -m pyquizhub.adapters.telegram.bot
+```
+
+#### Discord Bot
+
+1. Create a Discord application at [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a bot in the "Bot" section
+3. Enable "MESSAGE CONTENT INTENT" under Privileged Gateway Intents
+4. Copy the bot token
+5. Add to `.env`:
+```bash
+DISCORD_BOT_TOKEN=your-discord-bot-token-here
+```
+6. Invite bot to your server using OAuth2 URL generator:
+   - Scopes: `bot`, `applications.commands`
+   - Bot Permissions: Send Messages, Read Messages/View Channels, Use Slash Commands, Embed Links
+7. Start the bot:
+```bash
+# With Docker Compose
+docker-compose up discord-bot
+
+# Or locally
+poetry run python -m pyquizhub.adapters.discord.bot
+```
+
+For detailed setup instructions, see:
+- [Telegram Bot README](pyquizhub/adapters/telegram/README.md)
+- [Discord Bot README](pyquizhub/adapters/discord/README.md)
 
 ### Manual Docker Build
 
