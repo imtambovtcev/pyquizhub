@@ -23,6 +23,9 @@ psycopg2-binary = "^2.9.11"
 python-telegram-bot = "^22.5"
 discord-py = "^2.4.0"
 aiohttp = "^3.10.0"
+aiosqlite = "^0.20.0"
+python-magic = "^0.4.27"
+pillow = "^11.0.0"
 
 [tool.poetry.scripts]
 pyquizhub-setup = "pyquizhub.config.initialize:initialize_system"

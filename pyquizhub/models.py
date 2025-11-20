@@ -67,7 +67,7 @@ class AllTokensResponseModel(BaseModel):
 class AnswerRequestModel(BaseModel):
     user_id: str
     session_id: str
-    answer: dict[str, str | int | float | list | None]
+    answer: dict[str, str | int | float | list | dict | None]
 
 
 # Question Models

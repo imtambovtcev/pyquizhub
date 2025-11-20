@@ -10,6 +10,7 @@ from pyquizhub.core.api.router_quiz import router as quiz_router
 from pyquizhub.core.api.router_creator import router as creator_router
 from pyquizhub.core.api.router_admin import router as admin_router
 from pyquizhub.core.api.router_files import router as files_router
+from pyquizhub.core.api.router_file_uploads import router as file_uploads_router
 from fastapi.middleware import Middleware
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
@@ -105,6 +106,7 @@ app.include_router(admin_router, prefix="/admin", tags=["admin"])
 app.include_router(creator_router, prefix="/creator", tags=["creator"])
 app.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
 app.include_router(files_router, prefix="/api", tags=["files"])
+app.include_router(file_uploads_router, tags=["file-uploads"])
 
 
 if __name__ == "__main__":

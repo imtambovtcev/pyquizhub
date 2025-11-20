@@ -160,6 +160,42 @@ def main():
         else:
             print(f"⚠️  File not found: {quiz_file}\n")
 
+    # Upload image quizzes (demos for image feature)
+    print("=== Image Quizzes (Demo) ===")
+    image_quizzes = [
+        "tests/test_quiz_jsons/test_quiz_with_image.json",  # Fixed image URL
+        "tests/test_quiz_jsons/test_quiz_image_variable.json",  # Variable substitution
+        "tests/test_quiz_jsons/test_quiz_image_from_api.json",  # API-fetched image
+    ]
+
+    for quiz_file in image_quizzes:
+        if os.path.exists(quiz_file):
+            quiz_id, token = upload_quiz(quiz_file)
+            if quiz_id:
+                quizzes_uploaded[Path(quiz_file).stem] = {
+                    "quiz_id": quiz_id,
+                    "token": token
+                }
+        else:
+            print(f"⚠️  File not found: {quiz_file}\n")
+
+    # Upload file upload quizzes (demos for file upload feature)
+    print("=== File Upload Quizzes (Demo) ===")
+    file_upload_quizzes = [
+        "quizzes/color_detector_quiz.json",  # Color analysis with file upload
+    ]
+
+    for quiz_file in file_upload_quizzes:
+        if os.path.exists(quiz_file):
+            quiz_id, token = upload_quiz(quiz_file)
+            if quiz_id:
+                quizzes_uploaded[Path(quiz_file).stem] = {
+                    "quiz_id": quiz_id,
+                    "token": token
+                }
+        else:
+            print(f"⚠️  File not found: {quiz_file}\n")
+
     # Print summary
     print("=" * 60)
     print("📋 Upload Summary")

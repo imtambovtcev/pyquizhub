@@ -92,17 +92,11 @@ class SafeEvaluator:
             elif isinstance(node, ast.Attribute):
                 # Handle attribute access like 'api.weather'
                 value = _eval(node.value)
-                logger.debug(
-                    f"Attribute access: value={value}, attr={
-                        node.attr}, value_type={
-                        type(value)}")
+                logger.debug(f"Attribute access: value={value}, attr={node.attr}, value_type={type(value)}")
                 if isinstance(value, dict) and node.attr in value:
                     return value[node.attr]
-                logger.error(
-                    f"Attribute access failed: value={value}, attr={
-                        node.attr}, keys={
-                        value.keys() if isinstance(
-                            value, dict) else 'N/A'}")
+                keys_str = value.keys() if isinstance(value, dict) else 'N/A'
+                logger.error(f"Attribute access failed: value={value}, attr={node.attr}, keys={keys_str}")
                 raise ValueError(f"Invalid attribute access: {node.attr}")
             elif isinstance(node, ast.Subscript):
                 # Handle subscript access like 'api["weather"]' or 'results[0]'

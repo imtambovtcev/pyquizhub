@@ -138,37 +138,79 @@ PYQUIZHUB_USER_TOKEN=<generated-user-token>
 
 ### Docker Deployment
 
-The easiest way to deploy PyQuizHub with PostgreSQL:
+PyQuizHub provides two Docker Compose configurations:
 
-1. Copy and configure environment:
+#### Development Environment (`docker-compose.dev.yml`)
+
+For local development and testing with all features:
+
 ```bash
+# 1. Copy and configure environment
 cp .env.example .env
-# Edit .env with your settings (see comments in file)
+# Edit .env with your settings
+
+# 2. Start development environment (includes Color API for testing)
+docker compose -f docker-compose.dev.yml up -d
+
+# 3. Run tests
+micromamba run -n pyquizhub pytest tests/test_color_api.py -v
+
+# 4. Clean database and restart
+docker compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-2. Generate secure tokens for production:
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-# Add generated tokens to .env file
-```
-
-3. Start services:
-```bash
-docker-compose up -d
-```
-
-Services:
+**Development services:**
 - API: `http://localhost:8000`
 - Web Interface: `http://localhost:8080`
 - Admin Web: `http://localhost:8081`
-- PostgreSQL: `localhost:5433` (mapped from container port 5432)
-- Telegram Bot: (if `TELEGRAM_BOT_TOKEN` configured)
-- Discord Bot: (if `DISCORD_BOT_TOKEN` configured)
+- **Color API: `http://localhost:5001`** (for file upload testing)
+- PostgreSQL: `localhost:5433`
+- Telegram Bot (if configured)
+- Discord Bot (if configured)
 
-4. Stop services:
+**Features:**
+- Volume mounts for live code reloading
+- Debug mode enabled
+- Color Analysis API for file upload demonstrations
+
+#### Production Environment (`docker-compose.prod.yml`)
+
+For production deployment with optimized settings:
+
 ```bash
-docker-compose down
+# 1. Copy and configure environment
+cp .env.example .env
+# Edit .env with production settings
+
+# 2. Generate secure tokens
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Add generated tokens to .env file
+
+# 3. Start production environment
+docker compose -f docker-compose.prod.yml up -d
+
+# 4. Check status
+docker compose -f docker-compose.prod.yml ps
+
+# 5. Stop services
+docker compose -f docker-compose.prod.yml down
 ```
+
+**Production services:**
+- API: `http://localhost:8000`
+- Web Interface: `http://localhost:8080`
+- Admin Web: `http://localhost:8081`
+- PostgreSQL: `localhost:5433`
+- Telegram Bot (if configured)
+- Discord Bot (if configured)
+
+**Features:**
+- No volume mounts (uses built images)
+- Debug mode disabled
+- Comprehensive health checks
+- Restart policies configured
+- Optimized for stability
 
 ### Bot Adapters Setup
 
@@ -182,8 +224,11 @@ TELEGRAM_BOT_TOKEN=your-telegram-bot-token-here
 ```
 4. Start the bot:
 ```bash
-# With Docker Compose
-docker-compose up telegram-bot
+# With Docker Compose (development)
+docker compose -f docker-compose.dev.yml up telegram-bot -d
+
+# With Docker Compose (production)
+docker compose -f docker-compose.prod.yml up telegram-bot -d
 
 # Or locally
 poetry run python -m pyquizhub.adapters.telegram.bot
@@ -204,8 +249,11 @@ DISCORD_BOT_TOKEN=your-discord-bot-token-here
    - Bot Permissions: Send Messages, Read Messages/View Channels, Use Slash Commands, Embed Links
 7. Start the bot:
 ```bash
-# With Docker Compose
-docker-compose up discord-bot
+# With Docker Compose (development)
+docker compose -f docker-compose.dev.yml up discord-bot -d
+
+# With Docker Compose (production)
+docker compose -f docker-compose.prod.yml up discord-bot -d
 
 # Or locally
 poetry run python -m pyquizhub.adapters.discord.bot

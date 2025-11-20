@@ -41,11 +41,17 @@ class QuizEngine:
     questions, scores, transitions) as empty collections to be defensive.
     """
 
-    def __init__(self, quiz_data: dict):
-        """Initialize engine and normalize quiz data."""
+    def __init__(self, quiz_data: dict, file_storage: Any = None):
+        """Initialize engine and normalize quiz data.
+
+        Args:
+            quiz_data: Quiz definition
+            file_storage: Optional file storage backend for API file uploads
+        """
         self.quiz = self.load_quiz(quiz_data)
         self.logger = get_logger(__name__)
         self.api_manager = APIIntegrationManager()
+        self.file_storage = file_storage
 
     def load_quiz(self, quiz_data: dict) -> dict:
         """
@@ -373,6 +379,13 @@ class QuizEngine:
                                  for opt in question["data"]["options"]]
                 if answer not in valid_options:
                     raise ValueError(f"Invalid option selected: {answer}")
+            elif question_type == "file_upload":
+                if not isinstance(answer, dict):
+                    raise ValueError("Answer must be a dictionary with file_id")
+                if "file_id" not in answer:
+                    raise ValueError("Answer must contain file_id field")
+                if not isinstance(answer["file_id"], str):
+                    raise ValueError("file_id must be a string")
         except (ValueError, TypeError) as e:
             self.logger.error(
                 f"Invalid answer for question {question['id']}: {e}")
@@ -442,10 +455,15 @@ class QuizEngine:
 
             # Execute the API call
             try:
+                # Add file storage to context if available
+                api_context = context.copy()
+                if self.file_storage:
+                    api_context['_file_storage'] = self.file_storage
+
                 state = self.api_manager.execute_api_call(
                     api_config,
                     state,
-                    context
+                    api_context
                 )
             except Exception as e:
                 self.logger.error(f"API call failed: {e}")

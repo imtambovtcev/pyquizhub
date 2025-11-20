@@ -54,6 +54,9 @@ class TelegramQuizBot:
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_message)
         )
+        self.application.add_handler(
+            MessageHandler(filters.PHOTO | filters.Document.ALL, self.file_message)
+        )
 
         # Store user sessions: {user_id: {quiz_id, session_id, quiz_token, awaiting_input}}
         self.user_sessions: dict[int, dict[str, Any]] = {}
@@ -560,6 +563,38 @@ class TelegramQuizBot:
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = question_type
 
+        elif question_type == "file_upload":
+            file_types = question.get("file_types", [])
+            max_size = question.get("max_size_mb", 10)
+            description = question.get("description", "")
+
+            text += f"\n📎 Please send a file"
+            if file_types:
+                text += f"\n💡 Accepted types: {', '.join(file_types)}"
+            if max_size:
+                text += f"\n💡 Max size: {max_size}MB"
+            if description:
+                text += f"\n\n{description}"
+
+            # Send with attachments if available
+            if attachments:
+                sent = await self.send_attachment(update, attachments[0], text)
+                if not sent:
+                    # Fallback to text only
+                    await update.effective_message.reply_text(text)
+
+                # Send additional attachments
+                for attachment in attachments[1:]:
+                    caption = attachment.get("caption", "")
+                    await self.send_attachment(update, attachment, caption)
+            else:
+                await update.effective_message.reply_text(text)
+
+            # Mark that we're awaiting file upload
+            user_id = update.effective_user.id
+            if user_id in self.user_sessions:
+                self.user_sessions[user_id]["awaiting_input"] = "file_upload"
+
         else:
             text_with_hint = text + "\n💡 Please type your answer:"
 
@@ -595,6 +630,75 @@ class TelegramQuizBot:
 
         answer_value = query.data
         await self.submit_answer(update, user_id, answer_value)
+
+    async def file_message(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Handle file messages (photo or document uploads)."""
+        user_id = update.effective_user.id
+
+        if user_id not in self.user_sessions:
+            await update.message.reply_text(
+                "ℹ️ No active quiz. Use /quiz <token> to start a quiz."
+            )
+            return
+
+        session = self.user_sessions[user_id]
+        awaiting_type = session.get("awaiting_input")
+
+        if awaiting_type != "file_upload":
+            await update.message.reply_text(
+                "ℹ️ The current question doesn't expect a file upload."
+            )
+            return
+
+        # Download the file from Telegram
+        try:
+            if update.message.photo:
+                # Get the largest photo
+                file = await update.message.photo[-1].get_file()
+                file_name = f"photo_{file.file_unique_id}.jpg"
+            elif update.message.document:
+                file = await update.message.document.get_file()
+                file_name = update.message.document.file_name
+            else:
+                await update.message.reply_text("❌ Unsupported file type.")
+                return
+
+            # Download file to bytes
+            import io
+            file_bytes = io.BytesIO()
+            await file.download_to_memory(file_bytes)
+            file_bytes.seek(0)
+
+            # Upload to PyQuizHub API
+            await update.message.reply_text("⏳ Uploading file...")
+
+            upload_response = requests.post(
+                f"{self.api_base_url}/uploads/upload",
+                files={"file": (file_name, file_bytes, "application/octet-stream")},
+                headers={"Authorization": self.user_token},
+            )
+
+            if upload_response.status_code != 200:
+                await update.message.reply_text(
+                    f"❌ Failed to upload file: {upload_response.json().get('detail', 'Unknown error')}"
+                )
+                return
+
+            upload_data = upload_response.json()
+            file_id = upload_data.get("file_id")
+
+            if not file_id:
+                await update.message.reply_text("❌ File upload failed: no file_id returned")
+                return
+
+            # Submit the file_id as the answer
+            await self.submit_answer(update, user_id, {"file_id": file_id})
+
+        except Exception as e:
+            logger.error(f"Error handling file upload: {e}")
+            await update.message.reply_text(f"❌ Error: {str(e)}")
 
     async def text_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE

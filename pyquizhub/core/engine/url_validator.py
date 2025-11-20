@@ -388,8 +388,7 @@ class URLValidator:
             for pattern in suspicious_query_patterns:
                 if pattern in query_lower:
                     logger.warning(
-                        f"Suspicious query parameter: {pattern} in {
-                            parsed.query}")
+                        f"Suspicious query parameter: {pattern} in {parsed.query}")
 
 
 class DNSValidator:

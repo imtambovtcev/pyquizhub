@@ -1,0 +1,135 @@
+# Development Docker Compose Configuration
+#
+# This configuration includes development-specific services and settings:
+# - Color Analysis API for testing file uploads
+# - Volume mounts for live code reloading
+# - Debug mode enabled
+# - All adapters and services
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#   docker compose -f docker-compose.dev.yml down -v  # Clean database
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYQUIZHUB_DEBUG=true
+    volumes:
+      - app_data:/app/data
+      - ./pyquizhub:/app/pyquizhub  # Live code reloading
+      - ./config.yaml:/app/config.yaml
+    depends_on:
+      - db
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  web:
+    build: .
+    command: poetry run python -m pyquizhub.adapters.web.server
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./pyquizhub:/app/pyquizhub  # Live code reloading
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  admin-web:
+    build:
+      context: .
+      dockerfile: admin_web/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - PYQUIZHUB_API_URL=http://api:8000
+      - PYQUIZHUB_ADMIN_TOKEN=${PYQUIZHUB_ADMIN_TOKEN}
+      - ADMIN_PORT=8081
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./admin_web:/app/admin_web  # Live code reloading
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  telegram-bot:
+    build: .
+    command: poetry run python -m pyquizhub.adapters.telegram.bot
+    env_file:
+      - .env
+    environment:
+      - PYQUIZHUB_API__BASE_URL=http://api:8000
+    volumes:
+      - ./pyquizhub:/app/pyquizhub  # Live code reloading
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  discord-bot:
+    build: .
+    command: poetry run python -m pyquizhub.adapters.discord.bot
+    env_file:
+      - .env
+    environment:
+      - PYQUIZHUB_API__BASE_URL=http://api:8000
+    volumes:
+      - ./pyquizhub:/app/pyquizhub  # Live code reloading
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  # Color Analysis API for file upload testing
+  color-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.colorapi
+    ports:
+      - "5001:5001"
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  db:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - pyquizhub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pyquizhub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  app_data:
+
+networks:
+  pyquizhub-network:
+    driver: bridge

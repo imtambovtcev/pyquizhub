@@ -291,65 +291,55 @@ class QuizJSONValidator:
             elif data["type"] == "text":
                 current_answer_type = str
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
             elif data["type"] == "integer":
                 current_answer_type = int
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
             elif data["type"] == "float":
                 current_answer_type = float
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+            elif data["type"] == "file_upload":
+                current_answer_type = dict
+                if "options" in data:
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
             elif data["type"] == "final_message":
                 # final_message type doesn't require an answer
                 current_answer_type = type(None)
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
                 if not isinstance(score_updates, list):
-                    errors.append(
-                        f"Score updates must be a list in question {
-                            question['id']}.")
+                    errors.append(f"Score updates must be a list in question {question['id']}.")
                     continue
                 for update in score_updates:
                     if not isinstance(update, dict):
-                        errors.append(
-                            f"Score update must be a dictionary in question {
-                                question['id']}.")
+                        errors.append(f"Score update must be a dictionary in question {question['id']}.")
                         continue
-                    if not all(
-                        key in update for key in [
-                            "condition",
-                            "update"]):
-                        errors.append(
-                            f"Invalid score update format in question {
-                                question['id']}: {update}")
+                    if not all(key in update for key in ["condition", "update"]):
+                        errors.append(f"Invalid score update format in question {question['id']}: {update}")
                         continue
                     # Validate conditions and updates
                     try:
+                        # Create mock answer for validation
+                        if current_answer_type == dict:
+                            mock_answer = {"file_id": "mock_file_id"}
+                        elif current_answer_type:
+                            mock_answer = current_answer_type()
+                        else:
+                            mock_answer = None
 
-                        allowed_variables = {
-                            **default_variables,
-                            "answer": current_answer_type()} if current_answer_type else default_variables
+                        allowed_variables = {**default_variables, "answer": mock_answer} if current_answer_type else default_variables
                         SafeEvaluator.eval_expr(
                             update["condition"], allowed_variables)
                         for expr in update["update"].values():
                             SafeEvaluator.eval_expr(
                                 expr, allowed_variables)
                     except Exception as e:
-                        errors.append(
-                            f"Invalid score update condition or expression in question {
-                                question['id']}: {e}")
+                        errors.append(f"Invalid score update condition or expression in question {question['id']}: {e}")
 
         # Validate transitions
         transitions = quiz_data.get("transitions", {})
@@ -438,9 +428,7 @@ class QuizJSONValidator:
 
         for var_name, var_config in variables_data.items():
             if not isinstance(var_config, dict):
-                errors.append(
-                    f"Variable '{var_name}' definition must be a dictionary, got {
-                        type(var_config).__name__}")
+                errors.append(f"Variable '{var_name}' definition must be a dictionary, got {type(var_config).__name__}")
                 continue
 
             # Validate required fields
@@ -457,9 +445,7 @@ class QuizJSONValidator:
                 if isinstance(var_type, str):
                     var_type_enum = VariableType(var_type)
                 else:
-                    errors.append(
-                        f"Variable '{var_name}' type must be a string, got {
-                            type(var_type).__name__}")
+                    errors.append(f"Variable '{var_name}' type must be a string, got {type(var_type).__name__}")
                     continue
             except ValueError:
                 valid_types = [t.value for t in VariableType]
@@ -472,9 +458,7 @@ class QuizJSONValidator:
             # Validate mutable_by
             mutable_by = var_config.get("mutable_by")
             if not isinstance(mutable_by, list):
-                errors.append(
-                    f"Variable '{var_name}' mutable_by must be a list, got {
-                        type(mutable_by).__name__}")
+                errors.append(f"Variable '{var_name}' mutable_by must be a list, got {type(mutable_by).__name__}")
                 continue
 
             try:
@@ -492,9 +476,7 @@ class QuizJSONValidator:
             # Validate tags if present
             tags = var_config.get("tags", [])
             if not isinstance(tags, list):
-                errors.append(
-                    f"Variable '{var_name}' tags must be a list, got {
-                        type(tags).__name__}")
+                errors.append(f"Variable '{var_name}' tags must be a list, got {type(tags).__name__}")
                 continue
 
             try:

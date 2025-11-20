@@ -32,6 +32,22 @@ logger.debug("Loaded router_quiz.py")
 router = APIRouter()
 
 
+def _get_file_storage():
+    """Get file storage backend instance for API file uploads."""
+    try:
+        from pyquizhub.core.storage.file import LocalStorageBackend
+        from pyquizhub.config.settings import get_config_manager
+        import os
+
+        config = get_config_manager()
+        base_dir = os.path.join(os.getcwd(), ".pyquizhub", "uploads")
+        os.makedirs(base_dir, exist_ok=True)
+        return LocalStorageBackend(base_dir, config)
+    except Exception as e:
+        logger.warning(f"Failed to initialize file storage: {e}")
+        return None
+
+
 def user_token_dependency(request: Request):
     """
     Dependency to validate user authentication token.
@@ -145,8 +161,9 @@ def continue_session(session_id: str, req: Request):
     # Load quiz data
     quiz_data = storage_manager.get_quiz(quiz_id)
 
-    # Create engine instance
-    engine = QuizEngine(quiz_data)
+    # Create engine instance with file storage
+    file_storage = _get_file_storage()
+    engine = QuizEngine(quiz_data, file_storage)
 
     # Extract engine state
     engine_state = {
@@ -192,9 +209,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         HTTPException: If token is invalid or quiz not found
     """
     logger.debug(
-        f"Starting quiz with token: {
-            request.token} for user: {
-            request.user_id}")
+        f"Starting quiz with token: {request.token} for user: {request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
@@ -215,13 +230,13 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         if session_data and not session_data.get("completed", True):
             # Found an active session - resume it
             logger.info(
-                f"Resuming existing session {session_id} for user {
-                    request.user_id} on quiz {quiz_id}"
+                f"Resuming existing session {session_id} for user {request.user_id} on quiz {quiz_id}"
             )
 
             # Load quiz data to get current question
             quiz_data = storage_manager.get_quiz(quiz_id)
-            engine = QuizEngine(quiz_data)
+            file_storage = _get_file_storage()
+            engine = QuizEngine(quiz_data, file_storage)
 
             # Extract engine state
             engine_state = {
@@ -254,8 +269,9 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     # Load quiz data
     quiz_data = storage_manager.get_quiz(quiz_id)
 
-    # Create engine instance (stateless, created per request)
-    engine = QuizEngine(quiz_data)
+    # Create engine instance with file storage (stateless, created per request)
+    file_storage = _get_file_storage()
+    engine = QuizEngine(quiz_data, file_storage)
 
     # Get initial state from engine
     engine_state = engine.start_quiz()
@@ -286,8 +302,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     storage_manager.save_session_state(session_data)
 
     logger.info(
-        f"Started quiz session {session_id} for user {
-            request.user_id} on quiz {quiz_id}")
+        f"Started quiz session {session_id} for user {request.user_id} on quiz {quiz_id}")
 
     # If first question is a final_message, auto-complete the quiz
     if _is_final_message(first_question):
@@ -350,26 +365,26 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
         HTTPException: If session not found or answer invalid
     """
     logger.debug(
-        f"Submitting answer for quiz_id: {quiz_id}, user_id: {
-            request.user_id}")
+        f"Submitting answer for quiz_id: {quiz_id}, user_id: {request.user_id}")
 
     storage_manager: StorageManager = req.app.state.storage_manager
 
     # Extract details from the request
     user_id = request.user_id
     session_id = request.session_id
-    answer = request.answer["answer"]
+    # Handle both dict answers (file_upload) and regular answers
+    if "answer" in request.answer:
+        answer = request.answer["answer"]
+    else:
+        # For file_upload questions, the entire dict is the answer
+        answer = request.answer
 
     # Load session state from storage
     session_data = storage_manager.load_session_state(session_id)
     logger.info(
-        f"Loaded session data keys: {
-            session_data.keys() if session_data else 'None'}")
-    logger.info(
-        f"Session data api_data: {
-            session_data.get(
-                'api_data',
-                'NOT FOUND') if session_data else 'N/A'}")
+        f"Loaded session data keys: {session_data.keys() if session_data else 'None'}")
+    api_data_value = session_data.get('api_data', 'NOT FOUND') if session_data else 'N/A'
+    logger.info(f"Session data api_data: {api_data_value}")
     if not session_data:
         logger.error(f"Session {session_id} not found")
         raise HTTPException(status_code=404, detail="Session not found")
@@ -377,8 +392,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # Verify quiz_id matches (security check)
     if session_data["quiz_id"] != quiz_id:
         logger.error(
-            f"Quiz ID mismatch: expected {
-                session_data['quiz_id']}, got {quiz_id}")
+            f"Quiz ID mismatch: expected {session_data['quiz_id']}, got {quiz_id}")
         raise HTTPException(status_code=400, detail="Quiz ID mismatch")
 
     # Extract engine state (without metadata)
@@ -393,8 +407,9 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     # Load quiz data
     quiz_data = storage_manager.get_quiz(quiz_id)
 
-    # Create engine instance (fresh, per request)
-    engine = QuizEngine(quiz_data)
+    # Create engine instance with file storage (fresh, per request)
+    file_storage = _get_file_storage()
+    engine = QuizEngine(quiz_data, file_storage)
 
     # Process answer (pure function, returns new state)
     try:

@@ -52,6 +52,14 @@ class QuizApp {
         if (!this.currentQuiz) return;
 
         try {
+            const questionType = this.currentQuiz.question.data.type;
+
+            // Handle file upload separately
+            if (questionType === 'file_upload') {
+                await this.handleFileUploadSubmit();
+                return;
+            }
+
             const answer = this.getAnswer();
             console.log("Submitting answer:", answer);
             const response = await fetch(`/api/quiz/submit_answer/${this.currentQuiz.quiz_id}`, {  // Changed from quizId to quiz_id
@@ -82,6 +90,62 @@ class QuizApp {
         } catch (error) {
             console.error("Error submitting answer:", error);
             this.showQuizError(error.message);
+        }
+    }
+
+    async handleFileUploadSubmit() {
+        const fileInput = document.getElementById('file-upload-input');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            throw new Error('Please select a file');
+        }
+
+        // Upload file first
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const uploadResponse = await fetch('/api/uploads/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'user-token'  // TODO: Use actual user token
+            },
+            body: formData
+        });
+
+        if (!uploadResponse.ok) {
+            const error = await uploadResponse.json();
+            throw new Error(error.detail || 'File upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        const fileId = uploadData.file_id;
+
+        // Submit the file_id as answer
+        const response = await fetch(`/api/quiz/submit_answer/${this.currentQuiz.quiz_id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                quiz_id: this.currentQuiz.quiz_id,
+                session_id: this.currentQuiz.session_id,
+                user_id: this.userId,
+                answer: { file_id: fileId }
+            })
+        });
+
+        const data = await response.json();
+        console.log("Response from API:", data);
+
+        if (!response.ok) throw new Error(data.detail || 'Failed to submit answer');
+
+        // Check if question is null (quiz completed) or if question.id is null
+        if (data.question === null || data.question.id === null) {
+            this.showResults(data);
+        } else {
+            this.currentQuiz.question = data.question;
+            this.showQuiz(data.question);
         }
     }
 
@@ -318,6 +382,8 @@ class QuizApp {
                 return this.generateInputField('number', 'step="any"');
             case 'text':
                 return this.generateInputField('text');
+            case 'file_upload':
+                return this.generateFileUploadField(question.data);
             case 'final_message':
                 return `<p>${question.data.text}</p>`;
             default:
@@ -346,6 +412,23 @@ class QuizApp {
     generateInputField(type, additionalAttributes = '') {
         return `
             <input type="${type}" id="answer-input" name="answer" required ${additionalAttributes}>
+        `;
+    }
+
+    generateFileUploadField(questionData) {
+        const fileTypes = questionData.file_types || [];
+        const accept = fileTypes.join(',');
+        const maxSizeMb = questionData.max_size_mb || 10;
+
+        return `
+            <div class="file-upload-container">
+                <input type="file" id="file-upload-input" accept="${accept}" required>
+                <div class="file-upload-info">
+                    <small>Max size: ${maxSizeMb}MB</small>
+                    ${fileTypes.length > 0 ? `<small>Accepted: ${fileTypes.join(', ')}</small>` : ''}
+                </div>
+                <input type="hidden" id="file-id-input" name="file_id">
+            </div>
         `;
     }
 

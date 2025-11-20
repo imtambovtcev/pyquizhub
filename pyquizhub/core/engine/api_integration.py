@@ -19,9 +19,10 @@ from __future__ import annotations
 
 import requests
 import json
-from typing import Any
+from typing import Any, BinaryIO
 from datetime import datetime, timedelta
 from enum import Enum
+from io import BytesIO
 from pyquizhub.logging.setup import get_logger
 
 
@@ -40,6 +41,23 @@ class RequestTiming(str, Enum):
     AFTER_ANSWER = "after_answer"
     ON_QUIZ_START = "on_quiz_start"
     ON_QUIZ_END = "on_quiz_end"
+
+
+class FileUploadMarker:
+    """Marker class for file uploads in API requests."""
+
+    def __init__(self, file_data: BinaryIO, filename: str, mime_type: str | None = None):
+        """
+        Initialize file upload marker.
+
+        Args:
+            file_data: Binary file data
+            filename: Original filename
+            mime_type: MIME type of the file
+        """
+        self.file_data = file_data
+        self.filename = filename
+        self.mime_type = mime_type or 'application/octet-stream'
 
 
 class APIIntegrationManager:
@@ -155,7 +173,11 @@ class APIIntegrationManager:
             prepare_request = api_config["prepare_request"]
             if "url_template" in prepare_request:
                 url_template = prepare_request["url_template"]
-                return self._render_template(url_template, context)
+                rendered = self._render_template(url_template, context)
+                # URL shouldn't contain file uploads
+                if isinstance(rendered, FileUploadMarker):
+                    raise ValueError("File upload markers not allowed in URLs")
+                return rendered
 
         # Check for fixed url field (both old and new format)
         if "url" in api_config:
@@ -318,7 +340,7 @@ class APIIntegrationManager:
         self,
         api_config: dict[str, Any],
         context: dict[str, Any]
-    ) -> dict[str, Any | None]:
+    ) -> dict[str, Any] | FileUploadMarker | None:
         """
         Prepare request body from prepare_request.body_template.
 
@@ -327,7 +349,7 @@ class APIIntegrationManager:
             context: Context data for template rendering
 
         Returns:
-            Request body dictionary or None
+            Request body dictionary, FileUploadMarker, or None
         """
         # Check for prepare_request.body_template (new format)
         if "prepare_request" in api_config:
@@ -339,25 +361,86 @@ class APIIntegrationManager:
                     return self._render_dict_template(body_template, context)
                 elif isinstance(body_template, str):
                     rendered = self._render_template(body_template, context)
+                    # Check if it's a file upload marker
+                    if isinstance(rendered, FileUploadMarker):
+                        return rendered
                     return json.loads(rendered)
 
         return None
 
-    def _render_template(self, template: str, context: dict[str, Any]) -> str:
+    def _render_template(self, template: str, context: dict[str, Any]) -> str | FileUploadMarker:
         """
         Render a string template with context variables.
 
-        Supports: {variable_name} syntax
+        Supports:
+        - {variable_name} syntax for simple variables
+        - {file_upload:variables.file_id} syntax for file references
 
         Args:
             template: Template string
-            context: Context variables
+            context: Context variables (may include _file_storage for file downloads)
 
         Returns:
-            Rendered string
+            Rendered string or FileUploadMarker for file uploads
         """
+        import re
+
         result = template
+
+        # Handle file upload placeholders: {file_upload:variables.file_id}
+        file_upload_pattern = r'\{file_upload:([^}]+)\}'
+        file_upload_matches = re.findall(file_upload_pattern, result)
+
+        for match in file_upload_matches:
+            # Extract variable name (e.g., "variables.file_id" -> "file_id")
+            if match.startswith('variables.'):
+                var_name = match[10:]  # Remove "variables." prefix
+                file_id = context.get(var_name)
+
+                if file_id:
+                    # Check if file storage is available in context
+                    file_storage = context.get('_file_storage')
+                    if file_storage:
+                        try:
+                            # Import here to avoid circular dependencies
+                            import asyncio
+
+                            # Download file from storage
+                            self.logger.info(f"Downloading file {file_id} for API request")
+
+                            # Run async retrieve in sync context
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            try:
+                                file_data, metadata = loop.run_until_complete(
+                                    file_storage.retrieve(file_id)
+                                )
+                            finally:
+                                loop.close()
+
+                            # Return FileUploadMarker to signal multipart/form-data
+                            return FileUploadMarker(
+                                file_data=file_data,
+                                filename=metadata.filename,
+                                mime_type=metadata.mime_type
+                            )
+                        except Exception as e:
+                            self.logger.error(f"Failed to download file {file_id}: {e}")
+                            # Fall back to file_id string
+                            result = result.replace(f"{{file_upload:{match}}}", str(file_id))
+                    else:
+                        self.logger.warning(f"File storage not available in context. Using file_id: {file_id}")
+                        result = result.replace(f"{{file_upload:{match}}}", str(file_id))
+                else:
+                    self.logger.warning(f"Could not resolve file upload placeholder {{file_upload:{match}}}")
+            else:
+                self.logger.warning(f"Invalid file upload placeholder format: {{file_upload:{match}}} - expected 'variables.var_name'")
+
+        # Handle regular variable placeholders
         for key, value in context.items():
+            # Skip internal keys like _file_storage
+            if key.startswith('_'):
+                continue
             placeholder = "{" + key + "}"
             if placeholder in result:
                 result = result.replace(placeholder, str(value))
@@ -399,17 +482,19 @@ class APIIntegrationManager:
         method: str,
         url: str,
         headers: dict[str, str],
-        body: dict[str, Any | None],
+        body: dict[str, Any] | FileUploadMarker | None,
         timeout: int
     ) -> requests.Response:
         """
         Make HTTP request with retry logic.
 
+        Supports both JSON and multipart/form-data requests.
+
         Args:
             method: HTTP method
             url: Request URL
             headers: Request headers
-            body: Request body
+            body: Request body (dict for JSON, FileUploadMarker for file upload)
             timeout: Timeout in seconds
 
         Returns:
@@ -420,13 +505,35 @@ class APIIntegrationManager:
         """
         for attempt in range(self.max_retries):
             try:
-                response = requests.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=body,
-                    timeout=timeout
-                )
+                # Check if body is a file upload marker
+                if isinstance(body, FileUploadMarker):
+                    # Use multipart/form-data for file uploads
+                    # Use 'image' as field name (Color API expects this)
+                    files = {
+                        'image': (
+                            body.filename,
+                            body.file_data,
+                            body.mime_type
+                        )
+                    }
+                    # Remove Content-Type header if present (requests will set it with boundary)
+                    headers_copy = {k: v for k, v in headers.items() if k.lower() != 'content-type'}
+                    response = requests.request(
+                        method=method,
+                        url=url,
+                        headers=headers_copy,
+                        files=files,
+                        timeout=timeout
+                    )
+                else:
+                    # Use JSON for regular requests
+                    response = requests.request(
+                        method=method,
+                        url=url,
+                        headers=headers,
+                        json=body,
+                        timeout=timeout
+                    )
                 response.raise_for_status()
                 return response
             except requests.RequestException as e:

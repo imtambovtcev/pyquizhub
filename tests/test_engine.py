@@ -27,9 +27,9 @@ def extract_answer(quiz_data):
 
 jsons_dir = os.path.join(os.path.dirname(__file__), "test_quiz_jsons")
 
-# Collect all test quiz files
+# Collect all test quiz files (exclude file_types quiz - it's for E2E testing)
 test_quiz_files = [f for f in os.listdir(
-    jsons_dir) if f.startswith("test_quiz")]
+    jsons_dir) if f.startswith("test_quiz") and "file_types" not in f]
 
 
 def test_complex_quiz_flow():
