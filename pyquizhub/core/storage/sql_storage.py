@@ -223,7 +223,7 @@ class SQLStorageManager(StorageManager):
         self.logger.info(f"Updated quiz {quiz_id}")
 
     def delete_quiz(self, quiz_id: str) -> None:
-        """Delete a quiz and all associated tokens and sessions."""
+        """Delete a quiz and all associated tokens, sessions, and results."""
         self.logger.debug(f"Deleting quiz with ID: {quiz_id}")
 
         # Delete associated tokens first (foreign key constraint)
@@ -237,6 +237,12 @@ class SQLStorageManager(StorageManager):
             self.sessions_table.c.quiz_id == quiz_id
         )
         self._execute(delete_sessions)
+
+        # Delete associated results
+        delete_results = self.results_table.delete().where(
+            self.results_table.c.quiz_id == quiz_id
+        )
+        self._execute(delete_results)
 
         # Delete the quiz itself
         delete_quiz = self.quizzes_table.delete().where(

@@ -208,42 +208,259 @@ class TelegramQuizBot:
                 "Use /quiz <token> to start a new quiz, or /continue <token> to resume an unfinished one."
             )
 
+    async def download_and_send_file(self, update: Update, url: str, attachment_type: str, format_type: str, caption: str | None = None, reply_markup=None) -> bool:
+        """
+        Download a file and upload it to Telegram (fallback when URL sending fails).
+
+        SECURITY NOTE: This method is only safe for URLs from TRUSTED SOURCES (e.g., pre-validated quiz JSON).
+        DO NOT use this with user-generated URLs without additional validation:
+        - Check for SSRF (localhost, private IPs, cloud metadata)
+        - Limit file sizes
+        - Validate content types
+        - Implement rate limiting
+
+        Args:
+            update: Telegram update object
+            url: File URL to download
+            attachment_type: Type of attachment (image, audio, video, document, file)
+            format_type: Format of the file
+            caption: Optional caption text
+            reply_markup: Optional reply markup for buttons
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        import aiohttp
+        import tempfile
+        import os
+        from pathlib import Path
+        from urllib.parse import urlparse
+
+        # SECURITY: Basic SSRF protection - block private IPs and localhost
+        try:
+            parsed = urlparse(url)
+            hostname = parsed.hostname
+
+            if not hostname:
+                logger.error(f"Invalid URL: no hostname")
+                return False
+
+            # Block localhost and common private IP ranges
+            blocked_hosts = ['localhost', '127.0.0.1', '0.0.0.0']
+            if hostname.lower() in blocked_hosts:
+                logger.error(f"Blocked localhost/loopback URL: {url}")
+                return False
+
+            # Block private IP ranges (basic check)
+            if hostname.startswith(('10.', '172.16.', '172.17.', '172.18.', '172.19.',
+                                   '172.20.', '172.21.', '172.22.', '172.23.',
+                                   '172.24.', '172.25.', '172.26.', '172.27.',
+                                   '172.28.', '172.29.', '172.30.', '172.31.',
+                                   '192.168.', '169.254.')):
+                logger.error(f"Blocked private IP URL: {url}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to parse URL {url}: {e}")
+            return False
+
+        # SECURITY: File size limits (adjust based on your needs)
+        MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB limit
+
+        try:
+            # Download the file with size limits
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        logger.error(f"Failed to download file from {url}: HTTP {response.status}")
+                        return False
+
+                    # Check Content-Length header if available
+                    content_length = response.headers.get('Content-Length')
+                    if content_length and int(content_length) > MAX_FILE_SIZE:
+                        logger.error(f"File too large: {content_length} bytes (max {MAX_FILE_SIZE})")
+                        return False
+
+                    # Get filename from URL or use format
+                    filename = Path(url).name or f"file.{format_type}"
+
+                    # Create temporary file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{format_type}") as tmp_file:
+                        tmp_path = tmp_file.name
+
+                        # Read content with size limit
+                        downloaded_size = 0
+                        async for chunk in response.content.iter_chunked(8192):
+                            downloaded_size += len(chunk)
+                            if downloaded_size > MAX_FILE_SIZE:
+                                logger.error(f"File exceeded size limit during download: {downloaded_size} bytes")
+                                if os.path.exists(tmp_path):
+                                    os.remove(tmp_path)
+                                return False
+                            tmp_file.write(chunk)
+
+            # Send the file to Telegram
+            try:
+                with open(tmp_path, 'rb') as file:
+                    if attachment_type == "image":
+                        if format_type == "gif":
+                            await update.effective_message.reply_animation(
+                                animation=file,
+                                caption=caption,
+                                reply_markup=reply_markup,
+                                filename=filename
+                            )
+                        elif format_type in ["jpeg", "jpg", "png", "webp"]:
+                            await update.effective_message.reply_photo(
+                                photo=file,
+                                caption=caption,
+                                reply_markup=reply_markup,
+                                filename=filename
+                            )
+                        else:
+                            await update.effective_message.reply_document(
+                                document=file,
+                                caption=caption,
+                                reply_markup=reply_markup,
+                                filename=filename
+                            )
+                    elif attachment_type == "audio":
+                        await update.effective_message.reply_audio(
+                            audio=file,
+                            caption=caption,
+                            reply_markup=reply_markup,
+                            filename=filename
+                        )
+                    elif attachment_type == "video":
+                        await update.effective_message.reply_video(
+                            video=file,
+                            caption=caption,
+                            reply_markup=reply_markup,
+                            filename=filename
+                        )
+                    else:  # document or file
+                        await update.effective_message.reply_document(
+                            document=file,
+                            caption=caption,
+                            reply_markup=reply_markup,
+                            filename=filename
+                        )
+
+                logger.info(f"Successfully sent {attachment_type} (format: {format_type}) via file upload")
+                return True
+
+            finally:
+                # Clean up temp file
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+
+        except Exception as e:
+            logger.error(f"Failed to download and send file: {e}")
+            return False
+
+    async def send_attachment(self, update: Update, attachment: dict, caption: str | None = None, reply_markup=None) -> bool:
+        """
+        Send an attachment using the appropriate Telegram method based on attachment type and format.
+
+        Args:
+            update: Telegram update object
+            attachment: Attachment dict with 'type', 'format', and 'url'
+            caption: Optional caption text
+            reply_markup: Optional reply markup for buttons
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        attachment_type = attachment.get("type")
+        format_type = attachment.get("format", "").lower()
+        url = attachment.get("url")
+
+        if not url:
+            return False
+
+        try:
+            # Try sending by URL first
+            if attachment_type == "image":
+                if format_type == "gif":
+                    await update.effective_message.reply_animation(
+                        animation=url,
+                        caption=caption,
+                        reply_markup=reply_markup
+                    )
+                elif format_type in ["jpeg", "jpg", "png", "webp"]:
+                    await update.effective_message.reply_photo(
+                        photo=url,
+                        caption=caption,
+                        reply_markup=reply_markup
+                    )
+                else:
+                    await update.effective_message.reply_document(
+                        document=url,
+                        caption=caption,
+                        reply_markup=reply_markup
+                    )
+
+            elif attachment_type == "audio":
+                await update.effective_message.reply_audio(
+                    audio=url,
+                    caption=caption,
+                    reply_markup=reply_markup
+                )
+
+            elif attachment_type == "video":
+                await update.effective_message.reply_video(
+                    video=url,
+                    caption=caption,
+                    reply_markup=reply_markup
+                )
+
+            elif attachment_type in ["document", "file"]:
+                await update.effective_message.reply_document(
+                    document=url,
+                    caption=caption,
+                    reply_markup=reply_markup
+                )
+
+            else:
+                logger.warning(f"Unknown attachment type: {attachment_type}")
+                return False
+
+            return True
+
+        except Exception as e:
+            # If URL sending failed, try downloading and uploading the file (if enabled)
+            import os
+            enable_download = os.getenv('TELEGRAM_ENABLE_FILE_DOWNLOAD', 'false').lower() == 'true'
+
+            if enable_download:
+                logger.info(f"URL sending failed for {attachment_type} (format: {format_type}): {e}. Trying file upload...")
+                return await self.download_and_send_file(update, url, attachment_type, format_type, caption, reply_markup)
+            else:
+                logger.warning(f"URL sending failed for {attachment_type} (format: {format_type}): {e}. File download is disabled. Enable with TELEGRAM_ENABLE_FILE_DOWNLOAD=true")
+                return False
+
     async def send_question(self, update: Update, question_data: dict) -> None:
         """Send a question to the user."""
         question = question_data["data"]
         question_type = question.get("type")
         attachments = question.get("attachments", [])
 
-        # Extract image attachments
-        image_attachments = [att for att in attachments if att.get("type") == "image"]
-
         # Check if it's a final message
         if question_type == "final_message":
-            # Send final message with images if present
+            # Send final message with attachments if present
             final_text = f"🎉 {question['text']}\n\nQuiz completed! Use /quiz to start another quiz."
 
-            if image_attachments:
-                # Send first image with caption, then remaining images if any
-                try:
-                    first_attachment = image_attachments[0]
-                    await update.effective_message.reply_photo(
-                        photo=first_attachment["url"],
-                        caption=final_text
-                    )
-                    # Send additional images if present
-                    for attachment in image_attachments[1:]:
-                        try:
-                            caption = attachment.get("caption", "")
-                            await update.effective_message.reply_photo(
-                                photo=attachment["url"],
-                                caption=caption
-                            )
-                        except Exception as e:
-                            logger.warning(f"Failed to send additional image: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to send image in final message: {e}")
-                    # Fallback to text only
+            if attachments:
+                # Send first attachment with caption, then remaining attachments
+                sent = await self.send_attachment(update, attachments[0], final_text)
+                if not sent:
+                    # Fallback to text only if first attachment fails
                     await update.effective_message.reply_text(final_text)
+
+                # Send additional attachments if present
+                for attachment in attachments[1:]:
+                    caption = attachment.get("caption", "")
+                    await self.send_attachment(update, attachment, caption)
             else:
                 await update.effective_message.reply_text(final_text)
 
@@ -270,29 +487,17 @@ class TelegramQuizBot:
                 )
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            # Send with images if available
-            if image_attachments:
-                try:
-                    first_attachment = image_attachments[0]
-                    await update.effective_message.reply_photo(
-                        photo=first_attachment["url"],
-                        caption=text,
-                        reply_markup=reply_markup
-                    )
-                    # Send additional images without buttons
-                    for attachment in image_attachments[1:]:
-                        try:
-                            caption = attachment.get("caption", "")
-                            await update.effective_message.reply_photo(
-                                photo=attachment["url"],
-                                caption=caption
-                            )
-                        except Exception as e:
-                            logger.warning(f"Failed to send additional image: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to send image with question: {e}")
+            # Send with attachments if available
+            if attachments:
+                sent = await self.send_attachment(update, attachments[0], text, reply_markup)
+                if not sent:
                     # Fallback to text only
                     await update.effective_message.reply_text(text, reply_markup=reply_markup)
+
+                # Send additional attachments without buttons
+                for attachment in attachments[1:]:
+                    caption = attachment.get("caption", "")
+                    await self.send_attachment(update, attachment, caption)
             else:
                 await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
@@ -309,28 +514,17 @@ class TelegramQuizBot:
                 )
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            # Send with images if available
-            if image_attachments:
-                try:
-                    first_attachment = image_attachments[0]
-                    await update.effective_message.reply_photo(
-                        photo=first_attachment["url"],
-                        caption=text,
-                        reply_markup=reply_markup
-                    )
-                    for attachment in image_attachments[1:]:
-                        try:
-                            caption = attachment.get("caption", "")
-                            await update.effective_message.reply_photo(
-                                photo=attachment["url"],
-                                caption=caption
-                            )
-                        except Exception as e:
-                            logger.warning(f"Failed to send additional image: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to send image with question: {e}")
+            # Send with attachments if available
+            if attachments:
+                sent = await self.send_attachment(update, attachments[0], text, reply_markup)
+                if not sent:
                     # Fallback to text only
                     await update.effective_message.reply_text(text, reply_markup=reply_markup)
+
+                # Send additional attachments without buttons
+                for attachment in attachments[1:]:
+                    caption = attachment.get("caption", "")
+                    await self.send_attachment(update, attachment, caption)
             else:
                 await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
@@ -347,27 +541,17 @@ class TelegramQuizBot:
             }
             text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
 
-            # Send with images if available
-            if image_attachments:
-                try:
-                    first_attachment = image_attachments[0]
-                    await update.effective_message.reply_photo(
-                        photo=first_attachment["url"],
-                        caption=text
-                    )
-                    for attachment in image_attachments[1:]:
-                        try:
-                            caption = attachment.get("caption", "")
-                            await update.effective_message.reply_photo(
-                                photo=attachment["url"],
-                                caption=caption
-                            )
-                        except Exception as e:
-                            logger.warning(f"Failed to send additional image: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to send image with question: {e}")
+            # Send with attachments if available
+            if attachments:
+                sent = await self.send_attachment(update, attachments[0], text)
+                if not sent:
                     # Fallback to text only
                     await update.effective_message.reply_text(text)
+
+                # Send additional attachments
+                for attachment in attachments[1:]:
+                    caption = attachment.get("caption", "")
+                    await self.send_attachment(update, attachment, caption)
             else:
                 await update.effective_message.reply_text(text)
 
@@ -379,27 +563,17 @@ class TelegramQuizBot:
         else:
             text_with_hint = text + "\n💡 Please type your answer:"
 
-            # Send with images if available
-            if image_attachments:
-                try:
-                    first_attachment = image_attachments[0]
-                    await update.effective_message.reply_photo(
-                        photo=first_attachment["url"],
-                        caption=text_with_hint
-                    )
-                    for attachment in image_attachments[1:]:
-                        try:
-                            caption = attachment.get("caption", "")
-                            await update.effective_message.reply_photo(
-                                photo=attachment["url"],
-                                caption=caption
-                            )
-                        except Exception as e:
-                            logger.warning(f"Failed to send additional image: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to send image with question: {e}")
+            # Send with attachments if available
+            if attachments:
+                sent = await self.send_attachment(update, attachments[0], text_with_hint)
+                if not sent:
                     # Fallback to text only
                     await update.effective_message.reply_text(text_with_hint)
+
+                # Send additional attachments
+                for attachment in attachments[1:]:
+                    caption = attachment.get("caption", "")
+                    await self.send_attachment(update, attachment, caption)
             else:
                 await update.effective_message.reply_text(text_with_hint)
 

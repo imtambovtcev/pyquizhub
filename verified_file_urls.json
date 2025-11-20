@@ -1,0 +1,170 @@
+
+{
+  "test_date": "2025-11-20",
+  "description": "Verified working file URLs with actual sizes extracted from HTTP headers/content",
+  "total_files": 19,
+  "files": {
+    "images": {
+      "jpeg": {
+        "url": "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg",
+        "format": "JPEG",
+        "size_bytes": 2165,
+        "size_human": "2.1 KB",
+        "content_type": "image/jpeg; qs=0.8",
+        "description": "W3C home page image"
+      },
+      "png": {
+        "url": "https://www.w3.org/Graphics/PNG/alphatest.png",
+        "format": "PNG",
+        "size_bytes": 26542,
+        "size_human": "25.9 KB",
+        "content_type": "image/png; qs=0.7",
+        "description": "PNG alpha transparency test"
+      },
+      "gif": {
+        "url": "https://www.w3.org/2008/site/images/logo-w3c-mobile-lg.gif",
+        "format": "GIF",
+        "size_bytes": 51415,
+        "size_human": "50.2 KB",
+        "content_type": "image/svg+xml",
+        "description": "W3C mobile logo"
+      },
+      "webp": {
+        "url": "https://www.gstatic.com/webp/gallery/1.webp",
+        "format": "WebP",
+        "size_bytes": 30320,
+        "size_human": "29.6 KB",
+        "content_type": "image/webp",
+        "description": "Google WebP sample image"
+      },
+      "svg": {
+        "url": "https://www.w3.org/Graphics/SVG/Test/20110816/svg/struct-use-14-f.svg",
+        "format": "SVG",
+        "size_bytes": 1415,
+        "size_human": "1.4 KB",
+        "content_type": "image/svg+xml; qs=0.85",
+        "description": "SVG test image"
+      },
+      "tiff": {
+        "url": "https://download.osgeo.org/geotiff/samples/spot/chicago/UTM2GTIF.TIF",
+        "format": "TIFF",
+        "size_bytes": 650463,
+        "size_human": "635.2 KB",
+        "content_type": "image/tiff",
+        "description": "GeoTIFF sample"
+      },
+      "bmp": {
+        "url": "https://people.math.sc.edu/Burkardt/data/bmp/lena.bmp",
+        "format": "BMP",
+        "size_bytes": 263222,
+        "size_human": "257.1 KB",
+        "content_type": "image/bmp",
+        "description": "Classic Lena test image"
+      }
+    },
+    "audio": {
+      "mp3": {
+        "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        "format": "MP3",
+        "size_bytes": 8945229,
+        "size_human": "8.5 MB",
+        "content_type": "audio/mpeg",
+        "description": "SoundHelix generated music"
+      },
+      "wav": {
+        "url": "https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Samples/SoundCardAttrition/stereofl.wav",
+        "format": "WAV",
+        "size_bytes": 234278,
+        "size_human": "228.8 KB",
+        "content_type": "audio/x-wav",
+        "description": "Stereo WAV sample"
+      }
+    },
+    "video": {
+      "mp4": {
+        "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+        "format": "MP4",
+        "size_bytes": 788493,
+        "size_human": "770.0 KB",
+        "content_type": "video/mp4",
+        "description": "Big Buck Bunny sample"
+      },
+      "ogg": {
+        "url": "https://www.w3schools.com/html/mov_bbb.ogg",
+        "format": "OGG",
+        "size_bytes": 614509,
+        "size_human": "600.1 KB",
+        "content_type": "video/ogg",
+        "description": "Big Buck Bunny OGG"
+      },
+      "webm": {
+        "url": "https://dl11.webmfiles.org/big-buck-bunny_trailer-.webm",
+        "format": "WebM",
+        "size_bytes": 2165175,
+        "size_human": "2.1 MB",
+        "content_type": "video/webm",
+        "description": "Big Buck Bunny trailer"
+      }
+    },
+    "documents": {
+      "txt": {
+        "url": "https://www.w3.org/History/19921103-hypertext/hypertext/README.html",
+        "format": "TXT/HTML",
+        "size_bytes": 7037,
+        "size_human": "6.9 KB",
+        "content_type": "text/html; charset=iso-8859-1",
+        "description": "Hypertext README"
+      },
+      "md": {
+        "url": "https://raw.githubusercontent.com/github/gitignore/main/README.md",
+        "format": "Markdown",
+        "size_bytes": 2913,
+        "size_human": "2.8 KB",
+        "content_type": "text/plain; charset=utf-8",
+        "description": "GitHub gitignore README"
+      },
+      "pdf": {
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "format": "PDF",
+        "size_bytes": 13264,
+        "size_human": "13.0 KB",
+        "content_type": "application/pdf; qs=0.001",
+        "description": "Dummy PDF test file"
+      }
+    },
+    "binary": {
+      "tar_gz": {
+        "url": "https://github.com/git/git/archive/refs/tags/v2.43.0.tar.gz",
+        "format": "TAR.GZ",
+        "size_bytes": 10967997,
+        "size_human": "10.5 MB",
+        "content_type": "application/x-gzip",
+        "description": "Git source code archive"
+      },
+      "csv": {
+        "url": "https://people.sc.fsu.edu/~jburkardt/data/csv/addresses.csv",
+        "format": "CSV",
+        "size_bytes": 328,
+        "size_human": "328 B",
+        "content_type": "text/csv",
+        "description": "Sample addresses CSV"
+      },
+      "xml": {
+        "url": "https://www.w3schools.com/xml/note.xml",
+        "format": "XML",
+        "size_bytes": 149,
+        "size_human": "149 B",
+        "content_type": "text/xml",
+        "description": "Simple XML note"
+      },
+      "zip": {
+        "url": "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip",
+        "format": "ZIP",
+        "size_bytes": 380,
+        "size_human": "380 B",
+        "content_type": "application/zip",
+        "description": "Sample ZIP file"
+      }
+    }
+  }
+}

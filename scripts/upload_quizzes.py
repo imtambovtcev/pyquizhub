@@ -14,6 +14,57 @@ ADMIN_TOKEN = os.getenv(
     "your-secret-admin-token-here")
 
 
+def clean_database():
+    """Clean the database by deleting all existing quizzes"""
+    print("🧹 Cleaning database...")
+
+    try:
+        # Get all existing quizzes
+        response = requests.get(
+            f"{API_URL}/admin/all_quizzes",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": ADMIN_TOKEN
+            }
+        )
+
+        if response.status_code != 200:
+            print(f"⚠️  Failed to get quizzes: {response.status_code} - {response.text}\n")
+            return False
+
+        quizzes = response.json().get("quizzes", {})
+        quiz_count = len(quizzes)
+
+        if quiz_count == 0:
+            print("✅ Database is already clean (no quizzes found)\n")
+            return True
+
+        print(f"   Found {quiz_count} quizzes to delete...")
+
+        # Delete each quiz
+        deleted = 0
+        for quiz_id in quizzes.keys():
+            delete_response = requests.delete(
+                f"{API_URL}/admin/quiz/{quiz_id}",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": ADMIN_TOKEN
+                }
+            )
+
+            if delete_response.status_code == 200:
+                deleted += 1
+            else:
+                print(f"   ⚠️  Failed to delete quiz {quiz_id}: {delete_response.status_code}")
+
+        print(f"✅ Database cleaned: deleted {deleted}/{quiz_count} quizzes\n")
+        return deleted == quiz_count
+
+    except Exception as e:
+        print(f"❌ Error cleaning database: {e}\n")
+        return False
+
+
 def upload_quiz(quiz_file_path):
     """Upload a single quiz to the API"""
     quiz_path = Path(quiz_file_path)
@@ -82,6 +133,10 @@ def main():
     print("🚀 Uploading quizzes to PyQuizHub...")
     print(f"API URL: {API_URL}\n")
 
+    # Clean database first
+    if not clean_database():
+        print("⚠️  Warning: Database clean failed, but continuing with upload...\n")
+
     quizzes_uploaded = {}
 
     # Upload main test quizzes
@@ -90,42 +145,11 @@ def main():
         "tests/test_quiz_jsons/simple_quiz.json",
         "tests/test_quiz_jsons/complex_weather_quiz.json",
         "tests/test_quiz_jsons/joke_quiz_static_api.json",
-        "tests/test_quiz_jsons/joke_quiz_dynamic_api.json"
+        "tests/test_quiz_jsons/joke_quiz_dynamic_api.json",
+        "tests/test_quiz_jsons/test_quiz_file_types.json"
     ]
 
     for quiz_file in test_quizzes:
-        if os.path.exists(quiz_file):
-            quiz_id, token = upload_quiz(quiz_file)
-            if quiz_id:
-                quizzes_uploaded[Path(quiz_file).stem] = {
-                    "quiz_id": quiz_id,
-                    "token": token
-                }
-        else:
-            print(f"⚠️  File not found: {quiz_file}\n")
-
-    # Upload the practical quiz
-    print("=== Practical Quiz ===")
-    practical_quiz = "quizzes/python_knowledge_quiz.json"
-    if os.path.exists(practical_quiz):
-        quiz_id, token = upload_quiz(practical_quiz)
-        if quiz_id:
-            quizzes_uploaded[Path(practical_quiz).stem] = {
-                "quiz_id": quiz_id,
-                "token": token
-            }
-    else:
-        print(f"⚠️  File not found: {practical_quiz}\n")
-
-    # Upload image quizzes
-    print("=== Image Quizzes (Feature Demonstration) ===")
-    image_quizzes = [
-        "quizzes/image_quiz_fixed.json",      # RESTRICTED tier - fixed image URL
-        "quizzes/image_quiz_variable.json",   # STANDARD tier - variable substitution
-        "quizzes/image_quiz_api.json"         # ADVANCED tier - API-based image
-    ]
-
-    for quiz_file in image_quizzes:
         if os.path.exists(quiz_file):
             quiz_id, token = upload_quiz(quiz_file)
             if quiz_id:
@@ -149,10 +173,12 @@ def main():
     print("📡 Retrieving Quiz Tokens via API")
     print("=" * 60)
     print("\nTo retrieve all tokens later, use:")
-    print(f"  curl -H 'Authorization: {ADMIN_TOKEN}' {API_URL}/admin/all_tokens")
+    print(
+        f"  curl -H 'Authorization: {ADMIN_TOKEN}' {API_URL}/admin/all_tokens")
 
     print("\nTo get tokens for a specific quiz:")
-    print(f"  curl -H 'Authorization: {ADMIN_TOKEN}' {API_URL}/admin/all_tokens | jq '.tokens[\"QUIZ_ID\"]'")
+    print(
+        f"  curl -H 'Authorization: {ADMIN_TOKEN}' {API_URL}/admin/all_tokens | jq '.tokens[\"QUIZ_ID\"]'")
 
     print("\n🎉 Done!")
 

@@ -135,51 +135,31 @@ class QuizApp {
         this.quizScreen.style.display = 'block';
 
         // Handle attachments if present
-        const imageContainer = document.getElementById('question-image-container');
-        imageContainer.innerHTML = ''; // Clear previous images
+        const attachmentContainer = document.getElementById('question-image-container'); // Renamed from image container for generic use
+        attachmentContainer.innerHTML = ''; // Clear previous attachments
 
         if (question.data.attachments && question.data.attachments.length > 0) {
-            // Filter for image attachments only
-            const imageAttachments = question.data.attachments.filter(att => att.type === 'image');
+            let hasVisibleAttachments = false;
 
-            if (imageAttachments.length > 0) {
-                imageContainer.style.display = 'block';
-
-                imageAttachments.forEach((attachment, idx) => {
-                    const imageElement = document.createElement('img');
-                    imageElement.className = 'question-image';
-                    imageElement.src = attachment.url;
-
-                    if (attachment.alt_text) {
-                        imageElement.alt = attachment.alt_text;
-                    }
-
-                    imageElement.onerror = () => {
-                        // Remove failed image
-                        imageElement.remove();
-                        console.warn('Failed to load image:', attachment.url);
-
-                        // Hide container if all images failed
-                        if (imageContainer.children.length === 0) {
-                            imageContainer.style.display = 'none';
-                        }
-                    };
-
-                    imageContainer.appendChild(imageElement);
+            question.data.attachments.forEach((attachment) => {
+                const attachmentElement = this.createAttachmentElement(attachment);
+                if (attachmentElement) {
+                    attachmentContainer.appendChild(attachmentElement);
+                    hasVisibleAttachments = true;
 
                     // Add caption if present
                     if (attachment.caption) {
                         const captionElement = document.createElement('p');
-                        captionElement.className = 'image-caption';
+                        captionElement.className = 'attachment-caption';
                         captionElement.textContent = attachment.caption;
-                        imageContainer.appendChild(captionElement);
+                        attachmentContainer.appendChild(captionElement);
                     }
-                });
-            } else {
-                imageContainer.style.display = 'none';
-            }
+                }
+            });
+
+            attachmentContainer.style.display = hasVisibleAttachments ? 'block' : 'none';
         } else {
-            imageContainer.style.display = 'none';
+            attachmentContainer.style.display = 'none';
         }
 
         document.getElementById('question-text').textContent = question.data.text;
@@ -189,6 +169,138 @@ class QuizApp {
         // Ensure submit button is visible for regular questions
         const submitButton = this.quizForm.querySelector('button[type="submit"]');
         submitButton.style.display = 'block';
+    }
+
+    createAttachmentElement(attachment) {
+        /**
+         * Create appropriate HTML element for different attachment types
+         * @param {Object} attachment - Attachment object with type and url
+         * @returns {HTMLElement|null} - DOM element or null if creation fails
+         */
+        switch (attachment.type) {
+            case 'image':
+                return this.createImageElement(attachment);
+            case 'video':
+                return this.createVideoElement(attachment);
+            case 'audio':
+                return this.createAudioElement(attachment);
+            case 'document':
+            case 'file':
+                return this.createFileLink(attachment);
+            default:
+                console.warn('Unknown attachment type:', attachment.type);
+                return null;
+        }
+    }
+
+    createImageElement(attachment) {
+        const img = document.createElement('img');
+        img.className = 'question-image';
+        img.src = attachment.url;
+
+        if (attachment.alt_text) {
+            img.alt = attachment.alt_text;
+        }
+
+        img.onerror = () => {
+            img.remove();
+            console.warn('Failed to load image:', attachment.url);
+        };
+
+        return img;
+    }
+
+    createVideoElement(attachment) {
+        const video = document.createElement('video');
+        video.className = 'question-video';
+        video.controls = true;
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '400px';
+
+        const source = document.createElement('source');
+        source.src = attachment.url;
+        video.appendChild(source);
+
+        video.onerror = () => {
+            video.remove();
+            console.warn('Failed to load video:', attachment.url);
+        };
+
+        if (attachment.alt_text) {
+            video.setAttribute('aria-label', attachment.alt_text);
+        }
+
+        return video;
+    }
+
+    createAudioElement(attachment) {
+        const audio = document.createElement('audio');
+        audio.className = 'question-audio';
+        audio.controls = true;
+        audio.style.width = '100%';
+
+        const source = document.createElement('source');
+        source.src = attachment.url;
+        audio.appendChild(source);
+
+        audio.onerror = () => {
+            audio.remove();
+            console.warn('Failed to load audio:', attachment.url);
+        };
+
+        if (attachment.alt_text) {
+            audio.setAttribute('aria-label', attachment.alt_text);
+        }
+
+        return audio;
+    }
+
+    createFileLink(attachment) {
+        const container = document.createElement('div');
+        container.className = 'question-file';
+        container.style.padding = '10px';
+        container.style.marginBottom = '10px';
+        container.style.border = '1px solid #ddd';
+        container.style.borderRadius = '4px';
+
+        const link = document.createElement('a');
+        link.href = attachment.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.textDecoration = 'none';
+        link.style.color = '#0066cc';
+
+        // Extract filename from URL
+        const filename = attachment.url.split('/').pop().split('?')[0] || 'Download file';
+
+        // Create icon based on file extension
+        const ext = filename.split('.').pop().toLowerCase();
+        const icon = this.getFileIcon(ext);
+
+        link.innerHTML = `${icon} ${attachment.alt_text || filename}`;
+
+        container.appendChild(link);
+        return container;
+    }
+
+    getFileIcon(extension) {
+        const icons = {
+            'pdf': '📄',
+            'doc': '📝',
+            'docx': '📝',
+            'txt': '📝',
+            'xls': '📊',
+            'xlsx': '📊',
+            'ppt': '📊',
+            'pptx': '📊',
+            'zip': '🗜️',
+            'rar': '🗜️',
+            'mp3': '🎵',
+            'wav': '🎵',
+            'mp4': '🎬',
+            'avi': '🎬'
+        };
+        return icons[extension] || '📎';
     }
 
     generateChoicesHtml(question) {

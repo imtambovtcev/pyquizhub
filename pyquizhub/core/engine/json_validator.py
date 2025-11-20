@@ -19,7 +19,7 @@ from .variable_types import (
     VariableDefinition, VariableType, VariableTag, MutableBy,
     VariableConstraints, VariableStore, CreatorPermissionTier
 )
-from .url_validator import ImageURLValidator
+from .url_validator import ImageURLValidator, AttachmentURLValidator
 from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
@@ -236,35 +236,37 @@ class QuizJSONValidator:
                         if not url:  # Skip empty URLs
                             continue
 
-                        # For image attachments, validate URL
-                        if attachment["type"] == "image":
-                            # Check if URL has variable placeholders
-                            if ImageURLValidator.has_variable_placeholders(url):
-                                # Extract and validate variable references
-                                var_names = ImageURLValidator.extract_variable_names(url)
-                                for var_name in var_names:
-                                    # Check if variables exist
-                                    # Variable names are in format "variables.varname" or "api.id.field"
-                                    parts = var_name.split('.')
-                                    if parts[0] == 'variables' and len(parts) == 2:
-                                        if parts[1] not in variable_definitions:
-                                            errors.append(
-                                                f"Question {question['id']}: attachment at index {idx} url references undefined variable '{parts[1]}'"
-                                            )
-                                    # API variables checked separately in API integrations validation
-                            else:
-                                # Fixed URL - validate it immediately
-                                try:
-                                    # Don't verify content during validation (no network calls)
-                                    ImageURLValidator.validate_image_url(
-                                        url,
-                                        verify_content=False,
-                                        allow_http=True  # Allow HTTP during validation (warn later in permissions)
-                                    )
-                                except ValueError as e:
-                                    errors.append(
-                                        f"Question {question['id']}: attachment at index {idx} invalid url: {e}"
-                                    )
+                        # Validate URL for all attachment types
+                        attachment_type = attachment["type"]
+
+                        # Check if URL has variable placeholders
+                        if AttachmentURLValidator.has_variable_placeholders(url):
+                            # Extract and validate variable references
+                            var_names = AttachmentURLValidator.extract_variable_names(url)
+                            for var_name in var_names:
+                                # Check if variables exist
+                                # Variable names are in format "variables.varname" or "api.id.field"
+                                parts = var_name.split('.')
+                                if parts[0] == 'variables' and len(parts) == 2:
+                                    if parts[1] not in variable_definitions:
+                                        errors.append(
+                                            f"Question {question['id']}: attachment at index {idx} url references undefined variable '{parts[1]}'"
+                                        )
+                                # API variables checked separately in API integrations validation
+                        else:
+                            # Fixed URL - validate it immediately
+                            try:
+                                # Don't verify content during validation (no network calls)
+                                AttachmentURLValidator.validate_url(
+                                    url,
+                                    attachment_type,
+                                    verify_content=False,
+                                    allow_http=True  # Allow HTTP during validation (warn later in permissions)
+                                )
+                            except ValueError as e:
+                                errors.append(
+                                    f"Question {question['id']}: attachment at index {idx} invalid url: {e}"
+                                )
 
                         # Validate optional fields if present
                         if "alt_text" in attachment and not isinstance(attachment["alt_text"], str):

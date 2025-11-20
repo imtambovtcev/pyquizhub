@@ -27,13 +27,98 @@ logger = get_logger(__name__)
 
 # Allowed image extensions
 ALLOWED_IMAGE_EXTENSIONS = {
-    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tif', '.tiff'
 }
 
 # Allowed image MIME types
 ALLOWED_IMAGE_MIME_TYPES = {
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'image/svg+xml', 'image/bmp', 'image/x-icon', 'image/vnd.microsoft.icon'
+    'image/svg+xml', 'image/bmp', 'image/x-icon', 'image/vnd.microsoft.icon',
+    'image/tiff'
+}
+
+# Allowed document extensions
+ALLOWED_DOCUMENT_EXTENSIONS = {
+    '.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt',
+    '.xls', '.xlsx', '.ods', '.ppt', '.pptx', '.odp',
+    '.md', '.html', '.htm'
+}
+
+# Allowed document MIME types
+ALLOWED_DOCUMENT_MIME_TYPES = {
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'application/rtf',
+    'application/vnd.oasis.opendocument.text',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.oasis.opendocument.spreadsheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.oasis.opendocument.presentation',
+    'text/markdown',
+    'text/html',
+    'text/html; charset=iso-8859-1'
+}
+
+# Allowed audio extensions
+ALLOWED_AUDIO_EXTENSIONS = {
+    '.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac', '.wma', '.opus'
+}
+
+# Allowed audio MIME types
+ALLOWED_AUDIO_MIME_TYPES = {
+    'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4',
+    'audio/flac', 'audio/aac', 'audio/x-ms-wma', 'audio/opus'
+}
+
+# Allowed video extensions
+ALLOWED_VIDEO_EXTENSIONS = {
+    '.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.wmv'
+}
+
+# Allowed video MIME types
+ALLOWED_VIDEO_MIME_TYPES = {
+    'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
+    'video/x-msvideo', 'video/x-matroska', 'video/x-flv', 'video/x-ms-wmv'
+}
+
+# Generic file extensions (for "file" type - catch-all)
+ALLOWED_FILE_EXTENSIONS = {
+    # Include all of the above
+    *ALLOWED_IMAGE_EXTENSIONS,
+    *ALLOWED_DOCUMENT_EXTENSIONS,
+    *ALLOWED_AUDIO_EXTENSIONS,
+    *ALLOWED_VIDEO_EXTENSIONS,
+    # Additional generic file types
+    '.zip', '.tar', '.gz', '.7z', '.rar',
+    '.json', '.xml', '.csv', '.yml', '.yaml',
+    '.md', '.html', '.css', '.js'
+}
+
+# Generic file MIME types
+ALLOWED_FILE_MIME_TYPES = {
+    *ALLOWED_IMAGE_MIME_TYPES,
+    *ALLOWED_DOCUMENT_MIME_TYPES,
+    *ALLOWED_AUDIO_MIME_TYPES,
+    *ALLOWED_VIDEO_MIME_TYPES,
+    # Additional generic MIME types
+    'application/zip',
+    'application/x-tar',
+    'application/gzip',
+    'application/x-7z-compressed',
+    'application/x-rar-compressed',
+    'application/json',
+    'application/xml',
+    'text/xml',
+    'text/csv',
+    'text/yaml',
+    'text/markdown',
+    'text/html',
+    'text/css',
+    'application/javascript'
 }
 
 # Default allowed image URL patterns for RESTRICTED tier
@@ -805,3 +890,201 @@ class ImageURLValidator:
         pattern = r'\{((variables|api)\.[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}'
         matches = re.findall(pattern, url)
         return [match[0] for match in matches]
+
+
+class AttachmentURLValidator:
+    """
+    Validates attachment URLs for all file types with security and content checks.
+
+    Supports: image, video, audio, document, file
+    """
+
+    # Map attachment types to their allowed extensions and MIME types
+    TYPE_CONFIGS = {
+        'image': {
+            'extensions': ALLOWED_IMAGE_EXTENSIONS,
+            'mime_types': ALLOWED_IMAGE_MIME_TYPES
+        },
+        'video': {
+            'extensions': ALLOWED_VIDEO_EXTENSIONS,
+            'mime_types': ALLOWED_VIDEO_MIME_TYPES
+        },
+        'audio': {
+            'extensions': ALLOWED_AUDIO_EXTENSIONS,
+            'mime_types': ALLOWED_AUDIO_MIME_TYPES
+        },
+        'document': {
+            'extensions': ALLOWED_DOCUMENT_EXTENSIONS,
+            'mime_types': ALLOWED_DOCUMENT_MIME_TYPES
+        },
+        'file': {
+            'extensions': ALLOWED_FILE_EXTENSIONS,
+            'mime_types': ALLOWED_FILE_MIME_TYPES
+        }
+    }
+
+    @staticmethod
+    def has_valid_extension(url: str, attachment_type: str) -> bool:
+        """
+        Check if URL has a valid extension for the attachment type.
+
+        Args:
+            url: URL to check
+            attachment_type: Type of attachment (image, video, audio, document, file)
+
+        Returns:
+            True if URL has valid extension, False otherwise
+        """
+        if attachment_type not in AttachmentURLValidator.TYPE_CONFIGS:
+            return False
+
+        try:
+            parsed = urlparse(url)
+            path = parsed.path.lower()
+
+            allowed_extensions = AttachmentURLValidator.TYPE_CONFIGS[attachment_type]['extensions']
+
+            # Check if path ends with allowed extension
+            has_valid_extension = any(
+                path.endswith(ext) for ext in allowed_extensions
+            )
+
+            if has_valid_extension:
+                return True
+
+            # Check query params for CDN URLs
+            query = parsed.query.lower()
+            return any(ext.lstrip('.') in query for ext in allowed_extensions)
+        except Exception:
+            return False
+
+    @staticmethod
+    def validate_extension(url: str, attachment_type: str) -> None:
+        """
+        Validate URL has valid extension for attachment type.
+
+        Args:
+            url: URL to check
+            attachment_type: Type of attachment
+
+        Raises:
+            ValueError: If URL doesn't have valid extension
+        """
+        if not AttachmentURLValidator.has_valid_extension(url, attachment_type):
+            allowed_extensions = AttachmentURLValidator.TYPE_CONFIGS[attachment_type]['extensions']
+            raise ValueError(
+                f"URL must have {attachment_type} extension. "
+                f"Allowed: {', '.join(sorted(allowed_extensions))}"
+            )
+
+    @staticmethod
+    def validate_url(
+        url: str,
+        attachment_type: str,
+        verify_content: bool = False,
+        timeout: int = 5,
+        allow_http: bool = False
+    ) -> None:
+        """
+        Comprehensive attachment URL validation with SSRF protection.
+
+        Args:
+            url: URL to validate
+            attachment_type: Type of attachment (image, video, audio, document, file)
+            verify_content: Whether to verify URL actually points to correct file type
+            timeout: Timeout for content verification
+            allow_http: Whether to allow HTTP (default: HTTPS only)
+
+        Raises:
+            ValueError: If validation fails
+        """
+        # Step 1: SSRF protection
+        URLValidator.validate_url(url, allow_http=allow_http)
+
+        # Step 2: Check extension
+        AttachmentURLValidator.validate_extension(url, attachment_type)
+
+        # Step 3: Optionally verify content
+        if verify_content:
+            AttachmentURLValidator._verify_content(url, attachment_type, timeout)
+
+    @staticmethod
+    def _verify_content(url: str, attachment_type: str, timeout: int) -> bool:
+        """
+        Verify URL points to correct file type by checking Content-Type header.
+
+        Args:
+            url: URL to verify
+            attachment_type: Expected file type
+            timeout: Request timeout in seconds
+
+        Returns:
+            True if URL points to valid file
+
+        Raises:
+            ValueError: If verification fails
+        """
+        try:
+            response = requests.head(
+                url,
+                timeout=timeout,
+                allow_redirects=True,
+                headers={'User-Agent': 'PyQuizHub-AttachmentValidator/1.0'}
+            )
+
+            # Check for redirects - ensure final URL is also safe
+            if response.history:
+                final_url = response.url
+                if final_url != url:
+                    logger.warning(
+                        f"Attachment URL redirected from {url} to {final_url}"
+                    )
+
+                    # Re-validate final URL
+                    URLValidator.validate_url(final_url, allow_http=True)
+
+                    # Check final URL has valid extension
+                    if not AttachmentURLValidator.has_valid_extension(final_url, attachment_type):
+                        raise ValueError(
+                            f"Redirected URL does not have {attachment_type} extension: {final_url}"
+                        )
+
+            # Check if request was successful
+            if response.status_code >= 400:
+                raise ValueError(
+                    f"Attachment URL returned error status: {response.status_code}"
+                )
+
+            # Check Content-Type header
+            content_type = response.headers.get('Content-Type', '').lower()
+            mime_type = content_type.split(';')[0].strip()
+
+            allowed_mime_types = AttachmentURLValidator.TYPE_CONFIGS[attachment_type]['mime_types']
+
+            if mime_type not in allowed_mime_types:
+                raise ValueError(
+                    f"URL does not point to {attachment_type}. Content-Type: {content_type}. "
+                    f"Allowed: {', '.join(sorted(allowed_mime_types))}"
+                )
+
+            logger.debug(f"Attachment URL verified: {url} ({mime_type})")
+            return True
+
+        except requests.exceptions.Timeout:
+            raise ValueError(f"Attachment URL request timed out after {timeout}s")
+        except requests.exceptions.ConnectionError:
+            raise ValueError("Failed to connect to attachment URL")
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Failed to verify attachment URL: {e}")
+
+    @staticmethod
+    def has_variable_placeholders(url: str) -> bool:
+        """Check if URL contains variable placeholders."""
+        # Reuse ImageURLValidator's implementation
+        return ImageURLValidator.has_variable_placeholders(url)
+
+    @staticmethod
+    def extract_variable_names(url: str) -> list[str]:
+        """Extract variable names from URL template."""
+        # Reuse ImageURLValidator's implementation
+        return ImageURLValidator.extract_variable_names(url)

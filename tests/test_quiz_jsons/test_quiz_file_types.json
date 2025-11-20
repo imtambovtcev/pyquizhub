@@ -1,0 +1,1160 @@
+{
+  "metadata": {
+    "title": "File Format Loading Test - 19 Formats",
+    "description": "Test if all 19 file formats load successfully in your environment",
+    "author": "PyQuizHub Team",
+    "version": "3.0"
+  },
+  "variables": {
+    "total_files": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": 19
+    },
+    "loaded_successfully": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "score",
+        "public"
+      ],
+      "default": 0
+    },
+    "failed_to_load": {
+      "type": "integer",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": 0
+    },
+    "jpeg_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "png_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "gif_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "webp_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "svg_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "tiff_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "bmp_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "mp3_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "wav_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "mp4_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "ogg_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "webm_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "txt_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "md_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "pdf_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "tar_gz_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "csv_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "xml_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    },
+    "zip_status": {
+      "type": "string",
+      "mutable_by": [
+        "engine"
+      ],
+      "tags": [
+        "public"
+      ],
+      "default": "NOT TESTED"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "JPEG Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg",
+            "alt_text": "JPEG test image (2.1 KB)",
+            "caption": "JPEG - 2.1 KB",
+            "format": "jpeg"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "jpeg_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "jpeg_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "text": "PNG Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://www.w3.org/Graphics/PNG/alphatest.png",
+            "alt_text": "PNG test image (25.9 KB)",
+            "caption": "PNG - 25.9 KB",
+            "format": "png"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "png_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "png_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "data": {
+        "text": "GIF Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://media0.giphy.com/media/3o7aD2saalBwwftBIY/200.gif",
+            "alt_text": "GIF test image (149.5 KB)",
+            "caption": "GIF - 149.5 KB",
+            "format": "gif"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "gif_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "gif_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "data": {
+        "text": "WebP Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://www.gstatic.com/webp/gallery/1.webp",
+            "alt_text": "WebP test image (29.6 KB)",
+            "caption": "WebP - 29.6 KB",
+            "format": "webp"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "webp_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "webp_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "data": {
+        "text": "SVG Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://www.w3.org/Graphics/SVG/Test/20110816/svg/struct-use-14-f.svg",
+            "alt_text": "SVG test image (1.4 KB)",
+            "caption": "SVG - 1.4 KB",
+            "format": "svg"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "svg_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "svg_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "data": {
+        "text": "TIFF Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://download.osgeo.org/geotiff/samples/spot/chicago/UTM2GTIF.TIF",
+            "alt_text": "TIFF test image (635.2 KB)",
+            "caption": "TIFF - 635.2 KB",
+            "format": "tiff"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "tiff_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "tiff_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "data": {
+        "text": "BMP Image Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "image",
+            "url": "https://people.math.sc.edu/Burkardt/data/bmp/lena.bmp",
+            "alt_text": "BMP test image (257.1 KB)",
+            "caption": "BMP - 257.1 KB",
+            "format": "bmp"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "bmp_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "bmp_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "data": {
+        "text": "MP3 Audio Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "audio",
+            "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            "alt_text": "MP3 test audio (8.5 MB)",
+            "caption": "MP3 - 8.5 MB",
+            "format": "mp3"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "mp3_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "mp3_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "data": {
+        "text": "WAV Audio Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "audio",
+            "url": "https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Samples/SoundCardAttrition/stereofl.wav",
+            "alt_text": "WAV test audio (228.8 KB)",
+            "caption": "WAV - 228.8 KB",
+            "format": "wav"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "wav_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "wav_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "data": {
+        "text": "MP4 Video Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "video",
+            "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "alt_text": "MP4 test video (770.0 KB)",
+            "caption": "MP4 - 770.0 KB",
+            "format": "mp4"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "mp4_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "mp4_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "data": {
+        "text": "OGG Video Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "video",
+            "url": "https://www.w3schools.com/html/mov_bbb.ogg",
+            "alt_text": "OGG test video (600.1 KB)",
+            "caption": "OGG - 600.1 KB",
+            "format": "ogg"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "ogg_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "ogg_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "data": {
+        "text": "WebM Video Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "video",
+            "url": "https://dl11.webmfiles.org/big-buck-bunny_trailer-.webm",
+            "alt_text": "WebM test video (2.1 MB)",
+            "caption": "WebM - 2.1 MB",
+            "format": "webm"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "webm_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "webm_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "data": {
+        "text": "TXT/HTML Document Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "document",
+            "url": "https://www.w3.org/History/19921103-hypertext/hypertext/README.html",
+            "alt_text": "TXT/HTML test document (6.9 KB)",
+            "caption": "TXT/HTML - 6.9 KB",
+            "format": "html"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "txt_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "txt_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "data": {
+        "text": "Markdown Document Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "document",
+            "url": "https://raw.githubusercontent.com/github/gitignore/main/README.md",
+            "alt_text": "Markdown test document (2.8 KB)",
+            "caption": "Markdown - 2.8 KB",
+            "format": "markdown"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "md_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "md_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "data": {
+        "text": "PDF Document Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "document",
+            "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+            "alt_text": "PDF test document (13.0 KB)",
+            "caption": "PDF - 13.0 KB",
+            "format": "pdf"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "pdf_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "pdf_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "data": {
+        "text": "TAR.GZ File Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "file",
+            "url": "https://github.com/git/git/archive/refs/tags/v2.43.0.tar.gz",
+            "alt_text": "TAR.GZ test file (10.5 MB)",
+            "caption": "TAR.GZ - 10.5 MB",
+            "format": "tar.gz"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "tar_gz_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "tar_gz_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "data": {
+        "text": "CSV File Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "file",
+            "url": "https://people.sc.fsu.edu/~jburkardt/data/csv/addresses.csv",
+            "alt_text": "CSV test file (328 B)",
+            "caption": "CSV - 328 B",
+            "format": "csv"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "csv_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "csv_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "data": {
+        "text": "XML File Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "file",
+            "url": "https://www.w3schools.com/xml/note.xml",
+            "alt_text": "XML test file (149 B)",
+            "caption": "XML - 149 B",
+            "format": "xml"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "xml_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "xml_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "data": {
+        "text": "ZIP File Test - Did this file load successfully?",
+        "type": "multiple_choice",
+        "attachments": [
+          {
+            "type": "file",
+            "url": "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip",
+            "alt_text": "ZIP test file (380 B)",
+            "caption": "ZIP - 380 B",
+            "format": "zip"
+          }
+        ],
+        "options": [
+          {
+            "label": "Yes, it loaded",
+            "value": "yes"
+          },
+          {
+            "label": "No, failed to load",
+            "value": "no"
+          }
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'yes'",
+          "update": {
+            "loaded_successfully": "loaded_successfully + 1",
+            "zip_status": "'SUCCESS'"
+          }
+        },
+        {
+          "condition": "answer == 'no'",
+          "update": {
+            "failed_to_load": "failed_to_load + 1",
+            "zip_status": "'FAILED'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "data": {
+        "type": "final_message",
+        "text": "FILE FORMAT LOADING TEST RESULTS\n\nTotal Files Tested: {variables.total_files}\nSuccessfully Loaded: {variables.loaded_successfully}\nFailed to Load: {variables.failed_to_load}\n\nDETAILED RESULTS:\n\nImages:\n  - JPEG: {variables.jpeg_status}\n  - PNG: {variables.png_status}\n  - GIF: {variables.gif_status}\n  - WebP: {variables.webp_status}\n  - SVG: {variables.svg_status}\n  - TIFF: {variables.tiff_status}\n  - BMP: {variables.bmp_status}\n\nAudio:\n  - MP3: {variables.mp3_status}\n  - WAV: {variables.wav_status}\n\nVideo:\n  - MP4: {variables.mp4_status}\n  - OGG: {variables.ogg_status}\n  - WebM: {variables.webm_status}\n\nDocuments:\n  - TXT/HTML: {variables.txt_status}\n  - Markdown: {variables.md_status}\n  - PDF: {variables.pdf_status}\n\nFiles:\n  - TAR.GZ: {variables.tar_gz_status}\n  - CSV: {variables.csv_status}\n  - XML: {variables.xml_status}\n  - ZIP: {variables.zip_status}\n\nThank you for testing!"
+      }
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "true",
+        "next_question_id": 3
+      }
+    ],
+    "3": [
+      {
+        "expression": "true",
+        "next_question_id": 4
+      }
+    ],
+    "4": [
+      {
+        "expression": "true",
+        "next_question_id": 5
+      }
+    ],
+    "5": [
+      {
+        "expression": "true",
+        "next_question_id": 6
+      }
+    ],
+    "6": [
+      {
+        "expression": "true",
+        "next_question_id": 7
+      }
+    ],
+    "7": [
+      {
+        "expression": "true",
+        "next_question_id": 8
+      }
+    ],
+    "8": [
+      {
+        "expression": "true",
+        "next_question_id": 9
+      }
+    ],
+    "9": [
+      {
+        "expression": "true",
+        "next_question_id": 10
+      }
+    ],
+    "10": [
+      {
+        "expression": "true",
+        "next_question_id": 11
+      }
+    ],
+    "11": [
+      {
+        "expression": "true",
+        "next_question_id": 12
+      }
+    ],
+    "12": [
+      {
+        "expression": "true",
+        "next_question_id": 13
+      }
+    ],
+    "13": [
+      {
+        "expression": "true",
+        "next_question_id": 14
+      }
+    ],
+    "14": [
+      {
+        "expression": "true",
+        "next_question_id": 15
+      }
+    ],
+    "15": [
+      {
+        "expression": "true",
+        "next_question_id": 16
+      }
+    ],
+    "16": [
+      {
+        "expression": "true",
+        "next_question_id": 17
+      }
+    ],
+    "17": [
+      {
+        "expression": "true",
+        "next_question_id": 18
+      }
+    ],
+    "18": [
+      {
+        "expression": "true",
+        "next_question_id": 19
+      }
+    ],
+    "19": [
+      {
+        "expression": "true",
+        "next_question_id": 20
+      }
+    ],
+    "20": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
+}

@@ -222,7 +222,7 @@ class FileStorageManager(StorageManager):
         self.logger.info(f"Updated quiz {quiz_id}")
 
     def delete_quiz(self, quiz_id: str) -> None:
-        """Delete a quiz and all associated tokens and sessions."""
+        """Delete a quiz and all associated tokens, sessions, and results."""
         import os
         self.logger.debug(f"Deleting quiz with ID: {quiz_id}")
 
@@ -243,6 +243,17 @@ class FileStorageManager(StorageManager):
             if sdata.get("quiz_id") != quiz_id
         }
         self._write_json("sessions.json", self.sessions)
+
+        # Remove associated results
+        for user_id in list(self.results.keys()):
+            if quiz_id in self.results[user_id]:
+                del self.results[user_id][quiz_id]
+                # Clean up empty user entries
+                if not self.results[user_id]:
+                    del self.results[user_id]
+
+        # Write updated results to disk
+        self._save_all_results()
 
         self.logger.info(f"Deleted quiz {quiz_id} and all associated data")
 
