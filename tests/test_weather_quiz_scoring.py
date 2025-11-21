@@ -342,8 +342,7 @@ class TestWeatherQuizScoring:
         question_text = data["question"]["data"]["text"]
 
         # Check that user prediction appears
-        assert f"{prediction}" in question_text or f"{
-            int(prediction)}" in question_text
+        assert f"{prediction}" in question_text or f"{int(prediction)}" in question_text
 
         # Check that no unreplaced placeholders remain
         assert "{variables." not in question_text, "All variable placeholders should be replaced"

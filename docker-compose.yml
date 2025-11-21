@@ -34,10 +34,37 @@ services:
       - PYQUIZHUB_API_URL=http://api:8000
       - PYQUIZHUB_ADMIN_TOKEN=${PYQUIZHUB_ADMIN_TOKEN}
       - ADMIN_PORT=8081
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
     depends_on:
       - api
     networks:
       - pyquizhub-network
+
+  telegram-bot:
+    build: .
+    command: poetry run python -m pyquizhub.adapters.telegram.bot
+    env_file:
+      - .env
+    environment:
+      - PYQUIZHUB_API__BASE_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  discord-bot:
+    build: .
+    command: poetry run python -m pyquizhub.adapters.discord.bot
+    env_file:
+      - .env
+    environment:
+      - PYQUIZHUB_API__BASE_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
 
   db:
     image: postgres:15-alpine

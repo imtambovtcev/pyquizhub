@@ -41,11 +41,17 @@ class QuizEngine:
     questions, scores, transitions) as empty collections to be defensive.
     """
 
-    def __init__(self, quiz_data: dict):
-        """Initialize engine and normalize quiz data."""
+    def __init__(self, quiz_data: dict, file_storage: Any = None):
+        """Initialize engine and normalize quiz data.
+
+        Args:
+            quiz_data: Quiz definition
+            file_storage: Optional file storage backend for API file uploads
+        """
         self.quiz = self.load_quiz(quiz_data)
         self.logger = get_logger(__name__)
         self.api_manager = APIIntegrationManager()
+        self.file_storage = file_storage
 
     def load_quiz(self, quiz_data: dict) -> dict:
         """
@@ -373,6 +379,13 @@ class QuizEngine:
                                  for opt in question["data"]["options"]]
                 if answer not in valid_options:
                     raise ValueError(f"Invalid option selected: {answer}")
+            elif question_type == "file_upload":
+                if not isinstance(answer, dict):
+                    raise ValueError("Answer must be a dictionary with file_id")
+                if "file_id" not in answer:
+                    raise ValueError("Answer must contain file_id field")
+                if not isinstance(answer["file_id"], str):
+                    raise ValueError("file_id must be a string")
         except (ValueError, TypeError) as e:
             self.logger.error(
                 f"Invalid answer for question {question['id']}: {e}")
@@ -442,10 +455,15 @@ class QuizEngine:
 
             # Execute the API call
             try:
+                # Add file storage to context if available
+                api_context = context.copy()
+                if self.file_storage:
+                    api_context['_file_storage'] = self.file_storage
+
                 state = self.api_manager.execute_api_call(
                     api_config,
                     state,
-                    context
+                    api_context
                 )
             except Exception as e:
                 self.logger.error(f"API call failed: {e}")
@@ -486,7 +504,7 @@ class QuizEngine:
     def _apply_question_templating(
             self, question: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
         """
-        Apply templating to question text by replacing placeholders.
+        Apply templating to question text and attachment URLs by replacing placeholders.
 
         Replaces placeholders like:
         - {api.joke_api.setup} with actual API response data
@@ -497,7 +515,7 @@ class QuizEngine:
             state: Current session state with api_data and scores
 
         Returns:
-            Question dictionary with templated text
+            Question dictionary with templated text and attachment URLs
         """
         import copy
         import re
@@ -511,8 +529,59 @@ class QuizEngine:
         # Get the question text
         question_text = templated_question.get("data", {}).get("text", "")
 
+        # Apply templating to text
+        if question_text:
+            templated_question["data"]["text"] = self._apply_templating_to_string(
+                question_text, api_context, state.get("scores", {}), "text"
+            )
+
+        # Apply templating to attachments array
+        attachments = templated_question.get("data", {}).get("attachments", [])
+        if attachments:
+            for idx, attachment in enumerate(attachments):
+                # Template the URL field
+                if "url" in attachment and attachment["url"]:
+                    templated_url = self._apply_templating_to_string(
+                        attachment["url"], api_context, state.get("scores", {}), f"attachment[{idx}].url"
+                    )
+                    templated_question["data"]["attachments"][idx]["url"] = templated_url
+
+                # Template optional caption field
+                if "caption" in attachment and attachment["caption"]:
+                    templated_caption = self._apply_templating_to_string(
+                        attachment["caption"], api_context, state.get("scores", {}), f"attachment[{idx}].caption"
+                    )
+                    templated_question["data"]["attachments"][idx]["caption"] = templated_caption
+
+                # Template optional alt_text field
+                if "alt_text" in attachment and attachment["alt_text"]:
+                    templated_alt_text = self._apply_templating_to_string(
+                        attachment["alt_text"], api_context, state.get("scores", {}), f"attachment[{idx}].alt_text"
+                    )
+                    templated_question["data"]["attachments"][idx]["alt_text"] = templated_alt_text
+
+        return templated_question
+
+    def _apply_templating_to_string(
+            self, field_value: str, api_context: dict[str, Any], scores: dict[str, Any], field_name: str) -> str:
+        """
+        Apply templating to a string field by replacing placeholders.
+
+        Args:
+            field_value: The string to template
+            api_context: API context dictionary
+            scores: Current variable values
+            field_name: Name of the field (for logging)
+
+        Returns:
+            Templated string
+        """
+        import re
+
+        result = field_value
+
         # Find and replace {api.api_id.field} placeholders
-        api_placeholders = re.findall(r'\{api\.([^}]+)\}', question_text)
+        api_placeholders = re.findall(r'\{api\.([^}]+)\}', result)
 
         for placeholder in api_placeholders:
             # Split the placeholder into parts (e.g., "joke_api.setup" ->
@@ -530,34 +599,33 @@ class QuizEngine:
 
             # Replace the placeholder with the actual value
             if value is not None:
-                templated_question["data"]["text"] = templated_question["data"]["text"].replace(
+                result = result.replace(
                     f"{{api.{placeholder}}}",
                     str(value)
                 )
                 self.logger.debug(
-                    f"Replaced {{api.{placeholder}}} with {value}")
+                    f"Replaced {{api.{placeholder}}} in {field_name} with {value}")
             else:
                 self.logger.warning(
-                    f"Could not resolve placeholder {{api.{placeholder}}}")
+                    f"Could not resolve placeholder {{api.{placeholder}}} in {field_name}")
 
         # Find and replace {variables.var_name} placeholders
-        var_placeholders = re.findall(r'\{variables\.([^}]+)\}', question_text)
+        var_placeholders = re.findall(r'\{variables\.([^}]+)\}', result)
 
         for var_name in var_placeholders:
             # Get variable value from state scores
-            scores = state.get("scores", {})
             value = scores.get(var_name)
 
             # Replace the placeholder with the actual value
             if value is not None:
-                templated_question["data"]["text"] = templated_question["data"]["text"].replace(
+                result = result.replace(
                     f"{{variables.{var_name}}}",
                     str(value)
                 )
                 self.logger.debug(
-                    f"Replaced {{variables.{var_name}}} with {value}")
+                    f"Replaced {{variables.{var_name}}} in {field_name} with {value}")
             else:
                 self.logger.warning(
-                    f"Could not resolve variable placeholder {{variables.{var_name}}}")
+                    f"Could not resolve variable placeholder {{variables.{var_name}}} in {field_name}")
 
-        return templated_question
+        return result

@@ -350,9 +350,8 @@ class VariableDefinition:
             # If array_item_type is specified but type is not array, that's an
             # error
             raise ValueError(
-                f"Variable '{
-                    self.name}' has array_item_type but type is '{
-                    self.type.value}'. " f"Only array variables can have array_item_type.")
+                f"Variable '{self.name}' has array_item_type but type is '{self.type.value}'. "
+                f"Only array variables can have array_item_type.")
 
         # Convert tags list to set of VariableTag enums
         if isinstance(self.tags, (list, set)):
@@ -375,9 +374,8 @@ class VariableDefinition:
             # Leaderboard variable must be numeric
             if self.type not in (VariableType.INTEGER, VariableType.FLOAT):
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' has 'leaderboard' tag but type is {
-                        self.type.value}. " f"Leaderboard variable must be integer or float.")
+                    f"Variable '{self.name}' has 'leaderboard' tag but type is {self.type.value}. "
+                    f"Leaderboard variable must be integer or float.")
             # LEADERBOARD automatically implies SCORE and PUBLIC
             self.tags.add(VariableTag.SCORE)
             self.tags.add(VariableTag.PUBLIC)
@@ -387,9 +385,8 @@ class VariableDefinition:
             # Scores must be numeric
             if self.type not in (VariableType.INTEGER, VariableType.FLOAT):
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' has 'score' tag but type is {
-                        self.type.value}. " f"Scores must be integer or float.")
+                    f"Variable '{self.name}' has 'score' tag but type is {self.type.value}. "
+                    f"Scores must be integer or float.")
             # Scores are automatically public
             self.tags.add(VariableTag.PUBLIC)
 
@@ -430,8 +427,7 @@ class VariableDefinition:
         if VariableTag.IMMUTABLE in self.tags:
             if len(self.mutable_by) > 0:
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' has 'immutable' tag but mutable_by is not empty")
+                    f"Variable '{self.name}' has 'immutable' tag but mutable_by is not empty")
 
         # Default visibility: if no visibility tag, default to PRIVATE
         visibility_tags = {
@@ -457,8 +453,7 @@ class VariableDefinition:
             # This is allowed only if there's an enum constraint
             if not (self.constraints and self.constraints.enum):
                 raise ValueError(
-                    f"Variable '{
-                        self.name}' cannot be SAFE_FOR_API and UNTRUSTED without sanitization")
+                    f"Variable '{self.name}' cannot be SAFE_FOR_API and UNTRUSTED without sanitization")
 
     def is_immutable(self) -> bool:
         """Check if variable is immutable."""
@@ -575,8 +570,7 @@ class VariableStore:
             self.values[name] = defn.default
 
         logger.debug(
-            f"Initialized variable store with {
-                len(definitions)} variables")
+            f"Initialized variable store with {len(definitions)} variables")
 
     def get(self, name: str) -> Any:
         """
@@ -628,8 +622,7 @@ class VariableStore:
         # Set value
         self.values[name] = validated_value
         logger.debug(
-            f"Set variable '{name}' = {validated_value} (by {
-                actor.value})")
+            f"Set variable '{name}' = {validated_value} (by {actor.value})")
 
     def _validate_value(
             self,
@@ -656,16 +649,14 @@ class VariableStore:
                 value = int(value)
             except (ValueError, TypeError):
                 raise ValueError(
-                    f"Variable '{name}' expects integer, got {
-                        type(value).__name__}")
+                    f"Variable '{name}' expects integer, got {type(value).__name__}")
 
         elif defn.type == VariableType.FLOAT:
             try:
                 value = float(value)
             except (ValueError, TypeError):
                 raise ValueError(
-                    f"Variable '{name}' expects float, got {
-                        type(value).__name__}")
+                    f"Variable '{name}' expects float, got {type(value).__name__}")
 
         elif defn.type == VariableType.BOOLEAN:
             if not isinstance(value, bool):
@@ -682,8 +673,7 @@ class VariableStore:
         elif defn.type == VariableType.ARRAY:
             if not isinstance(value, list):
                 raise ValueError(
-                    f"Variable '{name}' expects array, got {
-                        type(value).__name__}")
+                    f"Variable '{name}' expects array, got {type(value).__name__}")
             # Validate homogeneous array items
             if defn.array_item_type and len(value) > 0:
                 self._validate_array_items(name, value, defn.array_item_type)
@@ -716,25 +706,21 @@ class VariableStore:
             if item_type == VariableType.INTEGER:
                 if not isinstance(item, int) or isinstance(item, bool):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be integer, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be integer, got {type(item).__name__}")
             elif item_type == VariableType.FLOAT:
                 if not isinstance(
                         item, (int, float)) or isinstance(
                         item, bool):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be float, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be float, got {type(item).__name__}")
             elif item_type == VariableType.BOOLEAN:
                 if not isinstance(item, bool):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be boolean, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be boolean, got {type(item).__name__}")
             elif item_type == VariableType.STRING:
                 if not isinstance(item, str):
                     raise ValueError(
-                        f"Variable '{name}' array item at index {idx} must be string, got {
-                            type(item).__name__}")
+                        f"Variable '{name}' array item at index {idx} must be string, got {type(item).__name__}")
             # ARRAY type not allowed as item_type (already validated in
             # __post_init__)
 
@@ -761,34 +747,29 @@ class VariableStore:
         if var_type in (VariableType.INTEGER, VariableType.FLOAT):
             if constraints.min_value is not None and value < constraints.min_value:
                 raise ValueError(
-                    f"Variable '{name}' value {value} below minimum {
-                        constraints.min_value}")
+                    f"Variable '{name}' value {value} below minimum {constraints.min_value}")
             if constraints.max_value is not None and value > constraints.max_value:
                 raise ValueError(
-                    f"Variable '{name}' value {value} above maximum {
-                        constraints.max_value}")
+                    f"Variable '{name}' value {value} above maximum {constraints.max_value}")
 
         # String constraints
         if var_type == VariableType.STRING:
             if constraints.min_length is not None and len(
                     value) < constraints.min_length:
+                value_len = len(value)
                 raise ValueError(
-                    f"Variable '{name}' length {
-                        len(value)} below minimum {
-                        constraints.min_length}")
+                    f"Variable '{name}' length {value_len} below minimum {constraints.min_length}")
             if constraints.max_length is not None and len(
                     value) > constraints.max_length:
+                value_len = len(value)
                 raise ValueError(
-                    f"Variable '{name}' length {
-                        len(value)} above maximum {
-                        constraints.max_length}")
+                    f"Variable '{name}' length {value_len} above maximum {constraints.max_length}")
 
             # Enum validation (whitelist)
             if constraints.enum is not None:
                 if value not in constraints.enum:
                     raise ValueError(
-                        f"Variable '{name}' value '{value}' not in allowed values: {
-                            constraints.enum}")
+                        f"Variable '{name}' value '{value}' not in allowed values: {constraints.enum}")
 
             # Pattern validation
             if constraints.pattern is not None:
@@ -797,23 +778,20 @@ class VariableStore:
                 # definition
                 if not re.match(constraints.pattern, value):
                     raise ValueError(
-                        f"Variable '{name}' value '{value}' does not match pattern {
-                            constraints.pattern}")
+                        f"Variable '{name}' value '{value}' does not match pattern {constraints.pattern}")
 
         # Array constraints
         if var_type == VariableType.ARRAY:
             if constraints.min_items is not None and len(
                     value) < constraints.min_items:
+                value_len = len(value)
                 raise ValueError(
-                    f"Variable '{name}' has {
-                        len(value)} items, minimum {
-                        constraints.min_items}")
+                    f"Variable '{name}' has {value_len} items, minimum {constraints.min_items}")
             if constraints.max_items is not None and len(
                     value) > constraints.max_items:
+                value_len = len(value)
                 raise ValueError(
-                    f"Variable '{name}' has {
-                        len(value)} items, maximum {
-                        constraints.max_items}")
+                    f"Variable '{name}' has {value_len} items, maximum {constraints.max_items}")
 
     def get_all(self) -> dict[str, Any]:
         """Get all variable values."""

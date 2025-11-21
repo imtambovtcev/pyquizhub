@@ -127,8 +127,7 @@ class PermissionEnforcer:
                 api_config.get("body") or api_config.get("body_template"))
 
         logger.debug(
-            f"API integration validated for tier {
-                self.creator_tier.value}")
+            f"API integration validated for tier {self.creator_tier.value}")
 
     def _validate_variable_usage_in_url(
             self, url: str, api_config: dict[str, Any]) -> None:

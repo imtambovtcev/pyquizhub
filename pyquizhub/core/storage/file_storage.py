@@ -222,7 +222,7 @@ class FileStorageManager(StorageManager):
         self.logger.info(f"Updated quiz {quiz_id}")
 
     def delete_quiz(self, quiz_id: str) -> None:
-        """Delete a quiz and all associated tokens and sessions."""
+        """Delete a quiz and all associated tokens, sessions, and results."""
         import os
         self.logger.debug(f"Deleting quiz with ID: {quiz_id}")
 
@@ -243,6 +243,17 @@ class FileStorageManager(StorageManager):
             if sdata.get("quiz_id") != quiz_id
         }
         self._write_json("sessions.json", self.sessions)
+
+        # Remove associated results
+        for user_id in list(self.results.keys()):
+            if quiz_id in self.results[user_id]:
+                del self.results[user_id][quiz_id]
+                # Clean up empty user entries
+                if not self.results[user_id]:
+                    del self.results[user_id]
+
+        # Write updated results to disk
+        self._save_all_results()
 
         self.logger.info(f"Deleted quiz {quiz_id} and all associated data")
 
@@ -506,7 +517,29 @@ class FileStorageManager(StorageManager):
         """Fetch sessions for a specific quiz and user."""
         self.logger.debug(
             f"Fetching sessions for quiz ID: {quiz_id} and user ID: {user_id}")
-        return list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
+
+        session_ids = []
+
+        # Get completed sessions from results
+        session_ids.extend(
+            list(self.results.get(user_id, {}).get(quiz_id, {}).keys())
+        )
+
+        # Get active sessions from sessions directory
+        sessions_dir = os.path.join(self.base_dir, "sessions")
+        if os.path.exists(sessions_dir):
+            for session_file in os.listdir(sessions_dir):
+                if session_file.endswith(".json"):
+                    session_id = os.path.splitext(session_file)[0]
+                    # Load session to check if it matches quiz_id and user_id
+                    session_data = self.load_session_state(session_id)
+                    if (session_data and
+                        session_data.get("quiz_id") == quiz_id and
+                        session_data.get("user_id") == user_id and
+                        session_id not in session_ids):
+                        session_ids.append(session_id)
+
+        return session_ids
 
     def save_session_state(self, session_data: dict[str, Any]) -> None:
         """

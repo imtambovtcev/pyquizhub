@@ -11,18 +11,8 @@ class QuizApp {
 
         this.currentQuiz = null;
         this.userId = uuidv4();  // Use uuidv4 to generate a UUID
-        this.authToken = null;
-        this.loadAuthToken();
 
         this.initializeEventListeners();
-    }
-
-    async loadAuthToken() {
-        const response = await fetch(`${API_BASE_URL}/auth/user_token`);
-        if (response.ok) {
-            const data = await response.json();
-            this.authToken = data.token;
-        }
     }
 
     initializeEventListeners() {
@@ -62,6 +52,14 @@ class QuizApp {
         if (!this.currentQuiz) return;
 
         try {
+            const questionType = this.currentQuiz.question.data.type;
+
+            // Handle file upload separately
+            if (questionType === 'file_upload') {
+                await this.handleFileUploadSubmit();
+                return;
+            }
+
             const answer = this.getAnswer();
             console.log("Submitting answer:", answer);
             const response = await fetch(`/api/quiz/submit_answer/${this.currentQuiz.quiz_id}`, {  // Changed from quizId to quiz_id
@@ -92,6 +90,62 @@ class QuizApp {
         } catch (error) {
             console.error("Error submitting answer:", error);
             this.showQuizError(error.message);
+        }
+    }
+
+    async handleFileUploadSubmit() {
+        const fileInput = document.getElementById('file-upload-input');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            throw new Error('Please select a file');
+        }
+
+        // Upload file first
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const uploadResponse = await fetch('/api/uploads/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'user-token'  // TODO: Use actual user token
+            },
+            body: formData
+        });
+
+        if (!uploadResponse.ok) {
+            const error = await uploadResponse.json();
+            throw new Error(error.detail || 'File upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        const fileId = uploadData.file_id;
+
+        // Submit the file_id as answer
+        const response = await fetch(`/api/quiz/submit_answer/${this.currentQuiz.quiz_id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                quiz_id: this.currentQuiz.quiz_id,
+                session_id: this.currentQuiz.session_id,
+                user_id: this.userId,
+                answer: { file_id: fileId }
+            })
+        });
+
+        const data = await response.json();
+        console.log("Response from API:", data);
+
+        if (!response.ok) throw new Error(data.detail || 'Failed to submit answer');
+
+        // Check if question is null (quiz completed) or if question.id is null
+        if (data.question === null || data.question.id === null) {
+            this.showResults(data);
+        } else {
+            this.currentQuiz.question = data.question;
+            this.showQuiz(data.question);
         }
     }
 
@@ -135,13 +189,42 @@ class QuizApp {
         if (question.data.type === 'final_message') {
             this.showResults({
                 title: this.currentQuiz.title,
-                finalMessage: question.data.text
+                finalMessage: question.data.text,
+                attachments: question.data.attachments
             });
             return;
         }
 
         this.startScreen.style.display = 'none';
         this.quizScreen.style.display = 'block';
+
+        // Handle attachments if present
+        const attachmentContainer = document.getElementById('question-image-container'); // Renamed from image container for generic use
+        attachmentContainer.innerHTML = ''; // Clear previous attachments
+
+        if (question.data.attachments && question.data.attachments.length > 0) {
+            let hasVisibleAttachments = false;
+
+            question.data.attachments.forEach((attachment) => {
+                const attachmentElement = this.createAttachmentElement(attachment);
+                if (attachmentElement) {
+                    attachmentContainer.appendChild(attachmentElement);
+                    hasVisibleAttachments = true;
+
+                    // Add caption if present
+                    if (attachment.caption) {
+                        const captionElement = document.createElement('p');
+                        captionElement.className = 'attachment-caption';
+                        captionElement.textContent = attachment.caption;
+                        attachmentContainer.appendChild(captionElement);
+                    }
+                }
+            });
+
+            attachmentContainer.style.display = hasVisibleAttachments ? 'block' : 'none';
+        } else {
+            attachmentContainer.style.display = 'none';
+        }
 
         document.getElementById('question-text').textContent = question.data.text;
         const choicesDiv = document.getElementById('choices');
@@ -150,6 +233,138 @@ class QuizApp {
         // Ensure submit button is visible for regular questions
         const submitButton = this.quizForm.querySelector('button[type="submit"]');
         submitButton.style.display = 'block';
+    }
+
+    createAttachmentElement(attachment) {
+        /**
+         * Create appropriate HTML element for different attachment types
+         * @param {Object} attachment - Attachment object with type and url
+         * @returns {HTMLElement|null} - DOM element or null if creation fails
+         */
+        switch (attachment.type) {
+            case 'image':
+                return this.createImageElement(attachment);
+            case 'video':
+                return this.createVideoElement(attachment);
+            case 'audio':
+                return this.createAudioElement(attachment);
+            case 'document':
+            case 'file':
+                return this.createFileLink(attachment);
+            default:
+                console.warn('Unknown attachment type:', attachment.type);
+                return null;
+        }
+    }
+
+    createImageElement(attachment) {
+        const img = document.createElement('img');
+        img.className = 'question-image';
+        img.src = attachment.url;
+
+        if (attachment.alt_text) {
+            img.alt = attachment.alt_text;
+        }
+
+        img.onerror = () => {
+            img.remove();
+            console.warn('Failed to load image:', attachment.url);
+        };
+
+        return img;
+    }
+
+    createVideoElement(attachment) {
+        const video = document.createElement('video');
+        video.className = 'question-video';
+        video.controls = true;
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '400px';
+
+        const source = document.createElement('source');
+        source.src = attachment.url;
+        video.appendChild(source);
+
+        video.onerror = () => {
+            video.remove();
+            console.warn('Failed to load video:', attachment.url);
+        };
+
+        if (attachment.alt_text) {
+            video.setAttribute('aria-label', attachment.alt_text);
+        }
+
+        return video;
+    }
+
+    createAudioElement(attachment) {
+        const audio = document.createElement('audio');
+        audio.className = 'question-audio';
+        audio.controls = true;
+        audio.style.width = '100%';
+
+        const source = document.createElement('source');
+        source.src = attachment.url;
+        audio.appendChild(source);
+
+        audio.onerror = () => {
+            audio.remove();
+            console.warn('Failed to load audio:', attachment.url);
+        };
+
+        if (attachment.alt_text) {
+            audio.setAttribute('aria-label', attachment.alt_text);
+        }
+
+        return audio;
+    }
+
+    createFileLink(attachment) {
+        const container = document.createElement('div');
+        container.className = 'question-file';
+        container.style.padding = '10px';
+        container.style.marginBottom = '10px';
+        container.style.border = '1px solid #ddd';
+        container.style.borderRadius = '4px';
+
+        const link = document.createElement('a');
+        link.href = attachment.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.textDecoration = 'none';
+        link.style.color = '#0066cc';
+
+        // Extract filename from URL
+        const filename = attachment.url.split('/').pop().split('?')[0] || 'Download file';
+
+        // Create icon based on file extension
+        const ext = filename.split('.').pop().toLowerCase();
+        const icon = this.getFileIcon(ext);
+
+        link.innerHTML = `${icon} ${attachment.alt_text || filename}`;
+
+        container.appendChild(link);
+        return container;
+    }
+
+    getFileIcon(extension) {
+        const icons = {
+            'pdf': '📄',
+            'doc': '📝',
+            'docx': '📝',
+            'txt': '📝',
+            'xls': '📊',
+            'xlsx': '📊',
+            'ppt': '📊',
+            'pptx': '📊',
+            'zip': '🗜️',
+            'rar': '🗜️',
+            'mp3': '🎵',
+            'wav': '🎵',
+            'mp4': '🎬',
+            'avi': '🎬'
+        };
+        return icons[extension] || '📎';
     }
 
     generateChoicesHtml(question) {
@@ -167,6 +382,8 @@ class QuizApp {
                 return this.generateInputField('number', 'step="any"');
             case 'text':
                 return this.generateInputField('text');
+            case 'file_upload':
+                return this.generateFileUploadField(question.data);
             case 'final_message':
                 return `<p>${question.data.text}</p>`;
             default:
@@ -198,13 +415,51 @@ class QuizApp {
         `;
     }
 
+    generateFileUploadField(questionData) {
+        const fileTypes = questionData.file_types || [];
+        const accept = fileTypes.join(',');
+        const maxSizeMb = questionData.max_size_mb || 10;
+
+        return `
+            <div class="file-upload-container">
+                <input type="file" id="file-upload-input" accept="${accept}" required>
+                <div class="file-upload-info">
+                    <small>Max size: ${maxSizeMb}MB</small>
+                    ${fileTypes.length > 0 ? `<small>Accepted: ${fileTypes.join(', ')}</small>` : ''}
+                </div>
+                <input type="hidden" id="file-id-input" name="file_id">
+            </div>
+        `;
+    }
+
     showResults(data) {
         this.startScreen.style.display = 'none';
         this.quizScreen.style.display = 'block';
 
         // If there's a final message, show only that with the "Take Another Quiz" button
         if (data.finalMessage) {
+            // Generate HTML for attachments
+            let attachmentsHtml = '';
+            if (data.attachments && data.attachments.length > 0) {
+                const imageAttachments = data.attachments.filter(att => att.type === 'image');
+                if (imageAttachments.length > 0) {
+                    attachmentsHtml = '<div style="text-align: center; margin-bottom: 20px;">';
+                    imageAttachments.forEach(attachment => {
+                        const altText = attachment.alt_text || 'Quiz completion image';
+                        attachmentsHtml += `
+                            <img src="${attachment.url}" alt="${altText}"
+                                 style="max-width: 100%; max-height: 400px; border-radius: 8px; margin: 10px 0;"
+                                 onerror="this.style.display='none'">`;
+                        if (attachment.caption) {
+                            attachmentsHtml += `<p class="image-caption" style="font-size: 0.9em; color: #666; margin-top: 5px;">${attachment.caption}</p>`;
+                        }
+                    });
+                    attachmentsHtml += '</div>';
+                }
+            }
+
             this.quizScreen.innerHTML = `
+                ${attachmentsHtml}
                 <div class="final-message">${data.finalMessage.split('\n').map(line => line ? `<p>${line}</p>` : '<br>').join('')}</div>
                 <div style="text-align: center; margin-top: 20px;">
                     <button onclick="location.reload()">Take Another Quiz</button>

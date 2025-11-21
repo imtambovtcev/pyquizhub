@@ -237,6 +237,141 @@ class CreatorPermissionTier(Enum):
 }
 ```
 
+### Image URL Security Restrictions
+
+To prevent resource abuse and ensure security, image URLs in quiz questions are subject to permission-tier based restrictions.
+
+#### RESTRICTED Tier - Whitelisted Services Only
+
+RESTRICTED tier creators can only use image URLs from approved, safe hosting services:
+
+**Allowed Services:**
+- **CDN Services**: Cloudinary, Imgix, CloudFront, Fastly, jsDelivr
+- **Image Hosting**: Imgur, Unsplash
+- **Placeholder Services**: via.placeholder.com, placehold.co, picsum.photos, dummyimage.com
+- **Development/Testing**: httpbin.org/image
+- **Open Content**: GitHub user content, Wikimedia
+
+**Example (Allowed):**
+```json
+{
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What's in this image?",
+        "type": "multiple_choice",
+        "image_url": "https://i.imgur.com/abc123.png",
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+**Example (Blocked):**
+```json
+{
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What's in this image?",
+        "type": "multiple_choice",
+        "image_url": "https://random-website.com/image.png",  // ❌ Not whitelisted
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+**Error Message:**
+```
+Permission denied: Question 1 uses image URL from non-whitelisted service.
+RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur,
+Unsplash, placeholder services, or direct HTTPS URLs to image files).
+Upgrade to STANDARD tier or use an approved service.
+```
+
+#### STANDARD/ADVANCED/ADMIN Tiers - No URL Pattern Restrictions
+
+Higher tiers can use image URLs from any domain (still subject to HTTPS/SSRF validation):
+
+```json
+{
+  "creator_tier": "standard",
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "What's in this image?",
+        "type": "multiple_choice",
+        "image_url": "https://my-own-server.com/images/quiz1.jpg",  // ✅ Allowed
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+#### Variable Substitution in Image URLs
+
+Image URLs with variable substitution are NOT checked against the whitelist (they have separate permission rules):
+
+- **RESTRICTED tier**: Cannot use variable substitution at all
+- **STANDARD tier**: Can use `SAFE_FOR_API` variables only
+- **ADVANCED tier**: Can use any variables (still validated for injection)
+
+```json
+{
+  "creator_tier": "standard",
+  "variables": {
+    "image_format": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["safe_for_api"],
+      "constraints": {"enum": ["png", "jpeg", "webp"]},
+      "default": "png"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "text": "Identify the format",
+        "type": "multiple_choice",
+        "image_url": "https://httpbin.org/image/{variables.image_format}",  // ✅ Variable URL
+        "options": [...]
+      }
+    }
+  ]
+}
+```
+
+#### Implementation Details
+
+URL pattern checking is implemented in `ImageURLValidator.check_url_against_patterns()`:
+
+- Uses regex patterns to match allowed domains
+- Only applies to RESTRICTED tier
+- Only checks fixed URLs (not variable-based URLs)
+- Runs during quiz JSON validation
+
+**Whitelist Patterns (see `url_validator.py`):**
+```python
+DEFAULT_ALLOWED_IMAGE_URL_PATTERNS = [
+    r'^https://.*\.cloudinary\.com/',
+    r'^https://.*\.imgix\.net/',
+    r'^https://i\.imgur\.com/',
+    r'^https://images\.unsplash\.com/',
+    r'^https://via\.placeholder\.com/',
+    r'^https://httpbin\.org/image',
+    r'^https://upload\.wikimedia\.org/.*\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$',
+    # ... more patterns
+]
+```
+
 ## 3. User Permission System
 
 ### User Permission Levels
@@ -649,6 +784,88 @@ GET /api/v1/user/permissions
 
 ---
 
+## 11. Image URL Redirect Protection
+
+### Vulnerability: Redirect Bypass
+
+Non-existent URLs on whitelisted domains can redirect to non-whitelisted or malicious domains, bypassing URL pattern restrictions.
+
+**Example Attack**:
+```
+Original URL: https://i.imgur.com/nonexistent.png (whitelisted)
+Redirects to: https://imgur.com/ (homepage, no image extension)
+           or: https://evil.com/malicious.png (non-whitelisted domain)
+```
+
+### Protection Implementation
+
+When `verify_content=True`, the system performs HTTP HEAD requests and checks for redirects:
+
+```python
+# Check for redirects
+if response.history:
+    final_url = response.url
+    if final_url != url:
+        # Three-layer validation for redirected URLs:
+
+        # 1. SSRF Protection
+        URLValidator.validate_url(final_url, allow_http=True)
+
+        # 2. Image Extension Check
+        if not ImageURLValidator.has_image_extension(final_url):
+            raise ValueError("Redirected URL does not have image extension")
+
+        # 3. Pattern Whitelist Check (if provided)
+        if allowed_patterns is not None:
+            if not ImageURLValidator.check_url_against_patterns(
+                final_url, allowed_patterns
+            ):
+                raise ValueError("Redirected URL does not match allowed patterns")
+```
+
+### Blocked Scenarios
+
+1. **Non-whitelisted Domain Redirect**:
+   - `https://i.imgur.com/abc123.png` → `https://evil.com/image.png`
+   - **Blocked**: Final domain doesn't match pattern restrictions
+
+2. **Homepage Redirect**:
+   - `https://i.imgur.com/nonexistent.png` → `https://imgur.com/`
+   - **Blocked**: No image extension on final URL
+
+3. **SSRF via Redirect**:
+   - `https://example.com/image.png` → `http://127.0.0.1/secret.png`
+   - **Blocked**: Private IP addresses not allowed
+
+4. **Multiple Redirect Chain**:
+   - `https://i.imgur.com/a.png` → `https://imgur.com/b.png` → `https://evil.com/c.png`
+   - **Blocked**: Final URL validated against all restrictions
+
+### Allowed Scenarios
+
+1. **No Redirect**:
+   - `https://i.imgur.com/abc123.png` → (direct response)
+   - **Allowed**: No redirect occurred
+
+2. **Whitelisted-to-Whitelisted Redirect**:
+   - `https://imgur.com/abc123` → `https://i.imgur.com/abc123.png`
+   - **Allowed**: Both URLs match pattern restrictions (if using `r'^https://.*\.imgur\.com/'`)
+
+### Usage
+
+Redirect protection is automatically enabled when using `verify_content=True` with RESTRICTED tier image URLs:
+
+```python
+# RESTRICTED tier with pattern restrictions
+ImageURLValidator.validate_image_url(
+    url="https://i.imgur.com/abc123.png",
+    verify_content=True,  # Enables redirect checking
+    allowed_patterns=[r'^https://i\.imgur\.com/']
+)
+```
+
+---
+
 ## Summary
 
 This redesign provides:
@@ -661,5 +878,6 @@ This redesign provides:
 ✅ **Security**: Defense in depth against injection attacks
 ✅ **Flexibility**: Support for complex quiz flows
 ✅ **Backwards Compatible**: Migration path from old system
+✅ **Redirect Protection**: Prevents URL validation bypass via redirects
 
 This system balances security, flexibility, and usability while preventing abuse and protecting against attacks.

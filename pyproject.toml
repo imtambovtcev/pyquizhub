@@ -20,6 +20,12 @@ flask = "^3.1.0"
 flask-cors = "^5.0.0"
 pydantic-settings = "^2.0.0"
 psycopg2-binary = "^2.9.11"
+python-telegram-bot = "^22.5"
+discord-py = "^2.4.0"
+aiohttp = "^3.10.0"
+aiosqlite = "^0.20.0"
+python-magic = "^0.4.27"
+pillow = "^11.0.0"
 
 [tool.poetry.scripts]
 pyquizhub-setup = "pyquizhub.config.initialize:initialize_system"
@@ -28,6 +34,17 @@ pyquizhub-setup = "pyquizhub.config.initialize:initialize_system"
 sphinx = "^8.1.3"
 sphinx-autodoc-typehints = "^3.0.0"
 sphinx-rtd-theme = "^3.0.2"
+pytest-asyncio = "^1.3.0"
+playwright = "^1.48.0"
+pytest-playwright = "^0.5.0"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+# Exclude e2e tests from default run due to Playwright/pytest-asyncio event loop conflicts
+# Run e2e tests separately with: pytest tests/e2e/
+norecursedirs = ["tests/e2e"]
 
 [build-system]
 requires = ["poetry-core"]

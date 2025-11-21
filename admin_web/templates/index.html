@@ -43,6 +43,27 @@
             <p><strong>API URL:</strong> <span id="api-url">-</span></p>
         </div>
     </div>
+
+    <div class="adapters-status">
+        <h3>Adapters Status</h3>
+        <div id="adapters-display" class="adapters-grid">
+            <div class="adapter-card">
+                <h4>CLI Adapter</h4>
+                <p class="adapter-status" id="cli-status">Checking...</p>
+                <p class="adapter-description" id="cli-description">-</p>
+            </div>
+            <div class="adapter-card">
+                <h4>Web Adapter</h4>
+                <p class="adapter-status" id="web-status">Checking...</p>
+                <p class="adapter-description" id="web-description">-</p>
+            </div>
+            <div class="adapter-card">
+                <h4>Telegram Bot</h4>
+                <p class="adapter-status" id="telegram-status">Checking...</p>
+                <p class="adapter-description" id="telegram-description">-</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -88,10 +109,10 @@ async function checkHealth() {
     try {
         const res = await fetch('/api/health');
         const health = await res.json();
-        
+
         document.getElementById('admin-status').textContent = '✓ Healthy';
         document.getElementById('admin-status').className = 'status-indicator status-healthy';
-        
+
         if (health.api_connection === 'healthy') {
             document.getElementById('api-status').textContent = '✓ Connected';
             document.getElementById('api-status').className = 'status-indicator status-healthy';
@@ -99,7 +120,7 @@ async function checkHealth() {
             document.getElementById('api-status').textContent = '✗ Disconnected';
             document.getElementById('api-status').className = 'status-indicator status-error';
         }
-        
+
         document.getElementById('api-url').textContent = health.api_url || 'Unknown';
     } catch (error) {
         console.error('Health check failed:', error);
@@ -108,14 +129,70 @@ async function checkHealth() {
     }
 }
 
+// Check adapters status
+async function checkAdaptersStatus() {
+    try {
+        const res = await fetch('/api/adapters/status');
+        const data = await res.json();
+        const adapters = data.adapters;
+
+        // Update CLI adapter
+        if (adapters.cli) {
+            const cliStatus = document.getElementById('cli-status');
+            cliStatus.textContent = '✓ Available';
+            cliStatus.className = 'adapter-status status-healthy';
+            document.getElementById('cli-description').textContent = adapters.cli.description;
+        }
+
+        // Update Web adapter
+        if (adapters.web) {
+            const webStatus = document.getElementById('web-status');
+            if (adapters.web.status === 'running') {
+                webStatus.textContent = '✓ Running';
+                webStatus.className = 'adapter-status status-healthy';
+            } else if (adapters.web.status === 'stopped') {
+                webStatus.textContent = '✗ Stopped';
+                webStatus.className = 'adapter-status status-error';
+            } else {
+                webStatus.textContent = '⚠ Error';
+                webStatus.className = 'adapter-status status-warning';
+            }
+            document.getElementById('web-description').textContent = adapters.web.description;
+        }
+
+        // Update Telegram adapter
+        if (adapters.telegram) {
+            const telegramStatus = document.getElementById('telegram-status');
+            if (adapters.telegram.status === 'running') {
+                telegramStatus.textContent = '✓ Running';
+                telegramStatus.className = 'adapter-status status-healthy';
+            } else if (adapters.telegram.status === 'not_configured') {
+                telegramStatus.textContent = '○ Not Configured';
+                telegramStatus.className = 'adapter-status status-warning';
+            } else {
+                telegramStatus.textContent = '✗ Stopped';
+                telegramStatus.className = 'adapter-status status-error';
+            }
+            document.getElementById('telegram-description').textContent = adapters.telegram.description;
+        }
+    } catch (error) {
+        console.error('Adapters status check failed:', error);
+        document.getElementById('cli-status').textContent = '✗ Error';
+        document.getElementById('web-status').textContent = '✗ Error';
+        document.getElementById('telegram-status').textContent = '✗ Error';
+    }
+}
+
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardStats();
     checkHealth();
-    
+    checkAdaptersStatus();
+
     // Refresh stats every 30 seconds
     setInterval(loadDashboardStats, 30000);
     setInterval(checkHealth, 60000);
+    setInterval(checkAdaptersStatus, 60000);
 });
 </script>
 {% endblock %}

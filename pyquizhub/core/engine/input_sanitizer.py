@@ -339,9 +339,9 @@ class InputSanitizer:
             ValueError: If pattern is potentially dangerous
         """
         if len(pattern) > max_length:
+            pattern_len = len(pattern)
             raise ValueError(
-                f"Regex pattern too long: {
-                    len(pattern)} > {max_length}")
+                f"Regex pattern too long: {pattern_len} > {max_length}")
 
         # Detect catastrophic backtracking patterns
         # Check for nested quantifiers like (a+)+, (a*)*, (a{2,5})*

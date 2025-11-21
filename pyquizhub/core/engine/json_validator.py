@@ -7,7 +7,10 @@ This module provides validation capabilities for quiz JSON structures to ensure:
 - Expressions and conditions are valid
 - Quiz flow is properly defined
 - Variable definitions are valid
+- Image URLs are safe and valid
 """
+
+from __future__ import annotations
 
 import json
 from typing import Any
@@ -16,6 +19,7 @@ from .variable_types import (
     VariableDefinition, VariableType, VariableTag, MutableBy,
     VariableConstraints, VariableStore, CreatorPermissionTier
 )
+from .url_validator import ImageURLValidator, AttachmentURLValidator
 from pyquizhub.logging.setup import get_logger
 
 logger = get_logger(__name__)
@@ -191,6 +195,88 @@ class QuizJSONValidator:
                 errors.append(f"Invalid question data format: {data}")
                 continue
 
+            # Validate attachments if present
+            if "attachments" in data:
+                attachments = data["attachments"]
+                if not isinstance(attachments, list):
+                    errors.append(
+                        f"Question {question['id']}: attachments must be a list, got {type(attachments).__name__}")
+                else:
+                    for idx, attachment in enumerate(attachments):
+                        if not isinstance(attachment, dict):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} must be a dictionary")
+                            continue
+
+                        # Validate required fields
+                        if "type" not in attachment:
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} missing required 'type' field")
+                            continue
+
+                        # Validate attachment type
+                        valid_types = ["image", "video", "audio", "document", "file"]
+                        if attachment["type"] not in valid_types:
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} has invalid type '{attachment['type']}'. "
+                                f"Valid types: {valid_types}")
+
+                        # Validate URL field (required for all attachment types)
+                        if "url" not in attachment:
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} missing required 'url' field")
+                            continue
+
+                        url = attachment["url"]
+                        if not isinstance(url, str):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} url must be a string, got {type(url).__name__}")
+                            continue
+
+                        if not url:  # Skip empty URLs
+                            continue
+
+                        # Validate URL for all attachment types
+                        attachment_type = attachment["type"]
+
+                        # Check if URL has variable placeholders
+                        if AttachmentURLValidator.has_variable_placeholders(url):
+                            # Extract and validate variable references
+                            var_names = AttachmentURLValidator.extract_variable_names(url)
+                            for var_name in var_names:
+                                # Check if variables exist
+                                # Variable names are in format "variables.varname" or "api.id.field"
+                                parts = var_name.split('.')
+                                if parts[0] == 'variables' and len(parts) == 2:
+                                    if parts[1] not in variable_definitions:
+                                        errors.append(
+                                            f"Question {question['id']}: attachment at index {idx} url references undefined variable '{parts[1]}'"
+                                        )
+                                # API variables checked separately in API integrations validation
+                        else:
+                            # Fixed URL - validate it immediately
+                            try:
+                                # Don't verify content during validation (no network calls)
+                                AttachmentURLValidator.validate_url(
+                                    url,
+                                    attachment_type,
+                                    verify_content=False,
+                                    allow_http=True  # Allow HTTP during validation (warn later in permissions)
+                                )
+                            except ValueError as e:
+                                errors.append(
+                                    f"Question {question['id']}: attachment at index {idx} invalid url: {e}"
+                                )
+
+                        # Validate optional fields if present
+                        if "alt_text" in attachment and not isinstance(attachment["alt_text"], str):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} alt_text must be a string")
+
+                        if "caption" in attachment and not isinstance(attachment["caption"], str):
+                            errors.append(
+                                f"Question {question['id']}: attachment at index {idx} caption must be a string")
+
             current_answer_type = None
             if data["type"] == "multiple_choice":
                 current_answer_type = str
@@ -205,65 +291,55 @@ class QuizJSONValidator:
             elif data["type"] == "text":
                 current_answer_type = str
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
             elif data["type"] == "integer":
                 current_answer_type = int
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
             elif data["type"] == "float":
                 current_answer_type = float
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+            elif data["type"] == "file_upload":
+                current_answer_type = dict
+                if "options" in data:
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
             elif data["type"] == "final_message":
                 # final_message type doesn't require an answer
                 current_answer_type = type(None)
                 if "options" in data:
-                    errors.append(
-                        f"Question type '{
-                            data['type']}' should not have options: {data}")
+                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
                 if not isinstance(score_updates, list):
-                    errors.append(
-                        f"Score updates must be a list in question {
-                            question['id']}.")
+                    errors.append(f"Score updates must be a list in question {question['id']}.")
                     continue
                 for update in score_updates:
                     if not isinstance(update, dict):
-                        errors.append(
-                            f"Score update must be a dictionary in question {
-                                question['id']}.")
+                        errors.append(f"Score update must be a dictionary in question {question['id']}.")
                         continue
-                    if not all(
-                        key in update for key in [
-                            "condition",
-                            "update"]):
-                        errors.append(
-                            f"Invalid score update format in question {
-                                question['id']}: {update}")
+                    if not all(key in update for key in ["condition", "update"]):
+                        errors.append(f"Invalid score update format in question {question['id']}: {update}")
                         continue
                     # Validate conditions and updates
                     try:
+                        # Create mock answer for validation
+                        if current_answer_type == dict:
+                            mock_answer = {"file_id": "mock_file_id"}
+                        elif current_answer_type:
+                            mock_answer = current_answer_type()
+                        else:
+                            mock_answer = None
 
-                        allowed_variables = {
-                            **default_variables,
-                            "answer": current_answer_type()} if current_answer_type else default_variables
+                        allowed_variables = {**default_variables, "answer": mock_answer} if current_answer_type else default_variables
                         SafeEvaluator.eval_expr(
                             update["condition"], allowed_variables)
                         for expr in update["update"].values():
                             SafeEvaluator.eval_expr(
                                 expr, allowed_variables)
                     except Exception as e:
-                        errors.append(
-                            f"Invalid score update condition or expression in question {
-                                question['id']}: {e}")
+                        errors.append(f"Invalid score update condition or expression in question {question['id']}: {e}")
 
         # Validate transitions
         transitions = quiz_data.get("transitions", {})
@@ -317,7 +393,7 @@ class QuizJSONValidator:
         # Validate permissions - check if creator_tier has rights to use
         # requested features
         perm_errors = QuizJSONValidator._validate_permissions(
-            quiz_data, creator_tier)
+            quiz_data, creator_tier, variable_definitions if has_variables else {})
         permission_errors.extend(perm_errors)
 
         return {
@@ -352,9 +428,7 @@ class QuizJSONValidator:
 
         for var_name, var_config in variables_data.items():
             if not isinstance(var_config, dict):
-                errors.append(
-                    f"Variable '{var_name}' definition must be a dictionary, got {
-                        type(var_config).__name__}")
+                errors.append(f"Variable '{var_name}' definition must be a dictionary, got {type(var_config).__name__}")
                 continue
 
             # Validate required fields
@@ -371,9 +445,7 @@ class QuizJSONValidator:
                 if isinstance(var_type, str):
                     var_type_enum = VariableType(var_type)
                 else:
-                    errors.append(
-                        f"Variable '{var_name}' type must be a string, got {
-                            type(var_type).__name__}")
+                    errors.append(f"Variable '{var_name}' type must be a string, got {type(var_type).__name__}")
                     continue
             except ValueError:
                 valid_types = [t.value for t in VariableType]
@@ -386,9 +458,7 @@ class QuizJSONValidator:
             # Validate mutable_by
             mutable_by = var_config.get("mutable_by")
             if not isinstance(mutable_by, list):
-                errors.append(
-                    f"Variable '{var_name}' mutable_by must be a list, got {
-                        type(mutable_by).__name__}")
+                errors.append(f"Variable '{var_name}' mutable_by must be a list, got {type(mutable_by).__name__}")
                 continue
 
             try:
@@ -406,9 +476,7 @@ class QuizJSONValidator:
             # Validate tags if present
             tags = var_config.get("tags", [])
             if not isinstance(tags, list):
-                errors.append(
-                    f"Variable '{var_name}' tags must be a list, got {
-                        type(tags).__name__}")
+                errors.append(f"Variable '{var_name}' tags must be a list, got {type(tags).__name__}")
                 continue
 
             try:
@@ -760,7 +828,8 @@ class QuizJSONValidator:
     @staticmethod
     def _validate_permissions(
             quiz_data: dict,
-            creator_tier: CreatorPermissionTier) -> list[str]:
+            creator_tier: CreatorPermissionTier,
+            variable_definitions: dict[str, VariableDefinition] = None) -> list[str]:
         """
         Validate that the creator's permission tier allows the features used in the quiz.
 
@@ -770,112 +839,187 @@ class QuizJSONValidator:
         Args:
             quiz_data: The quiz JSON data
             creator_tier: The permission tier of the creator
+            variable_definitions: Dictionary of variable definitions (for checking image URL variables)
 
         Returns:
             List of permission error messages (empty if all permissions are satisfied)
         """
         permission_errors = []
 
+        if variable_definitions is None:
+            variable_definitions = {}
+
         # Get API integrations if present
         api_integrations = quiz_data.get("api_integrations", [])
 
-        if not api_integrations:
-            # No API integrations, no permission checks needed
-            return permission_errors
+        # Check API integration count limits (only if there are API integrations)
+        if api_integrations:
+            api_count = len(api_integrations)
+            max_apis = {
+                CreatorPermissionTier.RESTRICTED: 5,
+                CreatorPermissionTier.STANDARD: 20,
+                CreatorPermissionTier.ADVANCED: 50,
+                CreatorPermissionTier.ADMIN: float('inf')
+            }
 
-        # Check API integration count limits
-        api_count = len(api_integrations)
-        max_apis = {
-            CreatorPermissionTier.RESTRICTED: 5,
-            CreatorPermissionTier.STANDARD: 20,
-            CreatorPermissionTier.ADVANCED: 50,
-            CreatorPermissionTier.ADMIN: float('inf')
-        }
+            if api_count > max_apis.get(creator_tier, 0):
+                permission_errors.append(
+                    f"Permission denied: {creator_tier.value} tier allows max {max_apis[creator_tier]} "
+                    f"API integrations, but quiz has {api_count}. Upgrade to a higher tier."
+                )
 
-        if api_count > max_apis.get(creator_tier, 0):
-            permission_errors.append(
-                f"Permission denied: {creator_tier.value} tier allows max {max_apis[creator_tier]} "
-                f"API integrations, but quiz has {api_count}. Upgrade to a higher tier."
-            )
+            # Validate each API integration
+            for idx, api_config in enumerate(api_integrations):
+                api_id = api_config.get("id", f"api_{idx}")
 
-        # Validate each API integration
-        for idx, api_config in enumerate(api_integrations):
-            api_id = api_config.get("id", f"api_{idx}")
-
-            # Check HTTP method permissions
-            method = api_config.get("method", "GET").upper()
-
-            if creator_tier == CreatorPermissionTier.RESTRICTED:
-                if method != "GET":
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses {method} method. "
-                        f"RESTRICTED tier only allows GET requests. Upgrade to ADVANCED tier."
-                    )
-            elif creator_tier == CreatorPermissionTier.STANDARD:
-                if method != "GET":
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses {method} method. "
-                        f"STANDARD tier only allows GET requests. Upgrade to ADVANCED tier."
-                    )
-
-            # Check URL template permissions (dynamic URLs)
-            # In the new format, url_template is inside prepare_request block
-            prepare_request = api_config.get("prepare_request", {})
-            has_url_template = "url_template" in prepare_request
-            has_fixed_url = "url" in api_config
-
-            if has_url_template:
-                if creator_tier == CreatorPermissionTier.RESTRICTED:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
-                        f"RESTRICTED tier only allows fixed URLs. Use 'url' field or upgrade to ADVANCED tier."
-                    )
-                elif creator_tier == CreatorPermissionTier.STANDARD:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
-                        f"STANDARD tier only allows variables in query parameters. Upgrade to ADVANCED tier."
-                    )
-
-            # STANDARD tier can use variables in query params with fixed base
-            # URL
-            if creator_tier == CreatorPermissionTier.STANDARD and has_fixed_url:
-                # Check if query parameters contain variables (this is allowed for STANDARD)
-                # The actual URL should be fixed, only query params can have
-                # variables
-                pass  # This is allowed
-
-            # Check request body permissions (for POST/PUT)
-            # In the new format, body_template is inside prepare_request block
-            has_body_template = "body_template" in prepare_request
-            if has_body_template:
-                if creator_tier in [
-                        CreatorPermissionTier.RESTRICTED,
-                        CreatorPermissionTier.STANDARD]:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses request body template. "
-                        f"Only ADVANCED tier and above can use body templates. Upgrade required."
-                    )
-
-            # Check custom authentication
-            auth_config = api_config.get("authentication", {})
-            if auth_config:
-                auth_type = auth_config.get("type", "")
+                # Check HTTP method permissions
+                method = api_config.get("method", "GET").upper()
 
                 if creator_tier == CreatorPermissionTier.RESTRICTED:
-                    # Restricted can only use pre-configured/fixed auth
-                    if auth_type not in ["none", "fixed"]:
+                    if method != "GET":
                         permission_errors.append(
-                            f"Permission denied: API '{api_id}' uses '{auth_type}' authentication. "
-                            f"RESTRICTED tier only allows fixed authentication. Upgrade required."
+                            f"Permission denied: API '{api_id}' uses {method} method. "
+                            f"RESTRICTED tier only allows GET requests. Upgrade to ADVANCED tier."
+                        )
+                elif creator_tier == CreatorPermissionTier.STANDARD:
+                    if method != "GET":
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses {method} method. "
+                            f"STANDARD tier only allows GET requests. Upgrade to ADVANCED tier."
                         )
 
-                # Custom auth schemes require ADVANCED
-                if auth_type in [
-                    "custom",
-                        "dynamic"] and creator_tier != CreatorPermissionTier.ADVANCED and creator_tier != CreatorPermissionTier.ADMIN:
-                    permission_errors.append(
-                        f"Permission denied: API '{api_id}' uses custom authentication scheme. "
-                        f"Only ADVANCED tier and above can use custom auth. Upgrade required."
-                    )
+                # Check URL template permissions (dynamic URLs)
+                # In the new format, url_template is inside prepare_request block
+                prepare_request = api_config.get("prepare_request", {})
+                has_url_template = "url_template" in prepare_request
+                has_fixed_url = "url" in api_config
+
+                if has_url_template:
+                    if creator_tier == CreatorPermissionTier.RESTRICTED:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
+                            f"RESTRICTED tier only allows fixed URLs. Use 'url' field or upgrade to ADVANCED tier."
+                        )
+                    elif creator_tier == CreatorPermissionTier.STANDARD:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses dynamic URL template (url_template). "
+                            f"STANDARD tier only allows variables in query parameters. Upgrade to ADVANCED tier."
+                        )
+
+                # STANDARD tier can use variables in query params with fixed base
+                # URL
+                if creator_tier == CreatorPermissionTier.STANDARD and has_fixed_url:
+                    # Check if query parameters contain variables (this is allowed for STANDARD)
+                    # The actual URL should be fixed, only query params can have
+                    # variables
+                    pass  # This is allowed
+
+                # Check request body permissions (for POST/PUT)
+                # In the new format, body_template is inside prepare_request block
+                has_body_template = "body_template" in prepare_request
+                if has_body_template:
+                    if creator_tier in [
+                            CreatorPermissionTier.RESTRICTED,
+                            CreatorPermissionTier.STANDARD]:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses request body template. "
+                            f"Only ADVANCED tier and above can use body templates. Upgrade required."
+                        )
+
+                # Check custom authentication
+                auth_config = api_config.get("authentication", {})
+                if auth_config:
+                    auth_type = auth_config.get("type", "")
+
+                    if creator_tier == CreatorPermissionTier.RESTRICTED:
+                        # Restricted can only use pre-configured/fixed auth
+                        if auth_type not in ["none", "fixed"]:
+                            permission_errors.append(
+                                f"Permission denied: API '{api_id}' uses '{auth_type}' authentication. "
+                                f"RESTRICTED tier only allows fixed authentication. Upgrade required."
+                            )
+
+                    # Custom auth schemes require ADVANCED
+                    if auth_type in [
+                        "custom",
+                            "dynamic"] and creator_tier != CreatorPermissionTier.ADVANCED and creator_tier != CreatorPermissionTier.ADMIN:
+                        permission_errors.append(
+                            f"Permission denied: API '{api_id}' uses custom authentication scheme. "
+                            f"Only ADVANCED tier and above can use custom auth. Upgrade required."
+                        )
+
+        # Check attachment permissions
+        questions = quiz_data.get("questions", [])
+        for question in questions:
+            if not isinstance(question, dict):
+                continue
+
+            question_id = question.get("id", "unknown")
+            data = question.get("data", {})
+
+            if "attachments" in data:
+                attachments = data["attachments"]
+
+                if not isinstance(attachments, list):
+                    continue
+
+                for idx, attachment in enumerate(attachments):
+                    if not isinstance(attachment, dict):
+                        continue
+
+                    # Only validate image attachments for URL permissions
+                    if attachment.get("type") != "image":
+                        continue
+
+                    attachment_url = attachment.get("url", "")
+                    if not isinstance(attachment_url, str) or not attachment_url:
+                        continue
+
+                    # Check for variable substitution in attachment URLs
+                    has_variables = ImageURLValidator.has_variable_placeholders(attachment_url)
+
+                    if has_variables:
+                        # Extract variable names
+                        var_names = ImageURLValidator.extract_variable_names(attachment_url)
+
+                        # Check permission tier for variable usage
+                        if creator_tier == CreatorPermissionTier.RESTRICTED:
+                            # RESTRICTED tier: No variable substitution allowed
+                            permission_errors.append(
+                                f"Permission denied: Question {question_id} attachment {idx} uses variable substitution in url. "
+                                f"RESTRICTED tier only allows fixed image URLs. Upgrade to STANDARD tier."
+                            )
+                        elif creator_tier == CreatorPermissionTier.STANDARD:
+                            # STANDARD tier: Only SAFE_FOR_API variables allowed
+                            for var_name in var_names:
+                                parts = var_name.split('.')
+                                if parts[0] == 'variables' and len(parts) == 2:
+                                    var_def = variable_definitions.get(parts[1])
+                                    if var_def and not var_def.is_safe_for_api_use():
+                                        permission_errors.append(
+                                            f"Permission denied: Question {question_id} attachment {idx} uses unsafe variable '{parts[1]}' in url. "
+                                            f"STANDARD tier only allows SAFE_FOR_API variables. Upgrade to ADVANCED tier or use a sanitized variable."
+                                        )
+                        # ADVANCED and ADMIN tiers: All variables allowed (still validated for safety)
+
+                    # Check for HTTP vs HTTPS
+                    if not attachment_url.startswith('https://') and not has_variables:
+                        # Only warn for RESTRICTED tier (others can use HTTP if needed)
+                        if creator_tier == CreatorPermissionTier.RESTRICTED:
+                            permission_errors.append(
+                                f"Permission denied: Question {question_id} attachment {idx} uses non-HTTPS image URL. "
+                                f"RESTRICTED tier requires HTTPS. Upgrade tier or use HTTPS."
+                            )
+
+                    # Check URL pattern restrictions for RESTRICTED tier
+                    if creator_tier == CreatorPermissionTier.RESTRICTED and not has_variables:
+                        # RESTRICTED tier: Only whitelisted image services allowed
+                        if not ImageURLValidator.check_url_against_patterns(attachment_url):
+                            permission_errors.append(
+                                f"Permission denied: Question {question_id} attachment {idx} uses image URL from non-whitelisted service. "
+                                f"RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur, "
+                                f"Unsplash, placeholder services, or direct HTTPS URLs to image files). "
+                                f"Upgrade to STANDARD tier or use an approved service."
+                            )
 
         return permission_errors

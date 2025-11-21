@@ -64,5 +64,29 @@ def submit_answer(quiz_id):
     return proxy_request(f'quiz/submit_answer/{quiz_id}', 'POST', request.json)
 
 
+@app.route('/api/uploads/upload', methods=['POST'])
+def upload_file():
+    """Proxy file upload to the core API."""
+    headers = {
+        'Authorization': USER_TOKEN
+    }
+
+    url = f"{API_BASE_URL}/uploads/upload"
+    logger.debug(f"Proxying file upload to: {url}")
+
+    try:
+        # Forward the file from the request
+        files = {}
+        if 'file' in request.files:
+            file = request.files['file']
+            files['file'] = (file.filename, file.stream, file.content_type)
+
+        response = requests.post(url, headers=headers, files=files)
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        logger.error(f"Error proxying file upload: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
