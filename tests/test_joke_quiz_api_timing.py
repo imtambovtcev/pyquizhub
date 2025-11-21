@@ -9,7 +9,7 @@ These tests verify that the API timing configuration works correctly and that
 new jokes are fetched when expected.
 """
 import pytest
-from unittest.mock import patch, Mock, call
+from unittest.mock import patch, Mock, call, AsyncMock
 from starlette.testclient import TestClient
 from pyquizhub.config.settings import get_config_manager
 
@@ -89,7 +89,13 @@ class TestStaticJokeQuiz:
             "punchline": "First joke punchline"
         }
 
-        with patch('pyquizhub.core.engine.api_integration.requests.request', return_value=mock_response) as mock_request:
+        # Mock httpx.AsyncClient context manager
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(return_value=mock_response)
+        
+        with patch('httpx.AsyncClient', return_value=mock_client) as mock_request:
             # Start quiz - API should be called ONCE
             response = api_client.post(
                 "/quiz/start_quiz",
@@ -108,7 +114,7 @@ class TestStaticJokeQuiz:
             assert "First joke punchline" in question_text
 
             # Verify API was called exactly ONCE
-            assert mock_request.call_count == 1
+            assert mock_client.request.call_count == 1
 
             # Rate the joke
             response = api_client.post(
@@ -142,7 +148,7 @@ class TestStaticJokeQuiz:
             assert "First joke punchline" in question_text
 
             # Verify API was still called only ONCE (not called again on loop)
-            assert mock_request.call_count == 1
+            assert mock_client.request.call_count == 1
 
 
 class TestDynamicJokeQuiz:
@@ -216,7 +222,13 @@ class TestDynamicJokeQuiz:
         mock_response.status_code = 200
         mock_response.json.side_effect = joke_responses
 
-        with patch('pyquizhub.core.engine.api_integration.requests.request', return_value=mock_response) as mock_request:
+        # Mock httpx.AsyncClient context manager
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(return_value=mock_response)
+        
+        with patch('httpx.AsyncClient', return_value=mock_client) as mock_request:
             # Start quiz - API should be called for first joke
             response = api_client.post(
                 "/quiz/start_quiz",
@@ -235,7 +247,7 @@ class TestDynamicJokeQuiz:
             assert "First joke punchline" in question_text
 
             # API should have been called once
-            assert mock_request.call_count == 1
+            assert mock_client.request.call_count == 1
 
             # Rate the first joke
             response = api_client.post(
@@ -273,7 +285,7 @@ class TestDynamicJokeQuiz:
             assert "First joke punchline" not in question_text
 
             # API should have been called TWICE now
-            assert mock_request.call_count == 2
+            assert mock_client.request.call_count == 2
 
             # Rate the second joke and loop again
             response = api_client.post(
@@ -310,7 +322,7 @@ class TestDynamicJokeQuiz:
             assert "Second joke" not in question_text
 
             # API should have been called THREE times
-            assert mock_request.call_count == 3
+            assert mock_client.request.call_count == 3
 
     def test_dynamic_api_only_called_for_question_1(
             self,
@@ -329,7 +341,13 @@ class TestDynamicJokeQuiz:
             "punchline": "Test punchline"
         }
 
-        with patch('pyquizhub.core.engine.api_integration.requests.request', return_value=mock_response) as mock_request:
+        # Mock httpx.AsyncClient context manager
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(return_value=mock_response)
+        
+        with patch('httpx.AsyncClient', return_value=mock_client) as mock_request:
             # Start quiz
             response = api_client.post(
                 "/quiz/start_quiz",
@@ -342,7 +360,7 @@ class TestDynamicJokeQuiz:
             quiz_id = data["quiz_id"]
 
             # API called once for Q1
-            assert mock_request.call_count == 1
+            assert mock_client.request.call_count == 1
 
             # Answer Q1
             response = api_client.post(
@@ -359,4 +377,4 @@ class TestDynamicJokeQuiz:
 
             # Now at Q2 - API should still be called only once (not for Q2)
             assert data["question"]["id"] == 2
-            assert mock_request.call_count == 1
+            assert mock_client.request.call_count == 1

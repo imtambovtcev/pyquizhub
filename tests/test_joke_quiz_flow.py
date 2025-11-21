@@ -12,7 +12,7 @@ Note: These tests focus on user-facing output. Admin results API calls are
 skipped because the current API has a validation bug with string variables in scores.
 """
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, AsyncMock
 from starlette.testclient import TestClient
 from pyquizhub.config.settings import get_config_manager
 
@@ -49,9 +49,15 @@ def mock_joke_api():
         "punchline": "Because they make up everything!"
     }
 
-    # Patch requests.request in the api_integration module
-    with patch('pyquizhub.core.engine.api_integration.requests.request', return_value=mock_response) as mock_request:
-        yield mock_request
+    # Mock httpx.AsyncClient context manager
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.request = AsyncMock(return_value=mock_response)
+
+    # Patch httpx.AsyncClient in the api_integration module
+    with patch('httpx.AsyncClient', return_value=mock_client) as mock_request:
+        yield mock_client
 
 
 @pytest.fixture(scope="module")
@@ -126,7 +132,7 @@ class TestJokeQuizFlow:
         assert question_data.get("max") == 5
 
         # Verify API was called
-        assert mock_joke_api.called
+        assert mock_joke_api.request.called
 
         # Rate the joke
         response = api_client.post(

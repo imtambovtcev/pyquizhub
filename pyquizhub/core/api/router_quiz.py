@@ -212,7 +212,7 @@ def continue_session(session_id: str, req: Request):
 
 @router.post("/start_quiz", response_model=StartQuizResponseModel,
              dependencies=[Depends(user_token_dependency)])
-def start_quiz(request: StartQuizRequestModel, req: Request):
+async def start_quiz(request: StartQuizRequestModel, req: Request):
     """
     Start a new quiz session for a user, or continue an existing active session.
 
@@ -319,7 +319,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     engine = QuizEngine(quiz_data, file_storage)
 
     # Get initial state from engine
-    engine_state = engine.start_quiz()
+    engine_state = await engine.start_quiz()
 
     # Generate session ID (API layer responsibility)
     session_id = str(uuid.uuid4())
@@ -353,7 +353,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         logger.info(
             f"First question is final_message, auto-completing quiz {quiz_id}")
         # Process final message (no answer needed)
-        final_state = engine.answer_question(engine_state, None)
+        final_state = await engine.answer_question(engine_state, None)
 
         # Save final results
         storage_manager.add_results(
@@ -390,7 +390,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 @router.post("/submit_answer/{quiz_id}",
              response_model=SubmitAnswerResponseModel,
              dependencies=[Depends(user_token_dependency)])
-def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
+async def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     """
     Submit an answer and get the next question.
 
@@ -461,7 +461,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
 
     # Process answer (pure function, returns new state)
     try:
-        new_engine_state = engine.answer_question(engine_state, answer)
+        new_engine_state = await engine.answer_question(engine_state, answer)
     except ValueError as e:
         logger.error(f"Invalid answer for session {session_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -487,7 +487,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
         logger.info(
             f"Next question is final_message, auto-completing quiz {quiz_id}")
         # Process final message (no answer needed)
-        final_state = engine.answer_question(new_engine_state, None)
+        final_state = await engine.answer_question(new_engine_state, None)
 
         # Save final results
         storage_manager.add_results(

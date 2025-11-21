@@ -17,7 +17,7 @@ Design Principles:
 
 from __future__ import annotations
 
-import requests
+import httpx
 import json
 from typing import Any, BinaryIO
 from datetime import datetime, timedelta
@@ -83,7 +83,7 @@ class APIIntegrationManager:
         self.default_timeout = 10  # seconds
         self.max_retries = 3
 
-    def execute_api_call(
+    async def execute_api_call(
         self,
         api_config: dict[str, Any],
         session_state: dict[str, Any],
@@ -120,11 +120,11 @@ class APIIntegrationManager:
             body = self._prepare_body(api_config, context or {})
 
             # Check if we need to refresh auth token
-            self._refresh_auth_if_needed(api_config, session_state)
+            await self._refresh_auth_if_needed(api_config, session_state)
 
             # Make request
             self.logger.info(f"Making {method} request to {url}")
-            response = self._make_request(
+            response = await self._make_request(
                 method=method,
                 url=url,
                 headers=headers,
@@ -271,7 +271,7 @@ class APIIntegrationManager:
         # Otherwise, use credential from config
         return auth_config.get("credential", "")
 
-    def _refresh_auth_if_needed(
+    async def _refresh_auth_if_needed(
         self,
         api_config: dict[str, Any],
         session_state: dict[str, Any]
@@ -301,9 +301,9 @@ class APIIntegrationManager:
                             needs_refresh = False
 
             if needs_refresh:
-                self._refresh_oauth_token(auth_config, session_state)
+                await self._refresh_oauth_token(auth_config, session_state)
 
-    def _refresh_oauth_token(
+    async def _refresh_oauth_token(
         self,
         auth_config: dict[str, Any],
         session_state: dict[str, Any]
@@ -320,15 +320,16 @@ class APIIntegrationManager:
         client_secret = auth_config.get("client_secret")
         refresh_token = auth_config.get("refresh_token")
 
-        response = requests.post(
-            token_url,
-            data={
-                "grant_type": "refresh_token",
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "refresh_token": refresh_token
-            }
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                token_url,
+                data={
+                    "grant_type": "refresh_token",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "refresh_token": refresh_token
+                }
+            )
 
         if response.status_code == 200:
             token_data = response.json()
@@ -501,14 +502,14 @@ class APIIntegrationManager:
                 result[key] = value
         return result
 
-    def _make_request(
+    async def _make_request(
         self,
         method: str,
         url: str,
         headers: dict[str, str],
         body: dict[str, Any] | FileUploadMarker | None,
         timeout: int
-    ) -> requests.Response:
+    ) -> httpx.Response:
         """
         Make HTTP request with retry logic.
 
@@ -525,69 +526,70 @@ class APIIntegrationManager:
             Response object
 
         Raises:
-            requests.RequestException: If request fails after retries
+            httpx.HTTPError: If request fails after retries
         """
-        for attempt in range(self.max_retries):
-            try:
-                # Check if body is a file upload marker
-                if isinstance(body, FileUploadMarker):
-                    # Use multipart/form-data for file uploads
-                    # TODO: Make field name configurable in quiz JSON via prepare_request.file_field_name
-                    # Currently hardcoded as 'image' which only works with
-                    # Color API
-                    files = {
-                        'image': (
-                            body.filename,
-                            body.file_data,
-                            body.mime_type
-                        )
-                    }
-                    # Remove Content-Type header if present (requests will set
-                    # it with boundary)
-                    headers_copy = {
-                        k: v for k, v in headers.items() if k.lower() != 'content-type'}
-                    response = requests.request(
-                        method=method,
-                        url=url,
-                        headers=headers_copy,
-                        files=files,
-                        timeout=timeout
-                    )
-                else:
-                    # Check if Content-Type is form-encoded
-                    content_type = headers.get('Content-Type', '').lower()
-                    if 'application/x-www-form-urlencoded' in content_type:
-                        # Use form-encoded data
-                        response = requests.request(
+        async with httpx.AsyncClient() as client:
+            for attempt in range(self.max_retries):
+                try:
+                    # Check if body is a file upload marker
+                    if isinstance(body, FileUploadMarker):
+                        # Use multipart/form-data for file uploads
+                        # TODO: Make field name configurable in quiz JSON via prepare_request.file_field_name
+                        # Currently hardcoded as 'image' which only works with
+                        # Color API
+                        files = {
+                            'image': (
+                                body.filename,
+                                body.file_data,
+                                body.mime_type
+                            )
+                        }
+                        # Remove Content-Type header if present (httpx will set
+                        # it with boundary)
+                        headers_copy = {
+                            k: v for k, v in headers.items() if k.lower() != 'content-type'}
+                        response = await client.request(
                             method=method,
                             url=url,
-                            headers=headers,
-                            data=body,
+                            headers=headers_copy,
+                            files=files,
                             timeout=timeout
                         )
                     else:
-                        # Use JSON for regular requests
-                        response = requests.request(
-                            method=method,
-                            url=url,
-                            headers=headers,
-                            json=body,
-                            timeout=timeout
-                        )
-                response.raise_for_status()
-                return response
-            except requests.RequestException as e:
-                if attempt == self.max_retries - 1:
-                    raise
-                self.logger.warning(
-                    f"Request attempt {attempt + 1} failed: {e}, retrying..."
-                )
+                        # Check if Content-Type is form-encoded
+                        content_type = headers.get('Content-Type', '').lower()
+                        if 'application/x-www-form-urlencoded' in content_type:
+                            # Use form-encoded data
+                            response = await client.request(
+                                method=method,
+                                url=url,
+                                headers=headers,
+                                data=body,
+                                timeout=timeout
+                            )
+                        else:
+                            # Use JSON for regular requests
+                            response = await client.request(
+                                method=method,
+                                url=url,
+                                headers=headers,
+                                json=body,
+                                timeout=timeout
+                            )
+                    response.raise_for_status()
+                    return response
+                except httpx.HTTPError as e:
+                    if attempt == self.max_retries - 1:
+                        raise
+                    self.logger.warning(
+                        f"Request attempt {attempt + 1} failed: {e}, retrying..."
+                    )
 
-        raise requests.RequestException("Max retries exceeded")
+            raise httpx.HTTPError("Max retries exceeded")
 
     def _process_response(
         self,
-        response: requests.Response,
+        response: httpx.Response,
         api_config: dict[str, Any],
         session_state: dict[str, Any]
     ) -> Any:
