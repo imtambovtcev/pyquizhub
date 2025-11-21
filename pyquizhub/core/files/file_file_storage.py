@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -210,7 +210,7 @@ class FileBasedFileStorage(FileStorageInterface):
         Returns:
             Number of files deleted
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         count = 0
 
         for metadata_file in self.metadata_dir.glob("*.json"):

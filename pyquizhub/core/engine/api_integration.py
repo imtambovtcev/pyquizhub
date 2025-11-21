@@ -514,7 +514,8 @@ class APIIntegrationManager:
                 # Check if body is a file upload marker
                 if isinstance(body, FileUploadMarker):
                     # Use multipart/form-data for file uploads
-                    # Use 'image' as field name (Color API expects this)
+                    # TODO: Make field name configurable in quiz JSON via prepare_request.file_field_name
+                    # Currently hardcoded as 'image' which only works with Color API
                     files = {
                         'image': (
                             body.filename,

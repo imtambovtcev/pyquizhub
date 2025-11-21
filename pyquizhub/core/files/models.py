@@ -9,7 +9,7 @@ NEVER exposed directly to users or quiz creators.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from dataclasses import dataclass, field
 
@@ -72,7 +72,7 @@ class FileMetadata:
             session_id=session_id,
             user_id=user_id,
             quiz_id=quiz_id,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             expires_at=expires_at,
             description=description,
             tags=tags or []
@@ -111,7 +111,7 @@ class FileMetadata:
             session_id=data.get('session_id'),
             user_id=data['user_id'],
             quiz_id=data.get('quiz_id'),
-            created_at=datetime.fromisoformat(data['created_at']) if data.get('created_at') else datetime.utcnow(),
+            created_at=datetime.fromisoformat(data['created_at']) if data.get('created_at') else datetime.now(timezone.utc),
             expires_at=datetime.fromisoformat(data['expires_at']) if data.get('expires_at') else None,
             description=data.get('description'),
             tags=data.get('tags', [])

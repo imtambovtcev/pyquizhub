@@ -7,7 +7,7 @@ Tests file metadata storage, FileAttachment abstraction, and security.
 from __future__ import annotations
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import tempfile
 import shutil
 from pathlib import Path
@@ -348,7 +348,7 @@ class TestFileStorage:
             platform="url",
             platform_data={"url": "https://example.com/expired.jpg"},
             user_id="user_123",
-            expires_at=datetime.utcnow() - timedelta(days=1)  # Expired yesterday
+            expires_at=datetime.now(timezone.utc) - timedelta(days=1)  # Expired yesterday
         )
         storage_backend.store_file_metadata(expired_metadata)
 
@@ -358,7 +358,7 @@ class TestFileStorage:
             platform="url",
             platform_data={"url": "https://example.com/active.jpg"},
             user_id="user_123",
-            expires_at=datetime.utcnow() + timedelta(days=1)  # Expires tomorrow
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1)  # Expires tomorrow
         )
         storage_backend.store_file_metadata(active_metadata)
 

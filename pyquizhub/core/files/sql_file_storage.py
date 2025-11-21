@@ -13,7 +13,7 @@ from sqlalchemy import (
     select, insert, update, delete, and_, inspect
 )
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .storage import FileStorageInterface
@@ -274,7 +274,7 @@ class SQLFileStorage(FileStorageInterface):
         Returns:
             Number of files deleted
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         query = delete(self.file_metadata_table).where(
             and_(
                 self.file_metadata_table.c.expires_at != None,

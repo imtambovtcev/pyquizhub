@@ -94,8 +94,10 @@ def verify_token(
     Raises:
         HTTPException: If token is missing or invalid
     """
-    # TODO: Implement proper token verification with config system
-    # For now, accept any authorization header and return test user
+    # TODO: SECURITY - Implement proper token verification with config system
+    # This is a security vulnerability: any authorization header is accepted without validation.
+    # Must integrate with the main authentication system before production use.
+    # See router_quiz.py for proper token verification example.
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -104,6 +106,11 @@ def verify_token(
 
     # Return test user for any valid authorization header
     return "test_user", "user"
+
+
+# TODO: Add rate limiting to prevent DoS attacks
+# Consider: per-user limits, per-IP limits, global limits
+# Options: slowapi, fastapi-limiter, or custom implementation
 
 
 @router.post("/upload")
