@@ -121,11 +121,17 @@
 
 <div class="viewcode-block" id="QuizEngine.__init__">
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine.__init__">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize engine and normalize quiz data.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">file_storage</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize engine and normalize quiz data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            quiz_data: Quiz definition</span>
+<span class="sd">            file_storage: Optional file storage backend for API file uploads</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quiz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_quiz</span><span class="p">(</span><span class="n">quiz_data</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span> <span class="o">=</span> <span class="n">APIIntegrationManager</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span> <span class="o">=</span> <span class="n">APIIntegrationManager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_storage</span> <span class="o">=</span> <span class="n">file_storage</span></div>
 
 
 <div class="viewcode-block" id="QuizEngine.load_quiz">
@@ -468,6 +474,13 @@
                                  <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="n">question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;options&quot;</span><span class="p">]]</span>
                 <span class="k">if</span> <span class="n">answer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_options</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid option selected: </span><span class="si">{</span><span class="n">answer</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">question_type</span> <span class="o">==</span> <span class="s2">&quot;file_upload&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">answer</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Answer must be a dictionary with file_id&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;file_id&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">answer</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Answer must contain file_id field&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">answer</span><span class="p">[</span><span class="s2">&quot;file_id&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;file_id must be a string&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Invalid answer for question </span><span class="si">{</span><span class="n">question</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -543,10 +556,15 @@
 
             <span class="c1"># Execute the API call</span>
             <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Add file storage to context if available</span>
+                <span class="n">api_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_storage</span><span class="p">:</span>
+                    <span class="n">api_context</span><span class="p">[</span><span class="s1">&#39;_file_storage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_storage</span>
+
                 <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span><span class="o">.</span><span class="n">execute_api_call</span><span class="p">(</span>
                     <span class="n">api_config</span><span class="p">,</span>
                     <span class="n">state</span><span class="p">,</span>
-                    <span class="n">context</span>
+                    <span class="n">api_context</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API call failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -593,7 +611,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_apply_question_templating</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">question</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Apply templating to question text by replacing placeholders.</span>
+<span class="sd">        Apply templating to question text and attachment URLs by replacing placeholders.</span>
 
 <span class="sd">        Replaces placeholders like:</span>
 <span class="sd">        - {api.joke_api.setup} with actual API response data</span>
@@ -604,7 +622,7 @@
 <span class="sd">            state: Current session state with api_data and scores</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Question dictionary with templated text</span>
+<span class="sd">            Question dictionary with templated text and attachment URLs</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
@@ -618,8 +636,62 @@
         <span class="c1"># Get the question text</span>
         <span class="n">question_text</span> <span class="o">=</span> <span class="n">templated_question</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
 
+        <span class="c1"># Apply templating to text</span>
+        <span class="k">if</span> <span class="n">question_text</span><span class="p">:</span>
+            <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_templating_to_string</span><span class="p">(</span>
+                <span class="n">question_text</span><span class="p">,</span> <span class="n">api_context</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{}),</span> <span class="s2">&quot;text&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Apply templating to attachments array</span>
+        <span class="n">attachments</span> <span class="o">=</span> <span class="n">templated_question</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="n">attachments</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">attachment</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">attachments</span><span class="p">):</span>
+                <span class="c1"># Template the URL field</span>
+                <span class="k">if</span> <span class="s2">&quot;url&quot;</span> <span class="ow">in</span> <span class="n">attachment</span> <span class="ow">and</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">]:</span>
+                    <span class="n">templated_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_templating_to_string</span><span class="p">(</span>
+                        <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">],</span> <span class="n">api_context</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{}),</span> <span class="sa">f</span><span class="s2">&quot;attachment[</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">].url&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;attachments&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_url</span>
+
+                <span class="c1"># Template optional caption field</span>
+                <span class="k">if</span> <span class="s2">&quot;caption&quot;</span> <span class="ow">in</span> <span class="n">attachment</span> <span class="ow">and</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;caption&quot;</span><span class="p">]:</span>
+                    <span class="n">templated_caption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_templating_to_string</span><span class="p">(</span>
+                        <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;caption&quot;</span><span class="p">],</span> <span class="n">api_context</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{}),</span> <span class="sa">f</span><span class="s2">&quot;attachment[</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">].caption&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;attachments&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;caption&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_caption</span>
+
+                <span class="c1"># Template optional alt_text field</span>
+                <span class="k">if</span> <span class="s2">&quot;alt_text&quot;</span> <span class="ow">in</span> <span class="n">attachment</span> <span class="ow">and</span> <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;alt_text&quot;</span><span class="p">]:</span>
+                    <span class="n">templated_alt_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_templating_to_string</span><span class="p">(</span>
+                        <span class="n">attachment</span><span class="p">[</span><span class="s2">&quot;alt_text&quot;</span><span class="p">],</span> <span class="n">api_context</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{}),</span> <span class="sa">f</span><span class="s2">&quot;attachment[</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">].alt_text&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;attachments&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">][</span><span class="s2">&quot;alt_text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_alt_text</span>
+
+        <span class="k">return</span> <span class="n">templated_question</span></div>
+
+
+<div class="viewcode-block" id="QuizEngine._apply_templating_to_string">
+<a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine._apply_templating_to_string">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_templating_to_string</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">field_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">scores</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply templating to a string field by replacing placeholders.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            field_value: The string to template</span>
+<span class="sd">            api_context: API context dictionary</span>
+<span class="sd">            scores: Current variable values</span>
+<span class="sd">            field_name: Name of the field (for logging)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Templated string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">field_value</span>
+
         <span class="c1"># Find and replace {api.api_id.field} placeholders</span>
-        <span class="n">api_placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{api\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">question_text</span><span class="p">)</span>
+        <span class="n">api_placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{api\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">placeholder</span> <span class="ow">in</span> <span class="n">api_placeholders</span><span class="p">:</span>
             <span class="c1"># Split the placeholder into parts (e.g., &quot;joke_api.setup&quot; -&gt;</span>
@@ -637,37 +709,36 @@
 
             <span class="c1"># Replace the placeholder with the actual value</span>
             <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span>
                     <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2"> in </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Could not resolve placeholder </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;Could not resolve placeholder </span><span class="se">{{</span><span class="s2">api.</span><span class="si">{</span><span class="n">placeholder</span><span class="si">}</span><span class="se">}}</span><span class="s2"> in </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Find and replace {variables.var_name} placeholders</span>
-        <span class="n">var_placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{variables\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">question_text</span><span class="p">)</span>
+        <span class="n">var_placeholders</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{variables\.([^}]+)\}&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">var_placeholders</span><span class="p">:</span>
             <span class="c1"># Get variable value from state scores</span>
-            <span class="n">scores</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="p">{})</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
 
             <span class="c1"># Replace the placeholder with the actual value</span>
             <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">templated_question</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span>
                     <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;Replaced </span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2"> in </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Could not resolve variable placeholder </span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;Could not resolve variable placeholder </span><span class="se">{{</span><span class="s2">variables.</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="se">}}</span><span class="s2"> in </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">templated_question</span></div>
+        <span class="k">return</span> <span class="n">result</span></div>
 </div>
 
 </pre></div>

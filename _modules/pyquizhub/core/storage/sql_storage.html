@@ -324,7 +324,7 @@
 <div class="viewcode-block" id="SQLStorageManager.delete_quiz">
 <a class="viewcode-back" href="../../../../core/storage.html#pyquizhub.core.storage.sql_storage.SQLStorageManager.delete_quiz">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">delete_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiz_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete a quiz and all associated tokens and sessions.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete a quiz and all associated tokens, sessions, and results.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleting quiz with ID: </span><span class="si">{</span><span class="n">quiz_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Delete associated tokens first (foreign key constraint)</span>
@@ -338,6 +338,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">sessions_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">quiz_id</span> <span class="o">==</span> <span class="n">quiz_id</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">delete_sessions</span><span class="p">)</span>
+
+        <span class="c1"># Delete associated results</span>
+        <span class="n">delete_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_table</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">quiz_id</span> <span class="o">==</span> <span class="n">quiz_id</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">delete_results</span><span class="p">)</span>
 
         <span class="c1"># Delete the quiz itself</span>
         <span class="n">delete_quiz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">quizzes_table</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
