@@ -95,7 +95,8 @@ class FileBasedFileStorage(FileStorageInterface):
             logger.error(f"Failed to load file metadata {file_id}: {e}")
             return None
 
-    def update_file_metadata(self, file_id: str, updates: dict[str, Any]) -> bool:
+    def update_file_metadata(
+            self, file_id: str, updates: dict[str, Any]) -> bool:
         """
         Update file metadata.
 
@@ -170,12 +171,16 @@ class FileBasedFileStorage(FileStorageInterface):
                     files.append(FileMetadata.from_dict(data))
 
             except Exception as e:
-                logger.warning(f"Failed to load metadata file {metadata_file}: {e}")
+                logger.warning(
+                    f"Failed to load metadata file {metadata_file}: {e}")
                 continue
 
         return files
 
-    def get_files_for_user(self, user_id: str, quiz_id: str | None = None) -> list[FileMetadata]:
+    def get_files_for_user(
+            self,
+            user_id: str,
+            quiz_id: str | None = None) -> list[FileMetadata]:
         """
         Get all files uploaded by a user.
 
@@ -198,7 +203,8 @@ class FileBasedFileStorage(FileStorageInterface):
                         files.append(FileMetadata.from_dict(data))
 
             except Exception as e:
-                logger.warning(f"Failed to load metadata file {metadata_file}: {e}")
+                logger.warning(
+                    f"Failed to load metadata file {metadata_file}: {e}")
                 continue
 
         return files
@@ -226,7 +232,8 @@ class FileBasedFileStorage(FileStorageInterface):
                         count += 1
 
             except Exception as e:
-                logger.warning(f"Failed to check expiration for {metadata_file}: {e}")
+                logger.warning(
+                    f"Failed to check expiration for {metadata_file}: {e}")
                 continue
 
         if count > 0:
@@ -261,7 +268,8 @@ class FileBasedFileStorage(FileStorageInterface):
                     total_bytes += size
 
             except Exception as e:
-                logger.warning(f"Failed to load metadata file {metadata_file}: {e}")
+                logger.warning(
+                    f"Failed to load metadata file {metadata_file}: {e}")
                 continue
 
         return {

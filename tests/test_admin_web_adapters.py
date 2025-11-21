@@ -3,6 +3,7 @@ Tests for admin web adapter status functionality.
 
 This module tests the /api/adapters/status endpoint in the admin web interface.
 """
+from admin_web.app import app as admin_app
 import pytest
 import json
 from unittest.mock import patch, MagicMock
@@ -16,8 +17,6 @@ os.environ['ADMIN_PORT'] = '8081'
 
 # Add admin_web to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'admin_web'))
-
-from admin_web.app import app as admin_app
 
 
 @pytest.fixture
@@ -82,7 +81,8 @@ def test_adapter_status_web_stopped(mock_get, admin_client):
     assert data['adapters']['web']['url'] is None
 
 
-@patch.dict(os.environ, {'TELEGRAM_BOT_TOKEN': '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'})
+@patch.dict(os.environ,
+            {'TELEGRAM_BOT_TOKEN': '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'})
 def test_adapter_status_telegram_configured(admin_client):
     """Test telegram adapter status when token is configured."""
     response = admin_client.get('/api/adapters/status')

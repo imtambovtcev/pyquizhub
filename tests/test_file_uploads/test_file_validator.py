@@ -27,7 +27,8 @@ def mock_config():
 
     # Image settings
     config.file_storage.allowed_types.images.enabled = True
-    config.file_storage.allowed_types.images.formats = ["jpg", "jpeg", "png", "gif", "webp", "svg"]
+    config.file_storage.allowed_types.images.formats = [
+        "jpg", "jpeg", "png", "gif", "webp", "svg"]
     config.file_storage.allowed_types.images.max_size_mb = 10
     config.file_storage.allowed_types.images.allow_svg = False
 
@@ -75,8 +76,10 @@ def test_validate_filename_safe(mock_config):
 
     # Invalid filenames
     assert not validator._is_filename_safe("../etc/passwd")  # Path traversal
-    assert not validator._is_filename_safe("test/../file.jpg")  # Path traversal
-    assert not validator._is_filename_safe("file/test.jpg")  # Directory separator
+    assert not validator._is_filename_safe(
+        "test/../file.jpg")  # Path traversal
+    assert not validator._is_filename_safe(
+        "file/test.jpg")  # Directory separator
     assert not validator._is_filename_safe("test\x00.jpg")  # Null byte
     assert not validator._is_filename_safe("a" * 300)  # Too long
 
@@ -99,12 +102,16 @@ def test_get_file_category(mock_config):
     assert validator._get_file_category("clip.WEBM") == FileTypeCategory.VIDEO
 
     # Documents
-    assert validator._get_file_category("document.pdf") == FileTypeCategory.DOCUMENTS
-    assert validator._get_file_category("readme.txt") == FileTypeCategory.DOCUMENTS
+    assert validator._get_file_category(
+        "document.pdf") == FileTypeCategory.DOCUMENTS
+    assert validator._get_file_category(
+        "readme.txt") == FileTypeCategory.DOCUMENTS
 
     # Archives
-    assert validator._get_file_category("archive.zip") == FileTypeCategory.ARCHIVES
-    assert validator._get_file_category("backup.tar.gz") == FileTypeCategory.ARCHIVES
+    assert validator._get_file_category(
+        "archive.zip") == FileTypeCategory.ARCHIVES
+    assert validator._get_file_category(
+        "backup.tar.gz") == FileTypeCategory.ARCHIVES
 
     # Unknown
     assert validator._get_file_category("unknown.xyz") is None
@@ -117,7 +124,8 @@ def test_validate_file_size(mock_config):
     # Small image - should pass
     small_data = b"x" * 1024  # 1 KB
     file_data = io.BytesIO(small_data)
-    is_valid, error, metadata = validator.validate_upload(file_data, "test.jpg", "admin")
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "test.jpg", "admin")
 
     assert is_valid
     assert error is None
@@ -126,7 +134,8 @@ def test_validate_file_size(mock_config):
     # Large image - should fail (max 10 MB for images)
     large_data = b"x" * (11 * 1024 * 1024)  # 11 MB
     file_data = io.BytesIO(large_data)
-    is_valid, error, metadata = validator.validate_upload(file_data, "large.jpg", "admin")
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "large.jpg", "admin")
 
     assert not is_valid
     assert "too large" in error.lower()
@@ -139,7 +148,8 @@ def test_validate_svg_security(mock_config):
     # SVG disabled by default
     svg_data = b'<svg></svg>'
     file_data = io.BytesIO(svg_data)
-    is_valid, error, metadata = validator.validate_upload(file_data, "image.svg", "admin")
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "image.svg", "admin")
 
     assert not is_valid
     assert "svg" in error.lower()
@@ -147,7 +157,8 @@ def test_validate_svg_security(mock_config):
 
     # Enable SVG
     mock_config.file_storage.allowed_types.images.allow_svg = True
-    is_valid, error, metadata = validator.validate_upload(file_data, "image.svg", "admin")
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "image.svg", "admin")
 
     assert is_valid or "mime" in error.lower()  # May fail MIME check
 
@@ -161,7 +172,8 @@ def test_validate_category_disabled(mock_config):
 
     jpg_data = b"\xFF\xD8\xFF"  # JPEG header
     file_data = io.BytesIO(jpg_data)
-    is_valid, error, metadata = validator.validate_upload(file_data, "test.jpg", "admin")
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "test.jpg", "admin")
 
     assert not is_valid
     assert "not allowed" in error.lower() or "disabled" in error.lower()
@@ -174,7 +186,8 @@ def test_validate_extension_not_in_formats(mock_config):
     # BMP not in allowed formats
     bmp_data = b"BM"  # BMP header
     file_data = io.BytesIO(bmp_data)
-    is_valid, error, metadata = validator.validate_upload(file_data, "image.bmp", "admin")
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "image.bmp", "admin")
 
     assert not is_valid
     assert "not allowed" in error.lower()
@@ -220,7 +233,8 @@ def test_validate_path_traversal_in_filename(mock_config):
     for name in malicious_names:
         jpg_data = b"\xFF\xD8\xFF"
         file_data = io.BytesIO(jpg_data)
-        is_valid, error, metadata = validator.validate_upload(file_data, name, "admin")
+        is_valid, error, metadata = validator.validate_upload(
+            file_data, name, "admin")
 
         assert not is_valid
         assert "filename" in error.lower() or "invalid" in error.lower()

@@ -118,7 +118,8 @@ class TestRegexValidator:
 
         # Case-insensitive
         import re
-        matches_insensitive = RegexValidator.safe_search(pattern, text, flags=re.IGNORECASE)
+        matches_insensitive = RegexValidator.safe_search(
+            pattern, text, flags=re.IGNORECASE)
         assert len(matches_insensitive) == 4
 
     def test_safe_search_max_matches(self):

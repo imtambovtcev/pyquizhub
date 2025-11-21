@@ -11,8 +11,10 @@ from pathlib import Path
 TEST_URLS = {
     "images": {
         "jpeg": "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.jpg",
-        "png": "https://www.w3.org/Graphics/PNG/alphatest.png",  # REPLACED: was sample-videos.com (timeout)
-        "gif": "https://www.w3.org/2008/site/images/logo-w3c-mobile-lg.gif",  # REPLACED: was nurbcup.gif (404)
+        # REPLACED: was sample-videos.com (timeout)
+        "png": "https://www.w3.org/Graphics/PNG/alphatest.png",
+        # REPLACED: was nurbcup.gif (404)
+        "gif": "https://www.w3.org/2008/site/images/logo-w3c-mobile-lg.gif",
         "webp": "https://www.gstatic.com/webp/gallery/1.webp",
         "svg": "https://www.w3.org/Graphics/SVG/Test/20110816/svg/struct-use-14-f.svg",
         "tiff": "https://download.osgeo.org/geotiff/samples/spot/chicago/UTM2GTIF.TIF",
@@ -23,8 +25,10 @@ TEST_URLS = {
         "wav": "https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/Samples/SoundCardAttrition/stereofl.wav"
     },
     "video": {
-        "mp4": "https://www.w3schools.com/html/mov_bbb.mp4",  # REPLACED: was sample-videos.com (timeout)
-        "ogg": "https://www.w3schools.com/html/mov_bbb.ogg",  # REPLACED: was wikipedia (403)
+        # REPLACED: was sample-videos.com (timeout)
+        "mp4": "https://www.w3schools.com/html/mov_bbb.mp4",
+        # REPLACED: was wikipedia (403)
+        "ogg": "https://www.w3schools.com/html/mov_bbb.ogg",
         "webm": "https://dl11.webmfiles.org/big-buck-bunny_trailer-.webm"
     },
     "documents": {
@@ -35,7 +39,8 @@ TEST_URLS = {
     "binary": {
         "tar_gz": "https://github.com/git/git/archive/refs/tags/v2.43.0.tar.gz",
         "csv": "https://people.sc.fsu.edu/~jburkardt/data/csv/addresses.csv",
-        "xml": "https://www.w3schools.com/xml/note.xml",  # REPLACED: was xmlconf-20080827.xml (300)
+        # REPLACED: was xmlconf-20080827.xml (300)
+        "xml": "https://www.w3schools.com/xml/note.xml",
         "zip": "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip"
     }
 }
@@ -43,10 +48,10 @@ TEST_URLS = {
 
 def verify_url(url, format_name):
     """Verify a URL is accessible and extract metadata"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing: {format_name.upper()}")
     print(f"URL: {url}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     result = {
         "url": url,
@@ -66,7 +71,8 @@ def verify_url(url, format_name):
 
         if response.status_code == 200:
             result["accessible"] = True
-            result["content_type"] = response.headers.get('Content-Type', 'unknown')
+            result["content_type"] = response.headers.get(
+                'Content-Type', 'unknown')
 
             # Try to get content length
             content_length = response.headers.get('Content-Length')
@@ -80,12 +86,17 @@ def verify_url(url, format_name):
                 elif size_bytes < 1024 * 1024:
                     result["size_human"] = f"{size_bytes / 1024:.1f} KB"
                 else:
-                    result["size_human"] = f"{size_bytes / (1024 * 1024):.1f} MB"
+                    result["size_human"] = f"{size_bytes /
+                                              (1024 *
+                                               1024):.1f} MB"
 
                 print(f"✅ ACCESSIBLE")
                 print(f"   Status: {result['status_code']}")
                 print(f"   Content-Type: {result['content_type']}")
-                print(f"   Size: {result['size_human']} ({size_bytes:,} bytes)")
+                print(
+                    f"   Size: {
+                        result['size_human']} ({
+                        size_bytes:,} bytes)")
             else:
                 # Try GET request to get actual size
                 print("   ⚠️  No Content-Length header, trying GET request...")
@@ -93,23 +104,32 @@ def verify_url(url, format_name):
                 if response.status_code == 200:
                     size_bytes = len(response.content)
                     result["content_length"] = size_bytes
-                    result["content_type"] = response.headers.get('Content-Type', 'unknown')
+                    result["content_type"] = response.headers.get(
+                        'Content-Type', 'unknown')
 
                     if size_bytes < 1024:
                         result["size_human"] = f"{size_bytes} B"
                     elif size_bytes < 1024 * 1024:
                         result["size_human"] = f"{size_bytes / 1024:.1f} KB"
                     else:
-                        result["size_human"] = f"{size_bytes / (1024 * 1024):.1f} MB"
+                        result["size_human"] = f"{size_bytes /
+                                                  (1024 *
+                                                   1024):.1f} MB"
 
                     print(f"✅ ACCESSIBLE (via GET)")
                     print(f"   Status: {result['status_code']}")
                     print(f"   Content-Type: {result['content_type']}")
-                    print(f"   Size: {result['size_human']} ({size_bytes:,} bytes)")
+                    print(
+                        f"   Size: {
+                            result['size_human']} ({
+                            size_bytes:,} bytes)")
                 else:
                     result["accessible"] = False
-                    result["error"] = f"GET request failed: {response.status_code}"
-                    print(f"❌ FAILED: GET request returned {response.status_code}")
+                    result["error"] = f"GET request failed: {
+                        response.status_code}"
+                    print(
+                        f"❌ FAILED: GET request returned {
+                            response.status_code}")
         else:
             result["error"] = f"HTTP {response.status_code}"
             print(f"❌ FAILED: HTTP {response.status_code}")
@@ -141,9 +161,9 @@ def main():
 
     # Test all URLs
     for category, urls in TEST_URLS.items():
-        print(f"\n\n{'#'*60}")
+        print(f"\n\n{'#' * 60}")
         print(f"# Category: {category.upper()}")
-        print(f"{'#'*60}")
+        print(f"{'#' * 60}")
 
         category_results = []
 
@@ -170,7 +190,9 @@ def main():
     print(f"Total URLs tested: {all_results['total_tested']}")
     print(f"✅ Accessible: {all_results['accessible']}")
     print(f"❌ Failed: {all_results['failed']}")
-    print(f"Success rate: {all_results['accessible'] / all_results['total_tested'] * 100:.1f}%")
+    print(
+        f"Success rate: {
+            all_results['accessible'] / all_results['total_tested'] * 100:.1f}%")
 
     # Save results to JSON
     output_file = Path("file_url_verification_results.json")
@@ -187,7 +209,8 @@ def main():
     for category, results in all_results["results_by_category"].items():
         accessible_urls = [r for r in results if r["accessible"]]
         if accessible_urls:
-            print(f"\n{category.upper()} ({len(accessible_urls)}/{len(results)} working):")
+            print(
+                f"\n{category.upper()} ({len(accessible_urls)}/{len(results)} working):")
             for r in accessible_urls:
                 print(f"  ✅ {r['format']}: {r['size_human']} - {r['url']}")
 

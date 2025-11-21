@@ -53,7 +53,12 @@ def discord_bot(mock_discord_token, mock_api_base_url, mock_user_token):
 class TestDiscordBotInitialization:
     """Test Discord bot initialization."""
 
-    def test_bot_initialization(self, discord_bot, mock_discord_token, mock_api_base_url, mock_user_token):
+    def test_bot_initialization(
+            self,
+            discord_bot,
+            mock_discord_token,
+            mock_api_base_url,
+            mock_user_token):
         """Test bot initializes with correct configuration."""
         assert discord_bot.token == mock_discord_token
         assert discord_bot.api_base_url == mock_api_base_url
@@ -474,7 +479,8 @@ class TestButtonView:
     def test_button_view_max_options(self, discord_bot):
         """Test button view can handle many options."""
         # Discord limit is 25 components per view
-        options = [{"label": f"Option {i}", "value": f"opt{i}"} for i in range(30)]
+        options = [{"label": f"Option {i}", "value": f"opt{i}"}
+                   for i in range(30)]
 
         # Verify we have the correct number of options
         assert len(options) == 30
@@ -572,7 +578,8 @@ class TestEdgeCases:
         # Verify completion message was sent
         mock_channel.send.assert_called_once()
         call_args = mock_channel.send.call_args
-        assert "Quiz completed" in call_args[0][0] or "completed" in call_args[0][0].lower()
+        assert "Quiz completed" in call_args[0][0] or "completed" in call_args[0][0].lower(
+        )
 
         # Verify session was deleted
         assert user_id not in discord_bot.user_sessions

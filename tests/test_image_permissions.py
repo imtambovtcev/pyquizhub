@@ -161,8 +161,7 @@ class TestRestrictedTierImagePermissions:
 
         # Should have permission error about variable substitution
         assert any(
-            "variable substitution" in err for err in result["permission_errors"]
-        )
+            "variable substitution" in err for err in result["permission_errors"])
 
 
 class TestStandardTierImagePermissions:
@@ -465,8 +464,7 @@ class TestImageURLValidationErrors:
         )
 
         assert any(
-            "attachment" in err and "invalid url" in err for err in result["errors"]
-        )
+            "attachment" in err and "invalid url" in err for err in result["errors"])
 
     def test_image_url_must_be_string(self):
         """Test image_url must be a string."""

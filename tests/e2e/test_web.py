@@ -121,7 +121,8 @@ class TestWebAdapterFast:
         )
 
         # Verify question text
-        expect(page.locator("#question-text")).to_contain_text("What animal is shown")
+        expect(page.locator("#question-text")
+               ).to_contain_text("What animal is shown")
 
         # Verify options
         expect(page.locator("label.choice")).to_have_count(3)
@@ -148,7 +149,8 @@ class TestWebAdapterFast:
         if submit_btn.is_visible():
             submit_btn.click()
 
-        # Verify we reached end (this will depend on your final_message implementation)
+        # Verify we reached end (this will depend on your final_message
+        # implementation)
         page.wait_for_timeout(500)
 
     def test_no_image_when_attachments_empty(

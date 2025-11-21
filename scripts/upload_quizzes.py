@@ -29,7 +29,8 @@ def clean_database():
         )
 
         if response.status_code != 200:
-            print(f"⚠️  Failed to get quizzes: {response.status_code} - {response.text}\n")
+            print(
+                f"⚠️  Failed to get quizzes: {response.status_code} - {response.text}\n")
             return False
 
         quizzes = response.json().get("quizzes", {})
@@ -55,7 +56,9 @@ def clean_database():
             if delete_response.status_code == 200:
                 deleted += 1
             else:
-                print(f"   ⚠️  Failed to delete quiz {quiz_id}: {delete_response.status_code}")
+                print(
+                    f"   ⚠️  Failed to delete quiz {quiz_id}: {
+                        delete_response.status_code}")
 
         print(f"✅ Database cleaned: deleted {deleted}/{quiz_count} quizzes\n")
         return deleted == quiz_count

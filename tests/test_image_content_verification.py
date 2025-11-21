@@ -39,14 +39,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png',
-            'Content-Length': '1048576'  # 1 MB
-        }
+                'Content-Type': 'image/png',
+                'Content-Length': '1048576'  # 1 MB
+            }
         )
         mock_head.return_value = mock_response
 
         # Should not raise exception
-        result = ImageURLValidator.verify_image_content('https://example.com/image.png')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/image.png')
         assert result is True
 
         # Verify HEAD request was made with correct parameters
@@ -62,13 +63,14 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/jpeg',
-            'Content-Length': '524288'  # 512 KB
-        }
+                'Content-Type': 'image/jpeg',
+                'Content-Length': '524288'  # 512 KB
+            }
         )
         mock_head.return_value = mock_response
 
-        result = ImageURLValidator.verify_image_content('https://example.com/photo.jpg')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/photo.jpg')
         assert result is True
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
@@ -77,13 +79,14 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/webp',
-            'Content-Length': '409600'  # 400 KB
-        }
+                'Content-Type': 'image/webp',
+                'Content-Length': '409600'  # 400 KB
+            }
         )
         mock_head.return_value = mock_response
 
-        result = ImageURLValidator.verify_image_content('https://example.com/image.webp')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/image.webp')
         assert result is True
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
@@ -92,13 +95,14 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/svg+xml',
-            'Content-Length': '2048'
-        }
+                'Content-Type': 'image/svg+xml',
+                'Content-Length': '2048'
+            }
         )
         mock_head.return_value = mock_response
 
-        result = ImageURLValidator.verify_image_content('https://example.com/icon.svg')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/icon.svg')
         assert result is True
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
@@ -107,14 +111,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png; charset=utf-8',
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'image/png; charset=utf-8',
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 
         # Should parse out charset and accept image/png
-        result = ImageURLValidator.verify_image_content('https://example.com/image.png')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/image.png')
         assert result is True
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
@@ -123,14 +128,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'text/html',
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'text/html',
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 
         with pytest.raises(ValueError, match="does not point to image"):
-            ImageURLValidator.verify_image_content('https://example.com/page.html')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/page.html')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_reject_pdf_content_type(self, mock_head):
@@ -138,14 +144,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'application/pdf',
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'application/pdf',
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 
         with pytest.raises(ValueError, match="does not point to image"):
-            ImageURLValidator.verify_image_content('https://example.com/document.pdf')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/document.pdf')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_reject_json_content_type(self, mock_head):
@@ -153,14 +160,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'application/json',
-            'Content-Length': '512'
-        }
+                'Content-Type': 'application/json',
+                'Content-Length': '512'
+            }
         )
         mock_head.return_value = mock_response
 
         with pytest.raises(ValueError, match="does not point to image"):
-            ImageURLValidator.verify_image_content('https://example.com/data.json')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/data.json')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_reject_image_too_large(self, mock_head):
@@ -168,14 +176,16 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png',
-            'Content-Length': str(15 * 1024 * 1024)  # 15 MB (default max is 10 MB)
-        }
+                'Content-Type': 'image/png',
+                # 15 MB (default max is 10 MB)
+                'Content-Length': str(15 * 1024 * 1024)
+            }
         )
         mock_head.return_value = mock_response
 
         with pytest.raises(ValueError, match="Image too large"):
-            ImageURLValidator.verify_image_content('https://example.com/huge.png')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/huge.png')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_custom_size_limit(self, mock_head):
@@ -183,9 +193,9 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/jpeg',
-            'Content-Length': str(3 * 1024 * 1024)  # 3 MB
-        }
+                'Content-Type': 'image/jpeg',
+                'Content-Length': str(3 * 1024 * 1024)  # 3 MB
+            }
         )
         mock_head.return_value = mock_response
 
@@ -202,9 +212,9 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/jpeg',
-            'Content-Length': str(3 * 1024 * 1024)  # 3 MB
-        }
+                'Content-Type': 'image/jpeg',
+                'Content-Length': str(3 * 1024 * 1024)  # 3 MB
+            }
         )
         mock_head.return_value = mock_response
 
@@ -221,14 +231,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png'
-            # No Content-Length header
-        }
+                'Content-Type': 'image/png'
+                # No Content-Length header
+            }
         )
         mock_head.return_value = mock_response
 
         # Should still pass (just can't check size)
-        result = ImageURLValidator.verify_image_content('https://example.com/image.png')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/image.png')
         assert result is True
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
@@ -237,14 +248,15 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png',
-            'Content-Length': 'invalid-number'
-        }
+                'Content-Type': 'image/png',
+                'Content-Length': 'invalid-number'
+            }
         )
         mock_head.return_value = mock_response
 
         # Should still pass (logs warning but doesn't fail)
-        result = ImageURLValidator.verify_image_content('https://example.com/image.png')
+        result = ImageURLValidator.verify_image_content(
+            'https://example.com/image.png')
         assert result is True
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
@@ -258,7 +270,8 @@ class TestImageContentVerification:
         mock_head.return_value = mock_response
 
         with pytest.raises(ValueError, match="returned error status: 404"):
-            ImageURLValidator.verify_image_content('https://example.com/missing.png')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/missing.png')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_500_error_status(self, mock_head):
@@ -271,7 +284,8 @@ class TestImageContentVerification:
         mock_head.return_value = mock_response
 
         with pytest.raises(ValueError, match="returned error status: 500"):
-            ImageURLValidator.verify_image_content('https://example.com/error.png')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/error.png')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_timeout_exception(self, mock_head):
@@ -280,7 +294,8 @@ class TestImageContentVerification:
         mock_head.side_effect = requests.exceptions.Timeout()
 
         with pytest.raises(ValueError, match="timed out after 5s"):
-            ImageURLValidator.verify_image_content('https://example.com/slow.png')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/slow.png')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_custom_timeout(self, mock_head):
@@ -301,16 +316,19 @@ class TestImageContentVerification:
         mock_head.side_effect = requests.exceptions.ConnectionError()
 
         with pytest.raises(ValueError, match="Failed to connect"):
-            ImageURLValidator.verify_image_content('https://unreachable.example.com/image.png')
+            ImageURLValidator.verify_image_content(
+                'https://unreachable.example.com/image.png')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_request_exception(self, mock_head):
         """Test handling of generic request exception."""
         import requests
-        mock_head.side_effect = requests.exceptions.RequestException("Network error")
+        mock_head.side_effect = requests.exceptions.RequestException(
+            "Network error")
 
         with pytest.raises(ValueError, match="Failed to verify image URL"):
-            ImageURLValidator.verify_image_content('https://example.com/image.png')
+            ImageURLValidator.verify_image_content(
+                'https://example.com/image.png')
 
     @patch('pyquizhub.core.engine.url_validator.requests.head')
     def test_redirects_followed(self, mock_head):
@@ -318,9 +336,9 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/jpeg',
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'image/jpeg',
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 
@@ -336,9 +354,9 @@ class TestImageContentVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png',
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'image/png',
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 
@@ -360,9 +378,9 @@ class TestValidateImageURLWithVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'image/png',
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'image/png',
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 
@@ -393,9 +411,9 @@ class TestValidateImageURLWithVerification:
         mock_response = create_mock_response(
             status_code=200,
             headers={
-            'Content-Type': 'text/html',  # Wrong type
-            'Content-Length': '1024'
-        }
+                'Content-Type': 'text/html',  # Wrong type
+                'Content-Length': '1024'
+            }
         )
         mock_head.return_value = mock_response
 

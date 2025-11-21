@@ -147,7 +147,8 @@ class SQLFileStorage(FileStorageInterface):
             tags=row['tags'] or []
         )
 
-    def update_file_metadata(self, file_id: str, updates: dict[str, Any]) -> bool:
+    def update_file_metadata(
+            self, file_id: str, updates: dict[str, Any]) -> bool:
         """
         Update file metadata.
 
@@ -227,7 +228,10 @@ class SQLFileStorage(FileStorageInterface):
 
         return files
 
-    def get_files_for_user(self, user_id: str, quiz_id: str | None = None) -> list[FileMetadata]:
+    def get_files_for_user(
+            self,
+            user_id: str,
+            quiz_id: str | None = None) -> list[FileMetadata]:
         """
         Get all files uploaded by a user.
 
@@ -277,7 +281,7 @@ class SQLFileStorage(FileStorageInterface):
         now = datetime.now(timezone.utc)
         query = delete(self.file_metadata_table).where(
             and_(
-                self.file_metadata_table.c.expires_at != None,
+                self.file_metadata_table.c.expires_at is not None,
                 self.file_metadata_table.c.expires_at < now
             )
         )
@@ -304,14 +308,15 @@ class SQLFileStorage(FileStorageInterface):
         # Build base query
         if user_id:
             query = select(
-                func.count(self.file_metadata_table.c.file_id).label('file_count'),
-                func.sum(self.file_metadata_table.c.size_bytes).label('total_bytes')
-            ).where(self.file_metadata_table.c.user_id == user_id)
+                func.count(
+                    self.file_metadata_table.c.file_id).label('file_count'), func.sum(
+                    self.file_metadata_table.c.size_bytes).label('total_bytes')).where(
+                self.file_metadata_table.c.user_id == user_id)
         else:
             query = select(
-                func.count(self.file_metadata_table.c.file_id).label('file_count'),
-                func.sum(self.file_metadata_table.c.size_bytes).label('total_bytes')
-            )
+                func.count(
+                    self.file_metadata_table.c.file_id).label('file_count'), func.sum(
+                    self.file_metadata_table.c.size_bytes).label('total_bytes'))
 
         result = self._execute(query).fetchone()
 

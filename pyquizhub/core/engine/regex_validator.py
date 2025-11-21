@@ -64,15 +64,15 @@ class RegexValidator:
 
         if len(pattern) > cls.MAX_PATTERN_LENGTH:
             raise RegexValidationError(
-                f"Pattern too long: {len(pattern)} chars (max {cls.MAX_PATTERN_LENGTH})"
-            )
+                f"Pattern too long: {
+                    len(pattern)} chars (max {
+                    cls.MAX_PATTERN_LENGTH})")
 
         # Check for dangerous patterns
         for dangerous in cls.REDOS_PATTERNS:
             if re.search(dangerous, pattern):
                 raise RegexValidationError(
-                    f"Pattern contains potentially dangerous construct: {dangerous}"
-                )
+                    f"Pattern contains potentially dangerous construct: {dangerous}")
 
         # Try to compile the pattern
         try:
@@ -134,7 +134,8 @@ class RegexValidator:
         except (AttributeError, ValueError):
             # Windows or other systems without signal.SIGALRM
             timeout_set = False
-            logger.warning("Regex timeout protection not available on this system")
+            logger.warning(
+                "Regex timeout protection not available on this system")
 
         try:
             matches = []
@@ -199,7 +200,8 @@ class RegexValidator:
             timeout_set = True
         except (AttributeError, ValueError):
             timeout_set = False
-            logger.warning("Regex timeout protection not available on this system")
+            logger.warning(
+                "Regex timeout protection not available on this system")
 
         try:
             match = compiled.match(text)

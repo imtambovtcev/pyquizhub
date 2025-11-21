@@ -52,7 +52,8 @@ class FileStorageInterface(ABC):
         pass
 
     @abstractmethod
-    def update_file_metadata(self, file_id: str, updates: dict[str, Any]) -> bool:
+    def update_file_metadata(
+            self, file_id: str, updates: dict[str, Any]) -> bool:
         """
         Update file metadata.
 
@@ -92,7 +93,10 @@ class FileStorageInterface(ABC):
         pass
 
     @abstractmethod
-    def get_files_for_user(self, user_id: str, quiz_id: str | None = None) -> list[FileMetadata]:
+    def get_files_for_user(
+            self,
+            user_id: str,
+            quiz_id: str | None = None) -> list[FileMetadata]:
         """
         Get all files uploaded by a user.
 

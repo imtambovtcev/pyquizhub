@@ -326,8 +326,7 @@ class TestAPIBasedImageURL:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "message": "https://images.dog.ceo/breeds/hound-afghan/n02088094_1003.jpg",
-            "status": "success"
-        }
+            "status": "success"}
 
         with patch('requests.request', return_value=mock_response) as mock_request:
             engine = QuizEngine(quiz_data)

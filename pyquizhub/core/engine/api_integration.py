@@ -46,7 +46,11 @@ class RequestTiming(str, Enum):
 class FileUploadMarker:
     """Marker class for file uploads in API requests."""
 
-    def __init__(self, file_data: BinaryIO, filename: str, mime_type: str | None = None):
+    def __init__(
+            self,
+            file_data: BinaryIO,
+            filename: str,
+            mime_type: str | None = None):
         """
         Initialize file upload marker.
 
@@ -201,7 +205,8 @@ class APIIntegrationManager:
         Returns:
             Headers dictionary
         """
-        # Check for headers in both old format (api_config.headers) and new format (prepare_request.headers)
+        # Check for headers in both old format (api_config.headers) and new
+        # format (prepare_request.headers)
         headers = {}
         if "prepare_request" in api_config and "headers" in api_config["prepare_request"]:
             headers = api_config["prepare_request"]["headers"].copy()
@@ -374,7 +379,10 @@ class APIIntegrationManager:
 
         return None
 
-    def _render_template(self, template: str, context: dict[str, Any]) -> str | FileUploadMarker:
+    def _render_template(self,
+                         template: str,
+                         context: dict[str,
+                                       Any]) -> str | FileUploadMarker:
         """
         Render a string template with context variables.
 
@@ -412,7 +420,8 @@ class APIIntegrationManager:
                             import asyncio
 
                             # Download file from storage
-                            self.logger.info(f"Downloading file {file_id} for API request")
+                            self.logger.info(
+                                f"Downloading file {file_id} for API request")
 
                             # Run async retrieve in sync context
                             loop = asyncio.new_event_loop()
@@ -424,23 +433,32 @@ class APIIntegrationManager:
                             finally:
                                 loop.close()
 
-                            # Return FileUploadMarker to signal multipart/form-data
+                            # Return FileUploadMarker to signal
+                            # multipart/form-data
                             return FileUploadMarker(
                                 file_data=file_data,
                                 filename=metadata.filename,
                                 mime_type=metadata.mime_type
                             )
                         except Exception as e:
-                            self.logger.error(f"Failed to download file {file_id}: {e}")
+                            self.logger.error(
+                                f"Failed to download file {file_id}: {e}")
                             # Fall back to file_id string
-                            result = result.replace(f"{{file_upload:{match}}}", str(file_id))
+                            result = result.replace(
+                                f"{{file_upload:{match}}}", str(file_id))
                     else:
-                        self.logger.warning(f"File storage not available in context. Using file_id: {file_id}")
-                        result = result.replace(f"{{file_upload:{match}}}", str(file_id))
+                        self.logger.warning(
+                            f"File storage not available in context. Using file_id: {file_id}")
+                        result = result.replace(
+                            f"{{file_upload:{match}}}", str(file_id))
                 else:
-                    self.logger.warning(f"Could not resolve file upload placeholder {{file_upload:{match}}}")
+                    self.logger.warning(
+                        f"Could not resolve file upload placeholder {
+                            file_upload:{match}} ")
             else:
-                self.logger.warning(f"Invalid file upload placeholder format: {{file_upload:{match}}} - expected 'variables.var_name'")
+                self.logger.warning(
+                    f"Invalid file upload placeholder format: {
+                        file_upload:{match}}  - expected 'variables.var_name'")
 
         # Handle regular variable placeholders
         for key, value in context.items():
@@ -515,7 +533,8 @@ class APIIntegrationManager:
                 if isinstance(body, FileUploadMarker):
                     # Use multipart/form-data for file uploads
                     # TODO: Make field name configurable in quiz JSON via prepare_request.file_field_name
-                    # Currently hardcoded as 'image' which only works with Color API
+                    # Currently hardcoded as 'image' which only works with
+                    # Color API
                     files = {
                         'image': (
                             body.filename,
@@ -523,8 +542,10 @@ class APIIntegrationManager:
                             body.mime_type
                         )
                     }
-                    # Remove Content-Type header if present (requests will set it with boundary)
-                    headers_copy = {k: v for k, v in headers.items() if k.lower() != 'content-type'}
+                    # Remove Content-Type header if present (requests will set
+                    # it with boundary)
+                    headers_copy = {
+                        k: v for k, v in headers.items() if k.lower() != 'content-type'}
                     response = requests.request(
                         method=method,
                         url=url,

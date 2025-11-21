@@ -192,22 +192,16 @@ class TestVariablePlaceholderDetection:
     def test_extract_variable_names(self):
         """Test extraction of variable names from URL templates."""
         test_cases = [
-            (
-                "https://example.com/{variables.image_id}.png",
-                ["variables.image_id"]
-            ),
-            (
-                "https://cdn.example.com/{variables.category}/{variables.id}.jpg",
-                ["variables.category", "variables.id"]
-            ),
-            (
-                "https://example.com/{api.dog_api.message}",
-                ["api.dog_api.message"]
-            ),
-            (
-                "https://example.com/image.png",
-                []
-            ),
+            ("https://example.com/{variables.image_id}.png",
+             ["variables.image_id"]),
+            ("https://cdn.example.com/{variables.category}/{variables.id}.jpg",
+             [
+                 "variables.category",
+                 "variables.id"]),
+            ("https://example.com/{api.dog_api.message}",
+             ["api.dog_api.message"]),
+            ("https://example.com/image.png",
+             []),
         ]
 
         for url, expected_vars in test_cases:

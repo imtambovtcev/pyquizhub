@@ -48,7 +48,11 @@ def joke_quiz_dynamic():
         return json.load(f)
 
 
-def test_session_continuation_simple_quiz(api_client: TestClient, admin_headers, user_headers, simple_quiz):
+def test_session_continuation_simple_quiz(
+        api_client: TestClient,
+        admin_headers,
+        user_headers,
+        simple_quiz):
     """Test that a user can continue an unfinished quiz session."""
     # Create quiz
     response = api_client.post(
@@ -105,7 +109,11 @@ def test_session_continuation_simple_quiz(api_client: TestClient, admin_headers,
     assert question_2["data"]["type"] == question_1["data"]["type"]
 
 
-def test_session_continuation_after_completion(api_client: TestClient, admin_headers, user_headers, simple_quiz):
+def test_session_continuation_after_completion(
+        api_client: TestClient,
+        admin_headers,
+        user_headers,
+        simple_quiz):
     """Test that completing a quiz allows starting a new session."""
     # Create quiz
     response = api_client.post(
@@ -148,7 +156,8 @@ def test_session_continuation_after_completion(api_client: TestClient, admin_hea
     )
     assert response.status_code == 200
 
-    # Now start the quiz again - should create a NEW session since previous is completed
+    # Now start the quiz again - should create a NEW session since previous is
+    # completed
     response = api_client.post(
         "/quiz/start_quiz",
         json={"token": token, "user_id": user_id},
@@ -161,7 +170,11 @@ def test_session_continuation_after_completion(api_client: TestClient, admin_hea
     assert session_id_2 != session_id_1, "Should create new session after previous quiz completed"
 
 
-def test_session_continuation_preserves_api_data(api_client: TestClient, admin_headers, user_headers, joke_quiz_dynamic):
+def test_session_continuation_preserves_api_data(
+        api_client: TestClient,
+        admin_headers,
+        user_headers,
+        joke_quiz_dynamic):
     """Test that session continuation does NOT re-execute API calls."""
     # Create quiz
     response = api_client.post(
@@ -215,7 +228,11 @@ def test_session_continuation_preserves_api_data(api_client: TestClient, admin_h
     assert session_id_1 == data2["session_id"], "Should be same session"
 
 
-def test_get_active_sessions_endpoint(api_client: TestClient, admin_headers, user_headers, simple_quiz):
+def test_get_active_sessions_endpoint(
+        api_client: TestClient,
+        admin_headers,
+        user_headers,
+        simple_quiz):
     """Test the /active_sessions endpoint."""
     # Create quiz
     response = api_client.post(

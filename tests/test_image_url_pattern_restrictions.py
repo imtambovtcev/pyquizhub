@@ -60,7 +60,8 @@ class TestRESTRICTEDTierPatternRestrictions:
 
         # Should have permission error
         assert len(result["permission_errors"]) > 0
-        assert any("non-whitelisted service" in error for error in result["permission_errors"])
+        assert any(
+            "non-whitelisted service" in error for error in result["permission_errors"])
         assert any("RESTRICTED tier only allows approved image hosting services" in error
                    for error in result["permission_errors"])
 
@@ -108,7 +109,8 @@ class TestRESTRICTEDTierPatternRestrictions:
         )
 
         # Should NOT have permission error about whitelisting
-        whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
+        whitelist_errors = [
+            e for e in result["permission_errors"] if "non-whitelisted" in e]
         assert len(whitelist_errors) == 0
 
     def test_restricted_tier_allows_unsplash(self):
@@ -155,7 +157,8 @@ class TestRESTRICTEDTierPatternRestrictions:
         )
 
         # Should NOT have permission error about whitelisting
-        whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
+        whitelist_errors = [
+            e for e in result["permission_errors"] if "non-whitelisted" in e]
         assert len(whitelist_errors) == 0
 
     def test_restricted_tier_allows_cloudinary(self):
@@ -202,7 +205,8 @@ class TestRESTRICTEDTierPatternRestrictions:
         )
 
         # Should NOT have permission error about whitelisting
-        whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
+        whitelist_errors = [
+            e for e in result["permission_errors"] if "non-whitelisted" in e]
         assert len(whitelist_errors) == 0
 
     def test_restricted_tier_allows_placeholder_services(self):
@@ -257,8 +261,10 @@ class TestRESTRICTEDTierPatternRestrictions:
             )
 
             # Should NOT have permission error about whitelisting
-            whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
-            assert len(whitelist_errors) == 0, f"URL {url} should be allowed but got errors: {whitelist_errors}"
+            whitelist_errors = [
+                e for e in result["permission_errors"] if "non-whitelisted" in e]
+            assert len(
+                whitelist_errors) == 0, f"URL {url} should be allowed but got errors: {whitelist_errors}"
 
     def test_restricted_tier_allows_httpbin(self):
         """Test RESTRICTED tier can use httpbin for testing."""
@@ -304,7 +310,8 @@ class TestRESTRICTEDTierPatternRestrictions:
         )
 
         # Should NOT have permission error about whitelisting
-        whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
+        whitelist_errors = [
+            e for e in result["permission_errors"] if "non-whitelisted" in e]
         assert len(whitelist_errors) == 0
 
     def test_restricted_tier_allows_github_and_wikimedia(self):
@@ -358,8 +365,10 @@ class TestRESTRICTEDTierPatternRestrictions:
             )
 
             # Should NOT have permission error about whitelisting
-            whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
-            assert len(whitelist_errors) == 0, f"URL {url} should be allowed but got errors: {whitelist_errors}"
+            whitelist_errors = [
+                e for e in result["permission_errors"] if "non-whitelisted" in e]
+            assert len(
+                whitelist_errors) == 0, f"URL {url} should be allowed but got errors: {whitelist_errors}"
 
 
 class TestHigherTiersBypassRestrictions:
@@ -411,8 +420,10 @@ class TestHigherTiersBypassRestrictions:
         result = QuizJSONValidator.validate(quiz_data, creator_tier=tier)
 
         # Should NOT have permission error about whitelisting
-        whitelist_errors = [e for e in result["permission_errors"] if "non-whitelisted" in e]
-        assert len(whitelist_errors) == 0, f"Tier {tier.value} should bypass whitelist restrictions"
+        whitelist_errors = [
+            e for e in result["permission_errors"] if "non-whitelisted" in e]
+        assert len(whitelist_errors) == 0, f"Tier {
+            tier.value} should bypass whitelist restrictions"
 
 
 class TestVariableImageURLsExemptFromPatternCheck:
@@ -470,5 +481,7 @@ class TestVariableImageURLsExemptFromPatternCheck:
         # Should have permission error about variable substitution (RESTRICTED can't use variables)
         # but NOT about non-whitelisted service
         assert len(result["permission_errors"]) > 0
-        assert any("variable substitution" in error for error in result["permission_errors"])
-        assert not any("non-whitelisted" in error for error in result["permission_errors"])
+        assert any(
+            "variable substitution" in error for error in result["permission_errors"])
+        assert not any(
+            "non-whitelisted" in error for error in result["permission_errors"])

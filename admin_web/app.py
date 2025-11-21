@@ -434,14 +434,15 @@ def get_adapters_status():
         }
 
     # Check Telegram bot - check if it can reach the API
-    # We can't directly check the bot, but we can check if TELEGRAM_BOT_TOKEN exists
-    telegram_configured = os.environ.get('TELEGRAM_BOT_TOKEN', '').strip() != ''
+    # We can't directly check the bot, but we can check if TELEGRAM_BOT_TOKEN
+    # exists
+    telegram_configured = os.environ.get(
+        'TELEGRAM_BOT_TOKEN', '').strip() != ''
     if telegram_configured:
         adapters['telegram'] = {
             'name': 'Telegram Bot',
             'status': 'running',
-            'description': 'Telegram bot adapter (configured and running in Docker)'
-        }
+            'description': 'Telegram bot adapter (configured and running in Docker)'}
     else:
         adapters['telegram'] = {
             'name': 'Telegram Bot',

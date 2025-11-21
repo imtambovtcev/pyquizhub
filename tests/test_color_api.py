@@ -78,7 +78,11 @@ def test_color_api_documentation():
     ("Gray", (128, 128, 128), "gray"),
     ("Orange", (255, 165, 0), "orange"),
 ])
-def test_color_detection(create_colored_image, color_name, color_rgb, expected_name):
+def test_color_detection(
+        create_colored_image,
+        color_name,
+        color_rgb,
+        expected_name):
     """Test dominant color detection for various colors."""
     # Create test image
     img_bytes = create_colored_image(color_rgb)
@@ -91,7 +95,9 @@ def test_color_detection(create_colored_image, color_name, color_rgb, expected_n
     )
 
     # Verify response
-    assert response.status_code == 200, f"API returned {response.status_code}: {response.text}"
+    assert response.status_code == 200, f"API returned {
+        response.status_code}: {
+        response.text}"
 
     data = response.json()
     assert "dominant_color" in data

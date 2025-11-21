@@ -53,7 +53,8 @@ class TestVariablesFormatValidation:
         assert len(
             result["errors"]) == 0, f"Unexpected errors: {result['errors']}"
         assert len(
-            result["warnings"]) == 0, f"Unexpected warnings: {result['warnings']}"
+            result["warnings"]) == 0, f"Unexpected warnings: {
+            result['warnings']}"
 
     def test_old_scores_format_shows_deprecation_warning(self):
         """Test that old scores format shows deprecation warning."""

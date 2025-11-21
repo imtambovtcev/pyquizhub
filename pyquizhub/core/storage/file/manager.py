@@ -22,7 +22,10 @@ class QuotaInfo:
         self.limit_bytes = limit_bytes
         self.file_count = file_count
         self.available_bytes = max(0, limit_bytes - used_bytes)
-        self.usage_percent = (used_bytes / limit_bytes * 100) if limit_bytes > 0 else 0
+        self.usage_percent = (
+            used_bytes /
+            limit_bytes *
+            100) if limit_bytes > 0 else 0
 
     def has_capacity(self, additional_bytes: int) -> bool:
         """Check if quota can accommodate additional bytes."""
@@ -98,18 +101,24 @@ class FileManager:
         # 1. Check if file uploads are enabled
         # TODO: Add file_storage.enabled to config
         # For now, file uploads are always enabled
-        enabled = getattr(getattr(self.config, 'file_storage', None), 'enabled', True)
+        enabled = getattr(
+            getattr(
+                self.config,
+                'file_storage',
+                None),
+            'enabled',
+            True)
         if not enabled:
             raise PermissionError("File uploads are disabled")
 
         # 2. Check upload permissions based on role
         if not self._check_upload_permission(uploader_role, quiz_id):
-            raise PermissionError(f"Role '{uploader_role}' is not allowed to upload files")
+            raise PermissionError(
+                f"Role '{uploader_role}' is not allowed to upload files")
 
         # 3. Validate file
         is_valid, error_msg, validation_metadata = self.validator.validate_upload(
-            file_data, filename, uploader_role
-        )
+            file_data, filename, uploader_role)
 
         if not is_valid:
             raise ValidationError(error_msg or "File validation failed")
@@ -118,9 +127,9 @@ class FileManager:
         quota_info = await self.check_quota(uploader_id, quiz_id)
         if not quota_info.has_capacity(validation_metadata["size_bytes"]):
             raise IOError(
-                f"Quota exceeded: {quota_info.used_bytes / (1024*1024):.1f} MB used, "
-                f"{validation_metadata['size_bytes'] / (1024*1024):.1f} MB requested, "
-                f"{quota_info.limit_bytes / (1024*1024):.1f} MB limit"
+                f"Quota exceeded: {quota_info.used_bytes / (1024 * 1024):.1f} MB used, "
+                f"{validation_metadata['size_bytes'] / (1024 * 1024):.1f} MB requested, "
+                f"{quota_info.limit_bytes / (1024 * 1024):.1f} MB limit"
             )
 
         # 5. Generate file_id
@@ -173,7 +182,8 @@ class FileManager:
         metadata = await self.storage.get_metadata(file_id)
 
         # Check access permission
-        if not self._check_access_permission(metadata, requester_id, requester_role):
+        if not self._check_access_permission(
+                metadata, requester_id, requester_role):
             raise PermissionError("Access denied to this file")
 
         # Retrieve file
@@ -206,7 +216,8 @@ class FileManager:
         metadata = await self.storage.get_metadata(file_id)
 
         # Check access permission
-        if not self._check_access_permission(metadata, requester_id, requester_role):
+        if not self._check_access_permission(
+                metadata, requester_id, requester_role):
             raise PermissionError("Access denied to this file")
 
         # Get download URL
@@ -241,7 +252,8 @@ class FileManager:
 
         # Only admin or uploader can delete
         if requester_role != "admin" and metadata.uploader_id != requester_id:
-            raise PermissionError("Only admins or file uploader can delete files")
+            raise PermissionError(
+                "Only admins or file uploader can delete files")
 
         # Delete file
         return await self.storage.delete(file_id)
@@ -276,7 +288,13 @@ class FileManager:
             'per_quiz_mb': 500,
             'global_limit_mb': 10000
         })()
-        quotas = getattr(getattr(self.config, 'file_storage', None), 'quotas', default_quotas)
+        quotas = getattr(
+            getattr(
+                self.config,
+                'file_storage',
+                None),
+            'quotas',
+            default_quotas)
 
         if user_id:
             limit_mb = getattr(quotas, 'per_user_mb', 100)

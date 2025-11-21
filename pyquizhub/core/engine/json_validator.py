@@ -200,37 +200,47 @@ class QuizJSONValidator:
                 attachments = data["attachments"]
                 if not isinstance(attachments, list):
                     errors.append(
-                        f"Question {question['id']}: attachments must be a list, got {type(attachments).__name__}")
+                        f"Question {
+                            question['id']}: attachments must be a list, got {
+                            type(attachments).__name__}")
                 else:
                     for idx, attachment in enumerate(attachments):
                         if not isinstance(attachment, dict):
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} must be a dictionary")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} must be a dictionary")
                             continue
 
                         # Validate required fields
                         if "type" not in attachment:
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} missing required 'type' field")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} missing required 'type' field")
                             continue
 
                         # Validate attachment type
-                        valid_types = ["image", "video", "audio", "document", "file"]
+                        valid_types = [
+                            "image", "video", "audio", "document", "file"]
                         if attachment["type"] not in valid_types:
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} has invalid type '{attachment['type']}'. "
-                                f"Valid types: {valid_types}")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} has invalid type '{
+                                    attachment['type']}'. " f"Valid types: {valid_types}")
 
-                        # Validate URL field (required for all attachment types)
+                        # Validate URL field (required for all attachment
+                        # types)
                         if "url" not in attachment:
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} missing required 'url' field")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} missing required 'url' field")
                             continue
 
                         url = attachment["url"]
                         if not isinstance(url, str):
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} url must be a string, got {type(url).__name__}")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} url must be a string, got {
+                                    type(url).__name__}")
                             continue
 
                         if not url:  # Skip empty URLs
@@ -240,42 +250,54 @@ class QuizJSONValidator:
                         attachment_type = attachment["type"]
 
                         # Check if URL has variable placeholders
-                        if AttachmentURLValidator.has_variable_placeholders(url):
+                        if AttachmentURLValidator.has_variable_placeholders(
+                                url):
                             # Extract and validate variable references
-                            var_names = AttachmentURLValidator.extract_variable_names(url)
+                            var_names = AttachmentURLValidator.extract_variable_names(
+                                url)
                             for var_name in var_names:
                                 # Check if variables exist
-                                # Variable names are in format "variables.varname" or "api.id.field"
+                                # Variable names are in format
+                                # "variables.varname" or "api.id.field"
                                 parts = var_name.split('.')
                                 if parts[0] == 'variables' and len(parts) == 2:
                                     if parts[1] not in variable_definitions:
                                         errors.append(
-                                            f"Question {question['id']}: attachment at index {idx} url references undefined variable '{parts[1]}'"
-                                        )
-                                # API variables checked separately in API integrations validation
+                                            f"Question {
+                                                question['id']}: attachment at index {idx} url references undefined variable '{
+                                                parts[1]}'")
+                                # API variables checked separately in API
+                                # integrations validation
                         else:
                             # Fixed URL - validate it immediately
                             try:
-                                # Don't verify content during validation (no network calls)
+                                # Don't verify content during validation (no
+                                # network calls)
                                 AttachmentURLValidator.validate_url(
                                     url,
                                     attachment_type,
                                     verify_content=False,
-                                    allow_http=True  # Allow HTTP during validation (warn later in permissions)
+                                    # Allow HTTP during validation (warn later
+                                    # in permissions)
+                                    allow_http=True
                                 )
                             except ValueError as e:
                                 errors.append(
-                                    f"Question {question['id']}: attachment at index {idx} invalid url: {e}"
-                                )
+                                    f"Question {
+                                        question['id']}: attachment at index {idx} invalid url: {e}")
 
                         # Validate optional fields if present
-                        if "alt_text" in attachment and not isinstance(attachment["alt_text"], str):
+                        if "alt_text" in attachment and not isinstance(
+                                attachment["alt_text"], str):
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} alt_text must be a string")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} alt_text must be a string")
 
-                        if "caption" in attachment and not isinstance(attachment["caption"], str):
+                        if "caption" in attachment and not isinstance(
+                                attachment["caption"], str):
                             errors.append(
-                                f"Question {question['id']}: attachment at index {idx} caption must be a string")
+                                f"Question {
+                                    question['id']}: attachment at index {idx} caption must be a string")
 
             current_answer_type = None
             if data["type"] == "multiple_choice":
@@ -291,36 +313,55 @@ class QuizJSONValidator:
             elif data["type"] == "text":
                 current_answer_type = str
                 if "options" in data:
-                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+                    errors.append(
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "integer":
                 current_answer_type = int
                 if "options" in data:
-                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+                    errors.append(
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "float":
                 current_answer_type = float
                 if "options" in data:
-                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+                    errors.append(
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "file_upload":
                 current_answer_type = dict
                 if "options" in data:
-                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+                    errors.append(
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
             elif data["type"] == "final_message":
                 # final_message type doesn't require an answer
                 current_answer_type = type(None)
                 if "options" in data:
-                    errors.append(f"Question type '{data['type']}' should not have options: {data}")
+                    errors.append(
+                        f"Question type '{
+                            data['type']}' should not have options: {data}")
 
             if "score_updates" in question:
                 score_updates = question["score_updates"]
                 if not isinstance(score_updates, list):
-                    errors.append(f"Score updates must be a list in question {question['id']}.")
+                    errors.append(
+                        f"Score updates must be a list in question {
+                            question['id']}.")
                     continue
                 for update in score_updates:
                     if not isinstance(update, dict):
-                        errors.append(f"Score update must be a dictionary in question {question['id']}.")
+                        errors.append(
+                            f"Score update must be a dictionary in question {
+                                question['id']}.")
                         continue
-                    if not all(key in update for key in ["condition", "update"]):
-                        errors.append(f"Invalid score update format in question {question['id']}: {update}")
+                    if not all(
+                        key in update for key in [
+                            "condition",
+                            "update"]):
+                        errors.append(
+                            f"Invalid score update format in question {
+                                question['id']}: {update}")
                         continue
                     # Validate conditions and updates
                     try:
@@ -332,14 +373,18 @@ class QuizJSONValidator:
                         else:
                             mock_answer = None
 
-                        allowed_variables = {**default_variables, "answer": mock_answer} if current_answer_type else default_variables
+                        allowed_variables = {
+                            **default_variables,
+                            "answer": mock_answer} if current_answer_type else default_variables
                         SafeEvaluator.eval_expr(
                             update["condition"], allowed_variables)
                         for expr in update["update"].values():
                             SafeEvaluator.eval_expr(
                                 expr, allowed_variables)
                     except Exception as e:
-                        errors.append(f"Invalid score update condition or expression in question {question['id']}: {e}")
+                        errors.append(
+                            f"Invalid score update condition or expression in question {
+                                question['id']}: {e}")
 
         # Validate transitions
         transitions = quiz_data.get("transitions", {})
@@ -428,7 +473,9 @@ class QuizJSONValidator:
 
         for var_name, var_config in variables_data.items():
             if not isinstance(var_config, dict):
-                errors.append(f"Variable '{var_name}' definition must be a dictionary, got {type(var_config).__name__}")
+                errors.append(
+                    f"Variable '{var_name}' definition must be a dictionary, got {
+                        type(var_config).__name__}")
                 continue
 
             # Validate required fields
@@ -445,7 +492,9 @@ class QuizJSONValidator:
                 if isinstance(var_type, str):
                     var_type_enum = VariableType(var_type)
                 else:
-                    errors.append(f"Variable '{var_name}' type must be a string, got {type(var_type).__name__}")
+                    errors.append(
+                        f"Variable '{var_name}' type must be a string, got {
+                            type(var_type).__name__}")
                     continue
             except ValueError:
                 valid_types = [t.value for t in VariableType]
@@ -458,7 +507,9 @@ class QuizJSONValidator:
             # Validate mutable_by
             mutable_by = var_config.get("mutable_by")
             if not isinstance(mutable_by, list):
-                errors.append(f"Variable '{var_name}' mutable_by must be a list, got {type(mutable_by).__name__}")
+                errors.append(
+                    f"Variable '{var_name}' mutable_by must be a list, got {
+                        type(mutable_by).__name__}")
                 continue
 
             try:
@@ -476,7 +527,9 @@ class QuizJSONValidator:
             # Validate tags if present
             tags = var_config.get("tags", [])
             if not isinstance(tags, list):
-                errors.append(f"Variable '{var_name}' tags must be a list, got {type(tags).__name__}")
+                errors.append(
+                    f"Variable '{var_name}' tags must be a list, got {
+                        type(tags).__name__}")
                 continue
 
             try:
@@ -826,10 +879,10 @@ class QuizJSONValidator:
         return (errors, warnings)
 
     @staticmethod
-    def _validate_permissions(
-            quiz_data: dict,
-            creator_tier: CreatorPermissionTier,
-            variable_definitions: dict[str, VariableDefinition] = None) -> list[str]:
+    def _validate_permissions(quiz_data: dict,
+                              creator_tier: CreatorPermissionTier,
+                              variable_definitions: dict[str,
+                                                         VariableDefinition] = None) -> list[str]:
         """
         Validate that the creator's permission tier allows the features used in the quiz.
 
@@ -852,7 +905,8 @@ class QuizJSONValidator:
         # Get API integrations if present
         api_integrations = quiz_data.get("api_integrations", [])
 
-        # Check API integration count limits (only if there are API integrations)
+        # Check API integration count limits (only if there are API
+        # integrations)
         if api_integrations:
             api_count = len(api_integrations)
             max_apis = {
@@ -889,7 +943,8 @@ class QuizJSONValidator:
                         )
 
                 # Check URL template permissions (dynamic URLs)
-                # In the new format, url_template is inside prepare_request block
+                # In the new format, url_template is inside prepare_request
+                # block
                 prepare_request = api_config.get("prepare_request", {})
                 has_url_template = "url_template" in prepare_request
                 has_fixed_url = "url" in api_config
@@ -915,7 +970,8 @@ class QuizJSONValidator:
                     pass  # This is allowed
 
                 # Check request body permissions (for POST/PUT)
-                # In the new format, body_template is inside prepare_request block
+                # In the new format, body_template is inside prepare_request
+                # block
                 has_body_template = "body_template" in prepare_request
                 if has_body_template:
                     if creator_tier in [
@@ -972,15 +1028,19 @@ class QuizJSONValidator:
                         continue
 
                     attachment_url = attachment.get("url", "")
-                    if not isinstance(attachment_url, str) or not attachment_url:
+                    if not isinstance(
+                            attachment_url,
+                            str) or not attachment_url:
                         continue
 
                     # Check for variable substitution in attachment URLs
-                    has_variables = ImageURLValidator.has_variable_placeholders(attachment_url)
+                    has_variables = ImageURLValidator.has_variable_placeholders(
+                        attachment_url)
 
                     if has_variables:
                         # Extract variable names
-                        var_names = ImageURLValidator.extract_variable_names(attachment_url)
+                        var_names = ImageURLValidator.extract_variable_names(
+                            attachment_url)
 
                         # Check permission tier for variable usage
                         if creator_tier == CreatorPermissionTier.RESTRICTED:
@@ -990,21 +1050,26 @@ class QuizJSONValidator:
                                 f"RESTRICTED tier only allows fixed image URLs. Upgrade to STANDARD tier."
                             )
                         elif creator_tier == CreatorPermissionTier.STANDARD:
-                            # STANDARD tier: Only SAFE_FOR_API variables allowed
+                            # STANDARD tier: Only SAFE_FOR_API variables
+                            # allowed
                             for var_name in var_names:
                                 parts = var_name.split('.')
                                 if parts[0] == 'variables' and len(parts) == 2:
-                                    var_def = variable_definitions.get(parts[1])
+                                    var_def = variable_definitions.get(
+                                        parts[1])
                                     if var_def and not var_def.is_safe_for_api_use():
                                         permission_errors.append(
                                             f"Permission denied: Question {question_id} attachment {idx} uses unsafe variable '{parts[1]}' in url. "
                                             f"STANDARD tier only allows SAFE_FOR_API variables. Upgrade to ADVANCED tier or use a sanitized variable."
                                         )
-                        # ADVANCED and ADMIN tiers: All variables allowed (still validated for safety)
+                        # ADVANCED and ADMIN tiers: All variables allowed
+                        # (still validated for safety)
 
                     # Check for HTTP vs HTTPS
-                    if not attachment_url.startswith('https://') and not has_variables:
-                        # Only warn for RESTRICTED tier (others can use HTTP if needed)
+                    if not attachment_url.startswith(
+                            'https://') and not has_variables:
+                        # Only warn for RESTRICTED tier (others can use HTTP if
+                        # needed)
                         if creator_tier == CreatorPermissionTier.RESTRICTED:
                             permission_errors.append(
                                 f"Permission denied: Question {question_id} attachment {idx} uses non-HTTPS image URL. "
@@ -1013,8 +1078,10 @@ class QuizJSONValidator:
 
                     # Check URL pattern restrictions for RESTRICTED tier
                     if creator_tier == CreatorPermissionTier.RESTRICTED and not has_variables:
-                        # RESTRICTED tier: Only whitelisted image services allowed
-                        if not ImageURLValidator.check_url_against_patterns(attachment_url):
+                        # RESTRICTED tier: Only whitelisted image services
+                        # allowed
+                        if not ImageURLValidator.check_url_against_patterns(
+                                attachment_url):
                             permission_errors.append(
                                 f"Permission denied: Question {question_id} attachment {idx} uses image URL from non-whitelisted service. "
                                 f"RESTRICTED tier only allows approved image hosting services (Cloudinary, Imgix, Imgur, "

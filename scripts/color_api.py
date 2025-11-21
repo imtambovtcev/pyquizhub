@@ -122,7 +122,8 @@ def approximate_color_name(hex_color: str) -> str:
     """
     # Remove '#' and convert to RGB
     hex_color = hex_color.lstrip('#')
-    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    r, g, b = int(hex_color[0:2], 16), int(
+        hex_color[2:4], 16), int(hex_color[4:6], 16)
 
     # Simple color approximation based on RGB values
     if r > 200 and g < 100 and b < 100:

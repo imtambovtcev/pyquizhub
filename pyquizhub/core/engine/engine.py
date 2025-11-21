@@ -381,7 +381,8 @@ class QuizEngine:
                     raise ValueError(f"Invalid option selected: {answer}")
             elif question_type == "file_upload":
                 if not isinstance(answer, dict):
-                    raise ValueError("Answer must be a dictionary with file_id")
+                    raise ValueError(
+                        "Answer must be a dictionary with file_id")
                 if "file_id" not in answer:
                     raise ValueError("Answer must contain file_id field")
                 if not isinstance(answer["file_id"], str):
@@ -532,8 +533,7 @@ class QuizEngine:
         # Apply templating to text
         if question_text:
             templated_question["data"]["text"] = self._apply_templating_to_string(
-                question_text, api_context, state.get("scores", {}), "text"
-            )
+                question_text, api_context, state.get("scores", {}), "text")
 
         # Apply templating to attachments array
         attachments = templated_question.get("data", {}).get("attachments", [])
@@ -542,28 +542,33 @@ class QuizEngine:
                 # Template the URL field
                 if "url" in attachment and attachment["url"]:
                     templated_url = self._apply_templating_to_string(
-                        attachment["url"], api_context, state.get("scores", {}), f"attachment[{idx}].url"
-                    )
+                        attachment["url"], api_context, state.get(
+                            "scores", {}), f"attachment[{idx}].url")
                     templated_question["data"]["attachments"][idx]["url"] = templated_url
 
                 # Template optional caption field
                 if "caption" in attachment and attachment["caption"]:
                     templated_caption = self._apply_templating_to_string(
-                        attachment["caption"], api_context, state.get("scores", {}), f"attachment[{idx}].caption"
-                    )
+                        attachment["caption"], api_context, state.get(
+                            "scores", {}), f"attachment[{idx}].caption")
                     templated_question["data"]["attachments"][idx]["caption"] = templated_caption
 
                 # Template optional alt_text field
                 if "alt_text" in attachment and attachment["alt_text"]:
                     templated_alt_text = self._apply_templating_to_string(
-                        attachment["alt_text"], api_context, state.get("scores", {}), f"attachment[{idx}].alt_text"
-                    )
+                        attachment["alt_text"], api_context, state.get(
+                            "scores", {}), f"attachment[{idx}].alt_text")
                     templated_question["data"]["attachments"][idx]["alt_text"] = templated_alt_text
 
         return templated_question
 
-    def _apply_templating_to_string(
-            self, field_value: str, api_context: dict[str, Any], scores: dict[str, Any], field_name: str) -> str:
+    def _apply_templating_to_string(self,
+                                    field_value: str,
+                                    api_context: dict[str,
+                                                      Any],
+                                    scores: dict[str,
+                                                 Any],
+                                    field_name: str) -> str:
         """
         Apply templating to a string field by replacing placeholders.
 
