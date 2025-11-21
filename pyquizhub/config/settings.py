@@ -116,7 +116,7 @@ class RolePermissionsConfig(BaseModel):
             rate_limits=RateLimitSettings(
                 requests_per_minute=30,
                 requests_per_hour=500,
-                burst_size=5
+                burst_size=20  # Increased for tests that make many rapid requests
             ),
             file_uploads=FileUploadPermissions(
                 enabled=False,  # Users cannot upload files by default

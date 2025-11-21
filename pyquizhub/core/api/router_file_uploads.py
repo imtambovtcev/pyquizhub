@@ -34,6 +34,7 @@ from pyquizhub.core.storage.file import (
     LocalStorageBackend,
     ValidationError,
 )
+from pyquizhub.core.api.dependencies import verify_token_and_rate_limit
 
 logger = get_logger(__name__)
 
@@ -134,16 +135,13 @@ def check_file_upload_permission(role: str) -> None:
         )
 
 
-# TODO: Add rate limiting middleware using config.get_rate_limits(role)
-# Options: slowapi, fastapi-limiter, or custom implementation with Redis
-
-
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
     quiz_id: Optional[str] = Form(None),
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Upload a file with validation and quota checks.
@@ -170,10 +168,11 @@ async def upload_file(
             - 403: Permission denied
             - 413: File too large or quota exceeded
             - 415: Unsupported file type
+            - 429: Rate limit exceeded
             - 503: File uploads disabled
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # Check file upload permission for this role
     check_file_upload_permission(role)
@@ -258,6 +257,7 @@ async def download_file(
     file_id: str,
     request: Request,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Download a file with access control.
@@ -280,9 +280,10 @@ async def download_file(
             - 401: Missing or invalid authorization
             - 403: Access denied
             - 404: File not found
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     logger.info(
         f"File download request: file_id={file_id}, user={user_id}, role={role}")
@@ -332,6 +333,7 @@ async def delete_file(
     file_id: str,
     request: Request,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Delete a file (admin or uploader only).
@@ -348,9 +350,10 @@ async def delete_file(
             - 401: Missing or invalid authorization
             - 403: Permission denied (only admin or uploader can delete)
             - 404: File not found
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     logger.info(
         f"File deletion request: file_id={file_id}, user={user_id}, role={role}")
@@ -393,6 +396,7 @@ async def get_quota_info(
     quiz_id: Optional[str] = None,
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Get storage quota information.
@@ -407,9 +411,10 @@ async def get_quota_info(
     Raises:
         HTTPException:
             - 401: Missing or invalid authorization
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # Get quota info
     if role == "admin":
@@ -434,6 +439,7 @@ async def list_files(
     category: Optional[str] = None,
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     List uploaded files with access control.
@@ -450,9 +456,10 @@ async def list_files(
         HTTPException:
             - 401: Missing or invalid authorization
             - 403: Permission denied
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # List files
     try:
@@ -485,6 +492,7 @@ async def analyze_text_file(
     max_matches: int = Form(100),
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Analyze a text file with optional regex search.
@@ -512,9 +520,10 @@ async def analyze_text_file(
             - 403: Permission denied
             - 404: File not found
             - 415: File is not a text file
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # Validate max_matches parameter
     if max_matches < 1 or max_matches > 1000:

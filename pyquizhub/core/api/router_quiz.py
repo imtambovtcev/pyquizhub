@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
 from pyquizhub.core.auth.service import UserAuthService, AuthResult
+from pyquizhub.core.api.dependencies import user_token_with_rate_limit
 from pyquizhub.models import (
     NextQuestionResponseModel,
     AnswerRequestModel,
@@ -76,22 +77,8 @@ def _get_file_storage():
         return None
 
 
-def user_token_dependency(request: Request):
-    """
-    Dependency to validate user authentication token.
-
-    Args:
-        request: FastAPI Request object containing headers
-
-    Raises:
-        HTTPException: If user token is invalid
-    """
-    from pyquizhub.config.settings import get_config_manager
-    token = request.headers.get("Authorization")
-    config_manager = get_config_manager()
-    expected_token = config_manager.get_token("user")
-    if token != expected_token:
-        raise HTTPException(status_code=403, detail="Invalid user token")
+# Use rate-limited dependency (imported above)
+user_token_dependency = user_token_with_rate_limit
 
 
 def _is_final_message(question: dict) -> bool:
