@@ -84,6 +84,9 @@ def verify_token(
     """
     Verify authorization token and determine role.
 
+    Uses the config system for proper token verification.
+    Token priority: admin > creator > user
+
     Args:
         authorization: Authorization header value
         request: FastAPI request
@@ -95,23 +98,44 @@ def verify_token(
     Raises:
         HTTPException: If token is missing or invalid
     """
-    # TODO: SECURITY - Implement proper token verification with config system
-    # This is a security vulnerability: any authorization header is accepted without validation.
-    # Must integrate with the main authentication system before production use.
-    # See router_quiz.py for proper token verification example.
-    if not authorization:
+    from pyquizhub.config.settings import get_config_manager
+
+    config = get_config_manager()
+
+    try:
+        user_id, role = config.verify_token_and_get_role(authorization)
+        return user_id, role
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header required"
+            detail=str(e)
         )
 
-    # Return test user for any valid authorization header
-    return "test_user", "user"
+
+def check_file_upload_permission(role: str) -> None:
+    """
+    Check if role has permission to upload files.
+
+    Args:
+        role: User role (admin, creator, user)
+
+    Raises:
+        HTTPException: If role cannot upload files
+    """
+    from pyquizhub.config.settings import get_config_manager
+
+    config = get_config_manager()
+
+    if not config.can_upload_files(role):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"File uploads not allowed for role '{role}'. "
+                   "Contact administrator to enable file uploads."
+        )
 
 
-# TODO: Add rate limiting to prevent DoS attacks
-# Consider: per-user limits, per-IP limits, global limits
-# Options: slowapi, fastapi-limiter, or custom implementation
+# TODO: Add rate limiting middleware using config.get_rate_limits(role)
+# Options: slowapi, fastapi-limiter, or custom implementation with Redis
 
 
 @router.post("/upload")
@@ -150,6 +174,9 @@ async def upload_file(
     """
     # Verify authorization
     user_id, role = verify_token(request=request)
+
+    # Check file upload permission for this role
+    check_file_upload_permission(role)
 
     logger.info(
         f"File upload request: user={user_id}, role={role}, filename={

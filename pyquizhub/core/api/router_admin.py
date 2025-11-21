@@ -267,7 +267,7 @@ def admin_create_quiz(request: CreateQuizRequestModel, req: Request):
     logger.debug(
         f"Admin creating quiz with title: {request.quiz.metadata.title}")
     storage_manager: StorageManager = req.app.state.storage_manager
-    return create_quiz_logic(storage_manager, request)
+    return create_quiz_logic(storage_manager, request, creator_role="admin")
 
 
 @router.post("/generate_token", response_model=TokenResponseModel,

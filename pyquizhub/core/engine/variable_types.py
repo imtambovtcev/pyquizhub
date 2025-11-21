@@ -129,69 +129,6 @@ class FallbackBehavior(Enum):
     FAIL = "fail"                    # Block quiz execution (error message)
 
 
-class CreatorPermissionTier(Enum):
-    """
-    Creator permission tiers controlling API access.
-
-    Each tier has increasing levels of control over API integrations.
-    """
-
-    # Tier 1: Restricted (default for new users)
-    RESTRICTED = "restricted"
-    # - Can only use pre-approved API endpoints (allowlist)
-    # - Cannot use variables in API URLs
-    # - Fixed authentication only (no dynamic auth)
-    # - Max 5 API calls per quiz session
-
-    # Tier 2: Standard (verified creators)
-    STANDARD = "standard"
-    # - Can use variables in query parameters only
-    # - Can add path segments after approved base URL
-    # - Can use custom headers (validated)
-    # - Max 20 API calls per quiz session
-
-    # Tier 3: Advanced (trusted creators)
-    ADVANCED = "advanced"
-    # - Can construct full URLs with variables (with validation)
-    # - Can use custom authentication schemes
-    # - Can use POST/PUT requests with body templates
-    # - Max 50 API calls per quiz session
-
-    # Tier 4: Admin (platform administrators)
-    ADMIN = "admin"
-    # - Bypass some validations (still security-checked)
-    # - Unlimited API calls
-    # - Can use internal APIs
-
-
-class UserPermissionLevel(Enum):
-    """
-    User permission levels controlling access to quiz features.
-
-    Different users have different access to API-enabled features.
-    """
-
-    # Guest users (not logged in)
-    GUEST = "guest"
-    # - Cannot trigger API calls
-    # - Quiz runs in "safe mode" with fallbacks
-
-    # Basic users (free tier)
-    BASIC = "basic"
-    # - Can trigger API calls marked as "public_safe"
-    # - Limited to 10 API calls per day
-
-    # Premium users (paid)
-    PREMIUM = "premium"
-    # - Can trigger all API calls in quiz
-    # - Normal rate limits apply
-
-    # Restricted users (flagged for abuse)
-    RESTRICTED = "restricted"
-    # - API calls disabled
-    # - Quiz runs with fallbacks only
-
-
 @dataclass
 class VariableConstraints:
     """

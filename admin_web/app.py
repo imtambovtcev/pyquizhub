@@ -167,16 +167,13 @@ def validate_quiz():
     # Import validator
     try:
         from pyquizhub.core.engine.json_validator import QuizJSONValidator
-        from pyquizhub.core.engine.variable_types import CreatorPermissionTier
 
-        # Validate the quiz (using ADMIN tier for maximum permissions)
-        result = QuizJSONValidator.validate(
-            quiz_data, CreatorPermissionTier.ADMIN)
+        # Validate the quiz format
+        result = QuizJSONValidator.validate(quiz_data)
 
         return jsonify({
             "errors": result.get("errors", []),
-            "warnings": result.get("warnings", []),
-            "permission_errors": result.get("permission_errors", [])
+            "warnings": result.get("warnings", [])
         }), 200
 
     except ImportError as e:

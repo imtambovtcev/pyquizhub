@@ -403,5 +403,153 @@ class TestPydanticModels:
             os.unlink(config_path)
 
 
+class TestRolePermissions:
+    """Test role-based permissions configuration."""
+
+    def test_default_permissions_secure_by_default(self):
+        """Test that default permissions are secure (restrictive)."""
+        from pyquizhub.config.settings import RolePermissionsConfig
+
+        permissions = RolePermissionsConfig()
+
+        # Users should have restricted permissions by default
+        assert permissions.user.file_uploads.enabled is False
+        assert permissions.user.api_integrations.enabled is False
+        assert permissions.user.rate_limits.requests_per_minute == 30
+
+        # Creators have more permissions
+        assert permissions.creator.file_uploads.enabled is True
+        assert permissions.creator.api_integrations.enabled is True
+        assert permissions.creator.api_integrations.allowed_hosts == ["localhost", "127.0.0.1"]
+
+        # Admins have full access
+        assert permissions.admin.file_uploads.enabled is True
+        assert permissions.admin.api_integrations.allowed_hosts == ["*"]
+
+    def test_get_role_permissions(self, config_file):
+        """Test getting permissions for specific roles."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_perms = config_manager.get_role_permissions("user")
+        admin_perms = config_manager.get_role_permissions("admin")
+
+        assert user_perms.file_uploads.enabled is False
+        assert admin_perms.file_uploads.enabled is True
+
+    def test_get_role_permissions_invalid_role(self, config_file):
+        """Test that invalid roles raise ValueError."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        with pytest.raises(ValueError, match="Invalid role"):
+            config_manager.get_role_permissions("superuser")
+
+    def test_can_upload_files(self, config_file):
+        """Test file upload permission check."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        assert config_manager.can_upload_files("user") is False
+        assert config_manager.can_upload_files("creator") is True
+        assert config_manager.can_upload_files("admin") is True
+
+    def test_can_use_api_integrations(self, config_file):
+        """Test API integration permission check."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        assert config_manager.can_use_api_integrations("user") is False
+        assert config_manager.can_use_api_integrations("creator") is True
+        assert config_manager.can_use_api_integrations("admin") is True
+
+    def test_get_rate_limits(self, config_file):
+        """Test getting rate limits for roles."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_limits = config_manager.get_rate_limits("user")
+        admin_limits = config_manager.get_rate_limits("admin")
+
+        # Users have lower limits
+        assert user_limits.requests_per_minute < admin_limits.requests_per_minute
+
+    def test_file_upload_limits(self, config_file):
+        """Test file upload limits per role."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_limits = config_manager.get_file_upload_limits("user")
+        admin_limits = config_manager.get_file_upload_limits("admin")
+
+        # Users have smaller quotas
+        assert user_limits.quota_mb < admin_limits.quota_mb
+        assert user_limits.max_file_size_mb < admin_limits.max_file_size_mb
+
+
+class TestTokenVerification:
+    """Test token verification functionality."""
+
+    def test_verify_token_admin(self, config_file, monkeypatch):
+        """Test verifying admin token."""
+        monkeypatch.setenv("PYQUIZHUB_ADMIN_TOKEN", "admin_secret")
+
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_id, role = config_manager.verify_token_and_get_role("admin_secret")
+        assert role == "admin"
+
+    def test_verify_token_creator(self, config_file, monkeypatch):
+        """Test verifying creator token."""
+        monkeypatch.setenv("PYQUIZHUB_CREATOR_TOKEN", "creator_secret")
+
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_id, role = config_manager.verify_token_and_get_role("creator_secret")
+        assert role == "creator"
+
+    def test_verify_token_user(self, config_file, monkeypatch):
+        """Test verifying user token."""
+        monkeypatch.setenv("PYQUIZHUB_USER_TOKEN", "user_secret")
+
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_id, role = config_manager.verify_token_and_get_role("user_secret")
+        assert role == "user"
+
+    def test_verify_token_invalid(self, config_file, monkeypatch):
+        """Test that invalid tokens raise ValueError."""
+        monkeypatch.setenv("PYQUIZHUB_ADMIN_TOKEN", "real_secret")
+
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        with pytest.raises(ValueError, match="Invalid"):
+            config_manager.verify_token_and_get_role("wrong_token")
+
+    def test_verify_token_missing(self, config_file):
+        """Test that missing tokens raise ValueError."""
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        with pytest.raises(ValueError, match="required"):
+            config_manager.verify_token_and_get_role(None)
+
+    def test_verify_token_priority(self, config_file, monkeypatch):
+        """Test that admin token takes priority over user token if same value."""
+        # Same token for both - admin should win
+        monkeypatch.setenv("PYQUIZHUB_ADMIN_TOKEN", "shared_token")
+        monkeypatch.setenv("PYQUIZHUB_USER_TOKEN", "shared_token")
+
+        config_manager = get_config_manager()
+        config_manager.load(config_file)
+
+        user_id, role = config_manager.verify_token_and_get_role("shared_token")
+        assert role == "admin"  # Admin takes priority
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
