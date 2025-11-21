@@ -82,8 +82,8 @@ class RegexValidator:
 
         logger.debug(f"Regex pattern validated successfully: {pattern}")
 
-    @classmethod
-    def _timeout_handler(cls, signum, frame):
+    @staticmethod
+    def _timeout_handler(signum, frame):
         """Signal handler for timeout."""
         raise RegexTimeoutError("Regex execution timed out")
 

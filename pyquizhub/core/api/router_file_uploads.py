@@ -26,6 +26,8 @@ from typing import Optional
 import io
 
 from pyquizhub.logging.setup import get_logger
+from pyquizhub.core.engine.text_file_analyzer import TextFileAnalyzer
+from pyquizhub.core.engine.regex_validator import RegexValidationError
 from pyquizhub.core.storage.file import (
     FileManager,
     FileValidator,
@@ -470,6 +472,13 @@ async def analyze_text_file(
     # Verify authorization
     user_id, role = verify_token(request=request)
 
+    # Validate max_matches parameter
+    if max_matches < 1 or max_matches > 1000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="max_matches must be between 1 and 1000"
+        )
+
     logger.info(f"Text analysis request: file_id={file_id}, pattern={pattern}, user={user_id}")
 
     # Retrieve file
@@ -499,9 +508,6 @@ async def analyze_text_file(
 
     # Analyze file
     try:
-        from pyquizhub.core.engine.text_file_analyzer import TextFileAnalyzer
-        from pyquizhub.core.engine.regex_validator import RegexValidationError
-
         analysis = TextFileAnalyzer.analyze_file(
             file_data=file_data,
             pattern=pattern,
