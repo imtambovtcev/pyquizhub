@@ -94,8 +94,7 @@ class FileMetadata:
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
             'description': self.description,
-            'tags': self.tags
-        }
+            'tags': self.tags}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FileMetadata:
@@ -111,11 +110,15 @@ class FileMetadata:
             session_id=data.get('session_id'),
             user_id=data['user_id'],
             quiz_id=data.get('quiz_id'),
-            created_at=datetime.fromisoformat(data['created_at']) if data.get('created_at') else datetime.now(timezone.utc),
-            expires_at=datetime.fromisoformat(data['expires_at']) if data.get('expires_at') else None,
+            created_at=datetime.fromisoformat(
+                data['created_at']) if data.get('created_at') else datetime.now(
+                timezone.utc),
+            expires_at=datetime.fromisoformat(
+                data['expires_at']) if data.get('expires_at') else None,
             description=data.get('description'),
-            tags=data.get('tags', [])
-        )
+            tags=data.get(
+                    'tags',
+                []))
 
     def to_safe_dict(self) -> dict[str, Any]:
         """
@@ -210,7 +213,10 @@ class FileAttachment:
         """Check if a value is a file reference URI."""
         return isinstance(value, str) and value.startswith('file://')
 
-    def get_url_for_adapter(self, adapter_type: str, adapter_context: dict[str, Any] | None = None) -> str | None:
+    def get_url_for_adapter(self,
+                            adapter_type: str,
+                            adapter_context: dict[str,
+                                                  Any] | None = None) -> str | None:
         """
         Get safe URL/identifier for display in specific adapter.
 
@@ -232,7 +238,8 @@ class FileAttachment:
 
         elif self.platform == 'telegram':
             if adapter_type == 'telegram':
-                # Return Telegram file_id - bot can send by ID without token exposure
+                # Return Telegram file_id - bot can send by ID without token
+                # exposure
                 return self._platform_data.get('file_id')
             else:
                 # Other adapters get proxy API URL
@@ -240,7 +247,8 @@ class FileAttachment:
 
         elif self.platform == 'discord':
             if adapter_type == 'discord':
-                # Discord attachment URL (may be temporary but safe for Discord)
+                # Discord attachment URL (may be temporary but safe for
+                # Discord)
                 return self._platform_data.get('url')
             else:
                 # Other adapters get proxy API URL
@@ -266,4 +274,7 @@ class FileAttachment:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        return f"FileAttachment(file_id={self.file_id}, type={self.file_type}, platform={self.platform})"
+        return f"FileAttachment(file_id={
+            self.file_id}, type={
+            self.file_type}, platform={
+            self.platform})"

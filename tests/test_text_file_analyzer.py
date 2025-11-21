@@ -53,7 +53,8 @@ class TestTextFileAnalyzer:
         assert TextFileAnalyzer.count_lines(text) == 3
 
         text_with_trailing = "line1\nline2\n"
-        assert TextFileAnalyzer.count_lines(text_with_trailing) == 3  # Trailing \n counts as empty line
+        # Trailing \n counts as empty line
+        assert TextFileAnalyzer.count_lines(text_with_trailing) == 3
 
         text_no_trailing = "line1\nline2"
         assert TextFileAnalyzer.count_lines(text_no_trailing) == 2
@@ -85,7 +86,8 @@ class TestTextFileAnalyzer:
         text = "Hello hello HELLO"
         pattern = r'hello'
 
-        results = TextFileAnalyzer.search_text(text, pattern, case_sensitive=True)
+        results = TextFileAnalyzer.search_text(
+            text, pattern, case_sensitive=True)
 
         assert results['count'] == 1
         assert results['matches'][0]['match'] == 'hello'
@@ -96,7 +98,8 @@ class TestTextFileAnalyzer:
         text = "Hello hello HELLO"
         pattern = r'hello'
 
-        results = TextFileAnalyzer.search_text(text, pattern, case_sensitive=False)
+        results = TextFileAnalyzer.search_text(
+            text, pattern, case_sensitive=False)
 
         assert results['count'] == 3
         assert results['case_sensitive'] is False

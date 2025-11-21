@@ -27,8 +27,16 @@ logger = get_logger(__name__)
 
 # Allowed image extensions
 ALLOWED_IMAGE_EXTENSIONS = {
-    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tif', '.tiff'
-}
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.svg',
+    '.bmp',
+    '.ico',
+    '.tif',
+    '.tiff'}
 
 # Allowed image MIME types
 ALLOWED_IMAGE_MIME_TYPES = {
@@ -60,8 +68,7 @@ ALLOWED_DOCUMENT_MIME_TYPES = {
     'application/vnd.oasis.opendocument.presentation',
     'text/markdown',
     'text/html',
-    'text/html; charset=iso-8859-1'
-}
+    'text/html; charset=iso-8859-1'}
 
 # Allowed audio extensions
 ALLOWED_AUDIO_EXTENSIONS = {
@@ -388,7 +395,8 @@ class URLValidator:
             for pattern in suspicious_query_patterns:
                 if pattern in query_lower:
                     logger.warning(
-                        f"Suspicious query parameter: {pattern} in {parsed.query}")
+                        f"Suspicious query parameter: {pattern} in {
+                            parsed.query}")
 
 
 class DNSValidator:
@@ -637,7 +645,8 @@ class ImageURLValidator:
 
             # Check query params for CDN URLs
             query = parsed.query.lower()
-            return any(ext.lstrip('.') in query for ext in ALLOWED_IMAGE_EXTENSIONS)
+            return any(
+                ext.lstrip('.') in query for ext in ALLOWED_IMAGE_EXTENSIONS)
         except Exception:
             return False
 
@@ -708,7 +717,8 @@ class ImageURLValidator:
         Raises:
             ValueError: If URL doesn't match any allowed pattern
         """
-        if not ImageURLValidator.check_url_against_patterns(url, allowed_patterns):
+        if not ImageURLValidator.check_url_against_patterns(
+                url, allowed_patterns):
             if error_message is None:
                 error_message = (
                     f"Image URL does not match allowed patterns. "
@@ -769,8 +779,7 @@ class ImageURLValidator:
                     # Check final URL has image extension
                     if not ImageURLValidator.has_image_extension(final_url):
                         raise ValueError(
-                            f"Redirected URL does not have image extension: {final_url}"
-                        )
+                            f"Redirected URL does not have image extension: {final_url}")
 
                     # Check final URL against allowed patterns (if provided)
                     if allowed_patterns is not None:
@@ -806,15 +815,16 @@ class ImageURLValidator:
                 try:
                     size_bytes = int(content_length)
                 except ValueError:
-                    logger.warning(f"Invalid Content-Length header: {content_length}")
+                    logger.warning(
+                        f"Invalid Content-Length header: {content_length}")
                 else:
                     # Only check size if conversion succeeded
                     size_mb = size_bytes / (1024 * 1024)
 
                     if size_mb > max_size_mb:
                         raise ValueError(
-                            f"Image too large: {size_mb:.2f}MB (max: {max_size_mb}MB)"
-                        )
+                            f"Image too large: {
+                                size_mb:.2f}MB (max: {max_size_mb}MB)")
 
             logger.debug(f"Image URL verified: {url} ({mime_type})")
             return True
@@ -969,7 +979,8 @@ class AttachmentURLValidator:
         Raises:
             ValueError: If URL doesn't have valid extension
         """
-        if not AttachmentURLValidator.has_valid_extension(url, attachment_type):
+        if not AttachmentURLValidator.has_valid_extension(
+                url, attachment_type):
             allowed_extensions = AttachmentURLValidator.TYPE_CONFIGS[attachment_type]['extensions']
             raise ValueError(
                 f"URL must have {attachment_type} extension. "
@@ -1005,7 +1016,8 @@ class AttachmentURLValidator:
 
         # Step 3: Optionally verify content
         if verify_content:
-            AttachmentURLValidator._verify_content(url, attachment_type, timeout)
+            AttachmentURLValidator._verify_content(
+                url, attachment_type, timeout)
 
     @staticmethod
     def _verify_content(url: str, attachment_type: str, timeout: int) -> bool:
@@ -1043,16 +1055,16 @@ class AttachmentURLValidator:
                     URLValidator.validate_url(final_url, allow_http=True)
 
                     # Check final URL has valid extension
-                    if not AttachmentURLValidator.has_valid_extension(final_url, attachment_type):
+                    if not AttachmentURLValidator.has_valid_extension(
+                            final_url, attachment_type):
                         raise ValueError(
-                            f"Redirected URL does not have {attachment_type} extension: {final_url}"
-                        )
+                            f"Redirected URL does not have {attachment_type} extension: {final_url}")
 
             # Check if request was successful
             if response.status_code >= 400:
                 raise ValueError(
-                    f"Attachment URL returned error status: {response.status_code}"
-                )
+                    f"Attachment URL returned error status: {
+                        response.status_code}")
 
             # Check Content-Type header
             content_type = response.headers.get('Content-Type', '').lower()
@@ -1070,7 +1082,8 @@ class AttachmentURLValidator:
             return True
 
         except requests.exceptions.Timeout:
-            raise ValueError(f"Attachment URL request timed out after {timeout}s")
+            raise ValueError(
+                f"Attachment URL request timed out after {timeout}s")
         except requests.exceptions.ConnectionError:
             raise ValueError("Failed to connect to attachment URL")
         except requests.exceptions.RequestException as e:

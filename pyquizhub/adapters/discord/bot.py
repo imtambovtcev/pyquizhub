@@ -44,7 +44,8 @@ class DiscordQuizBot(commands.Bot):
         self.api_base_url = api_base_url
         self.user_token = user_token
 
-        # Store user sessions: {user_id: {quiz_id, session_id, channel_id, awaiting_input}}
+        # Store user sessions: {user_id: {quiz_id, session_id, channel_id,
+        # awaiting_input}}
         self.user_sessions: dict[int, dict[str, Any]] = {}
 
         # Register commands
@@ -107,7 +108,8 @@ class DiscordQuizBot(commands.Bot):
                 "💡 **Tip:** If you're in the middle of answering a question, just type your answer - don't use commands!"
             )
 
-        @self.tree.command(name="quiz", description="Start a quiz with a token")
+        @self.tree.command(name="quiz",
+                           description="Start a quiz with a token")
         @app_commands.describe(token="The quiz token to start")
         async def quiz_command(interaction: discord.Interaction, token: str):
             """Handle /quiz command to start a quiz."""
@@ -150,9 +152,12 @@ class DiscordQuizBot(commands.Bot):
                 logger.error(f"Error starting quiz: {e}")
                 await interaction.followup.send(f"❌ Error: {str(e)}")
 
-        @self.tree.command(name="continue", description="Continue an unfinished quiz")
+        @self.tree.command(name="continue",
+                           description="Continue an unfinished quiz")
         @app_commands.describe(token="The quiz token to continue")
-        async def continue_command(interaction: discord.Interaction, token: str):
+        async def continue_command(
+                interaction: discord.Interaction,
+                token: str):
             """Handle /continue command to continue a quiz."""
             user_id = interaction.user.id
 
@@ -192,7 +197,8 @@ class DiscordQuizBot(commands.Bot):
                 logger.error(f"Error continuing quiz: {e}")
                 await interaction.followup.send(f"❌ Error: {str(e)}")
 
-        @self.tree.command(name="status", description="Check your active quiz session")
+        @self.tree.command(name="status",
+                           description="Check your active quiz session")
         async def status_command(interaction: discord.Interaction):
             """Handle /status command."""
             user_id = interaction.user.id
@@ -212,22 +218,29 @@ class DiscordQuizBot(commands.Bot):
                     "Use `/quiz <token>` to start a new quiz, or `/continue <token>` to resume an unfinished one."
                 )
 
-    async def send_question(self, channel: discord.abc.Messageable, question_data: dict) -> None:
+    async def send_question(
+            self,
+            channel: discord.abc.Messageable,
+            question_data: dict) -> None:
         """Send a question to the user."""
         question = question_data["data"]
         question_type = question.get("type")
         attachments = question.get("attachments", [])
 
         # Extract image attachments
-        image_attachments = [att for att in attachments if att.get("type") == "image"]
+        image_attachments = [
+            att for att in attachments if att.get("type") == "image"]
 
         # Check if it's a final message
         if question_type == "final_message":
-            final_text = f"🎉 {question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
+            final_text = f"🎉 {
+                question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
 
             if image_attachments:
                 # Send first image as embed
-                embed = discord.Embed(description=final_text, color=discord.Color.green())
+                embed = discord.Embed(
+                    description=final_text,
+                    color=discord.Color.green())
                 embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed)
 
@@ -243,7 +256,7 @@ class DiscordQuizBot(commands.Bot):
 
             # Clear session for all users in this channel
             users_to_clear = [uid for uid, sess in self.user_sessions.items()
-                            if sess.get("channel_id") == channel.id]
+                              if sess.get("channel_id") == channel.id]
             for uid in users_to_clear:
                 del self.user_sessions[uid]
             return
@@ -257,7 +270,8 @@ class DiscordQuizBot(commands.Bot):
             view = QuizButtonView(self, question["options"])
 
             if image_attachments:
-                embed = discord.Embed(description=text, color=discord.Color.blue())
+                embed = discord.Embed(
+                    description=text, color=discord.Color.blue())
                 embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed, view=view)
 
@@ -276,7 +290,8 @@ class DiscordQuizBot(commands.Bot):
             view = QuizButtonView(self, question["options"])
 
             if image_attachments:
-                embed = discord.Embed(description=text, color=discord.Color.blue())
+                embed = discord.Embed(
+                    description=text, color=discord.Color.blue())
                 embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed, view=view)
 
@@ -300,10 +315,12 @@ class DiscordQuizBot(commands.Bot):
                 "float": "decimal number",
                 "text": "text",
             }
-            text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
+            text += f"\n💡 Please type your answer ({
+                type_hint[question_type]}):"
 
             if image_attachments:
-                embed = discord.Embed(description=text, color=discord.Color.blue())
+                embed = discord.Embed(
+                    description=text, color=discord.Color.blue())
                 embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed)
 
@@ -325,7 +342,9 @@ class DiscordQuizBot(commands.Bot):
             text_with_hint = text + "\n💡 Please type your answer:"
 
             if image_attachments:
-                embed = discord.Embed(description=text_with_hint, color=discord.Color.blue())
+                embed = discord.Embed(
+                    description=text_with_hint,
+                    color=discord.Color.blue())
                 embed.set_image(url=image_attachments[0]["url"])
                 await channel.send(embed=embed)
 

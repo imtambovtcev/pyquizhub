@@ -160,7 +160,10 @@ class FileValidator:
 
         # Initialize python-magic if available and enabled
         file_storage = getattr(config, 'file_storage', None)
-        validation = getattr(file_storage, 'validation', None) if file_storage else None
+        validation = getattr(
+            file_storage,
+            'validation',
+            None) if file_storage else None
         magic_check = getattr(validation, 'magic_number_check', False)
 
         if HAS_MAGIC and magic_check:
@@ -209,12 +212,14 @@ class FileValidator:
 
             # 3. Check if category is enabled
             if not self._is_category_enabled(category):
-                return False, f"File type '{category.value}' is not allowed by configuration", metadata
+                return False, f"File type '{
+                    category.value}' is not allowed by configuration", metadata
 
             # 4. Check file extension against allowed list
             ext = Path(filename).suffix.lower().lstrip('.')
             if not self._is_extension_allowed(category, ext):
-                return False, f"File extension '.{ext}' is not allowed for {category.value}", metadata
+                return False, f"File extension '.{ext}' is not allowed for {
+                    category.value}", metadata
 
             metadata["extension"] = ext
 
@@ -229,12 +234,17 @@ class FileValidator:
             if size_bytes > max_size:
                 size_mb = size_bytes / (1024 * 1024)
                 max_mb = max_size / (1024 * 1024)
-                return False, f"File too large ({size_mb:.2f} MB, max {max_mb:.2f} MB)", metadata
+                return False, f"File too large ({
+                    size_mb:.2f} MB, max {
+                    max_mb:.2f} MB)", metadata
 
             # 6. Verify MIME type
             mime_type = None
             file_storage = getattr(self.config, 'file_storage', None)
-            validation = getattr(file_storage, 'validation', None) if file_storage else None
+            validation = getattr(
+                file_storage,
+                'validation',
+                None) if file_storage else None
             mime_validation = getattr(validation, 'mime_type_validation', True)
 
             if mime_validation:
@@ -242,10 +252,14 @@ class FileValidator:
                 metadata["mime_type"] = mime_type
 
                 if not self._is_mime_type_allowed(category, mime_type):
-                    return False, f"MIME type '{mime_type}' not allowed for {category.value}", metadata
+                    return False, f"MIME type '{mime_type}' not allowed for {
+                        category.value}", metadata
 
             # 7. Check magic numbers (file header)
-            magic_check = getattr(validation, 'magic_number_check', False) if validation else False
+            magic_check = getattr(
+                validation,
+                'magic_number_check',
+                False) if validation else False
 
             if magic_check:
                 if not self._verify_magic_number(file_data, ext):
@@ -256,8 +270,12 @@ class FileValidator:
             # SVG - XSS risk
             if category == FileTypeCategory.IMAGES and ext == "svg":
                 file_storage = getattr(self.config, 'file_storage', None)
-                allowed_types = getattr(file_storage, 'allowed_types', None) if file_storage else None
-                images_config = getattr(allowed_types, 'images', None) if allowed_types else None
+                allowed_types = getattr(
+                    file_storage,
+                    'allowed_types',
+                    None) if file_storage else None
+                images_config = getattr(
+                    allowed_types, 'images', None) if allowed_types else None
                 allow_svg = getattr(images_config, 'allow_svg', False)
 
                 if not allow_svg:
@@ -267,9 +285,12 @@ class FileValidator:
             if category == FileTypeCategory.DOCUMENTS:
                 if ext in ["doc", "docx", "xls", "xlsx", "ppt", "pptx"]:
                     file_storage = getattr(self.config, 'file_storage', None)
-                    allowed_types = getattr(file_storage, 'allowed_types', None) if file_storage else None
-                    docs_config = getattr(allowed_types, 'documents', None) if allowed_types else None
-                    allow_macros = getattr(docs_config, 'allow_office_macros', False)
+                    allowed_types = getattr(
+                        file_storage, 'allowed_types', None) if file_storage else None
+                    docs_config = getattr(
+                        allowed_types, 'documents', None) if allowed_types else None
+                    allow_macros = getattr(
+                        docs_config, 'allow_office_macros', False)
 
                     if not allow_macros:
                         # We can't reliably detect macros without oletools library
@@ -284,7 +305,10 @@ class FileValidator:
 
             # 9. Calculate checksum if enabled
             file_storage = getattr(self.config, 'file_storage', None)
-            validation = getattr(file_storage, 'validation', None) if file_storage else None
+            validation = getattr(
+                file_storage,
+                'validation',
+                None) if file_storage else None
             calc_checksum = getattr(validation, 'calculate_checksum', False)
 
             if calc_checksum:
@@ -309,7 +333,10 @@ class FileValidator:
         """
         # Check length
         file_storage = getattr(self.config, 'file_storage', None)
-        validation = getattr(file_storage, 'validation', None) if file_storage else None
+        validation = getattr(
+            file_storage,
+            'validation',
+            None) if file_storage else None
         max_length = getattr(validation, 'max_filename_length', 255)
 
         if len(filename) > max_length:
@@ -377,7 +404,10 @@ class FileValidator:
 
         return getattr(category_config, 'enabled', True)
 
-    def _is_extension_allowed(self, category: FileTypeCategory, ext: str) -> bool:
+    def _is_extension_allowed(
+            self,
+            category: FileTypeCategory,
+            ext: str) -> bool:
         """
         Check if specific extension is allowed for category.
 
@@ -389,8 +419,14 @@ class FileValidator:
             True if extension is allowed
         """
         file_storage = getattr(self.config, 'file_storage', None)
-        allowed_types = getattr(file_storage, 'allowed_types', None) if file_storage else None
-        category_config = getattr(allowed_types, category.value, None) if allowed_types else None
+        allowed_types = getattr(
+            file_storage,
+            'allowed_types',
+            None) if file_storage else None
+        category_config = getattr(
+            allowed_types,
+            category.value,
+            None) if allowed_types else None
 
         # Default allowed formats per category
         default_formats = {
@@ -401,7 +437,12 @@ class FileValidator:
             FileTypeCategory.ARCHIVES: ["zip"],
         }
 
-        allowed_formats = getattr(category_config, 'formats', default_formats.get(category, []))
+        allowed_formats = getattr(
+            category_config,
+            'formats',
+            default_formats.get(
+                category,
+                []))
 
         # Handle compound extensions
         if ext == "gz":
@@ -421,8 +462,14 @@ class FileValidator:
             Maximum size in bytes
         """
         file_storage = getattr(self.config, 'file_storage', None)
-        allowed_types = getattr(file_storage, 'allowed_types', None) if file_storage else None
-        category_config = getattr(allowed_types, category.value, None) if allowed_types else None
+        allowed_types = getattr(
+            file_storage,
+            'allowed_types',
+            None) if file_storage else None
+        category_config = getattr(
+            allowed_types,
+            category.value,
+            None) if allowed_types else None
 
         # Default max sizes per category (in MB)
         default_sizes = {
@@ -433,7 +480,12 @@ class FileValidator:
             FileTypeCategory.ARCHIVES: 50,
         }
 
-        max_size_mb = getattr(category_config, 'max_size_mb', default_sizes.get(category, 10))
+        max_size_mb = getattr(
+            category_config,
+            'max_size_mb',
+            default_sizes.get(
+                category,
+                10))
         return max_size_mb * 1024 * 1024  # Convert to bytes
 
     def _detect_mime_type(self, file_data: BinaryIO, filename: str) -> str:
@@ -469,7 +521,10 @@ class FileValidator:
 
         return mime_type
 
-    def _is_mime_type_allowed(self, category: FileTypeCategory, mime_type: str) -> bool:
+    def _is_mime_type_allowed(
+            self,
+            category: FileTypeCategory,
+            mime_type: str) -> bool:
         """
         Check if MIME type is allowed for category.
 
@@ -525,7 +580,8 @@ class FileValidator:
 
         return False
 
-    def _is_archive_safe(self, file_data: BinaryIO, ext: str) -> tuple[bool, str | None]:
+    def _is_archive_safe(self, file_data: BinaryIO,
+                         ext: str) -> tuple[bool, str | None]:
         """
         Check if archive is safe (no zip bombs, path traversal).
 
@@ -551,31 +607,43 @@ class FileValidator:
 
             with zipfile.ZipFile(file_data, 'r') as zf:
                 # Check for zip bomb (decompression ratio)
-                compressed_size = sum(info.compress_size for info in zf.infolist())
-                uncompressed_size = sum(info.file_size for info in zf.infolist())
+                compressed_size = sum(
+                    info.compress_size for info in zf.infolist())
+                uncompressed_size = sum(
+                    info.file_size for info in zf.infolist())
 
                 file_storage = getattr(self.config, 'file_storage', None)
-                allowed_types = getattr(file_storage, 'allowed_types', None) if file_storage else None
-                archives_config = getattr(allowed_types, 'archives', None) if allowed_types else None
-                max_decompressed_mb = getattr(archives_config, 'max_decompressed_size_mb', 100)
+                allowed_types = getattr(
+                    file_storage,
+                    'allowed_types',
+                    None) if file_storage else None
+                archives_config = getattr(
+                    allowed_types, 'archives', None) if allowed_types else None
+                max_decompressed_mb = getattr(
+                    archives_config, 'max_decompressed_size_mb', 100)
 
                 max_decompressed_bytes = max_decompressed_mb * 1024 * 1024
 
                 if uncompressed_size > max_decompressed_bytes:
-                    return False, f"Archive too large when decompressed ({uncompressed_size / (1024*1024):.1f} MB, max {max_decompressed_mb} MB)"
+                    return False, f"Archive too large when decompressed ({
+                        uncompressed_size / (
+                            1024 * 1024):.1f} MB, max {max_decompressed_mb} MB)"
 
                 # Check decompression ratio (warn if > 100:1)
                 if compressed_size > 0:
                     ratio = uncompressed_size / compressed_size
                     if ratio > 100:
-                        return False, f"Suspicious compression ratio ({ratio:.1f}:1, possible zip bomb)"
+                        return False, f"Suspicious compression ratio ({
+                            ratio:.1f}:1, possible zip bomb)"
 
                 # Check for path traversal in filenames
                 for info in zf.infolist():
                     # Normalize path and check for ..
                     normalized = os.path.normpath(info.filename)
-                    if normalized.startswith("..") or os.path.isabs(normalized):
-                        return False, f"Archive contains unsafe path: {info.filename}"
+                    if normalized.startswith(
+                            "..") or os.path.isabs(normalized):
+                        return False, f"Archive contains unsafe path: {
+                            info.filename}"
 
             file_data.seek(0)
             return True, None
@@ -596,7 +664,10 @@ class FileValidator:
             Checksum string in format "algorithm:hexdigest"
         """
         file_storage = getattr(self.config, 'file_storage', None)
-        validation = getattr(file_storage, 'validation', None) if file_storage else None
+        validation = getattr(
+            file_storage,
+            'validation',
+            None) if file_storage else None
         algo = getattr(validation, 'checksum_algorithm', 'sha256')
 
         try:

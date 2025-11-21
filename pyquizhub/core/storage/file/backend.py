@@ -154,7 +154,10 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def get_download_url(self, file_id: str, expiry_seconds: int = 3600) -> str:
+    async def get_download_url(
+            self,
+            file_id: str,
+            expiry_seconds: int = 3600) -> str:
         """
         Get temporary download URL for file.
 
@@ -171,7 +174,10 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def get_quota_usage(self, user_id: str | None = None, quiz_id: str | None = None) -> int:
+    async def get_quota_usage(
+            self,
+            user_id: str | None = None,
+            quiz_id: str | None = None) -> int:
         """
         Get storage quota usage in bytes.
 

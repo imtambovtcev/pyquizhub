@@ -536,7 +536,7 @@ class FileStorageManager(StorageManager):
                     if (session_data and
                         session_data.get("quiz_id") == quiz_id and
                         session_data.get("user_id") == user_id and
-                        session_id not in session_ids):
+                            session_id not in session_ids):
                         session_ids.append(session_id)
 
         return session_ids

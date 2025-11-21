@@ -89,7 +89,10 @@ class LocalStorageBackend(StorageBackend):
 
         self._db_initialized = True
 
-    def _generate_storage_path(self, file_id: str, extension: str | None) -> Path:
+    def _generate_storage_path(
+            self,
+            file_id: str,
+            extension: str | None) -> Path:
         """
         Generate storage path for file.
 
@@ -327,7 +330,10 @@ class LocalStorageBackend(StorageBackend):
                     extension=row[8],
                 )
 
-    async def get_download_url(self, file_id: str, expiry_seconds: int = 3600) -> str:
+    async def get_download_url(
+            self,
+            file_id: str,
+            expiry_seconds: int = 3600) -> str:
         """
         Get download URL for file.
 

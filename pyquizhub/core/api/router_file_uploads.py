@@ -71,7 +71,8 @@ def get_file_manager(request: Request) -> FileManager:
         validator = FileValidator(config)
 
         # Create file manager
-        request.app.state.file_manager = FileManager(storage_backend, validator, config)
+        request.app.state.file_manager = FileManager(
+            storage_backend, validator, config)
 
     return request.app.state.file_manager
 
@@ -150,7 +151,9 @@ async def upload_file(
     # Verify authorization
     user_id, role = verify_token(request=request)
 
-    logger.info(f"File upload request: user={user_id}, role={role}, filename={file.filename}, quiz_id={quiz_id}")
+    logger.info(
+        f"File upload request: user={user_id}, role={role}, filename={
+            file.filename}, quiz_id={quiz_id}")
 
     # Read file content
     try:
@@ -173,7 +176,10 @@ async def upload_file(
             quiz_id=quiz_id,
         )
 
-        logger.info(f"File uploaded successfully: file_id={metadata.file_id}, size={metadata.size_bytes}")
+        logger.info(
+            f"File uploaded successfully: file_id={
+                metadata.file_id}, size={
+                metadata.size_bytes}")
 
         # Get download URL
         download_url = await file_manager.get_download_url(
@@ -251,7 +257,8 @@ async def download_file(
     # Verify authorization
     user_id, role = verify_token(request=request)
 
-    logger.info(f"File download request: file_id={file_id}, user={user_id}, role={role}")
+    logger.info(
+        f"File download request: file_id={file_id}, user={user_id}, role={role}")
 
     # Get file
     try:
@@ -261,7 +268,9 @@ async def download_file(
             requester_role=role,
         )
 
-        logger.info(f"File downloaded: file_id={file_id}, filename={metadata.filename}")
+        logger.info(
+            f"File downloaded: file_id={file_id}, filename={
+                metadata.filename}")
 
         # Security headers
         headers = {
@@ -316,7 +325,8 @@ async def delete_file(
     # Verify authorization
     user_id, role = verify_token(request=request)
 
-    logger.info(f"File deletion request: file_id={file_id}, user={user_id}, role={role}")
+    logger.info(
+        f"File deletion request: file_id={file_id}, user={user_id}, role={role}")
 
     # Delete file
     try:
@@ -486,7 +496,8 @@ async def analyze_text_file(
             detail="max_matches must be between 1 and 1000"
         )
 
-    logger.info(f"Text analysis request: file_id={file_id}, pattern={pattern}, user={user_id}")
+    logger.info(
+        f"Text analysis request: file_id={file_id}, pattern={pattern}, user={user_id}")
 
     # Retrieve file
     try:

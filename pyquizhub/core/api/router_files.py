@@ -36,7 +36,8 @@ def get_file_storage(request: Request):
             request.app.state.file_storage = SQLFileStorage(connection_string)
         else:  # file storage
             base_dir = request.app.state.config_manager.storage_file_base_dir
-            request.app.state.file_storage = FileBasedFileStorage(f"{base_dir}/files")
+            request.app.state.file_storage = FileBasedFileStorage(
+                f"{base_dir}/files")
 
     return request.app.state.file_storage
 
@@ -74,7 +75,8 @@ async def get_file_metadata(
 async def download_file(
     file_id: str,
     request: Request,
-    adapter: str = "api",  # Which adapter is requesting (telegram/discord/web/api)
+    # Which adapter is requesting (telegram/discord/web/api)
+    adapter: str = "api",
     file_storage=Depends(get_file_storage)
 ):
     """

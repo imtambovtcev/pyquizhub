@@ -52,7 +52,8 @@ def docker_services() -> Generator[None, None, None]:
 
     yield
 
-    # Note: We don't tear down services here as they may be used across multiple test sessions
+    # Note: We don't tear down services here as they may be used across
+    # multiple test sessions
 
 
 @pytest.fixture

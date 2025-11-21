@@ -89,9 +89,21 @@ def test_url(url, format_name):
         }
 
     except requests.exceptions.Timeout:
-        return {"url": url, "status": "❌ TIMEOUT", "size": None, "size_bytes": None, "content_type": None}
+        return {
+            "url": url,
+            "status": "❌ TIMEOUT",
+            "size": None,
+            "size_bytes": None,
+            "content_type": None}
     except Exception as e:
-        return {"url": url, "status": f"❌ {str(e)[:50]}", "size": None, "size_bytes": None, "content_type": None}
+        return {
+            "url": url,
+            "status": f"❌ {
+                str(e)[
+                    :50]}",
+            "size": None,
+            "size_bytes": None,
+            "content_type": None}
 
 
 def main():
@@ -100,9 +112,9 @@ def main():
     results = {}
 
     for format_name, urls in ALTERNATIVE_URLS.items():
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Testing: {format_name.upper()}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         format_results = []
 
@@ -127,9 +139,9 @@ def main():
             print(f"\n  ❌ NO WORKING URLS FOUND FOR {format_name}")
 
     # Print summary
-    print("\n\n" + "="*60)
+    print("\n\n" + "=" * 60)
     print("SUMMARY - BEST REPLACEMENT URLs")
-    print("="*60)
+    print("=" * 60)
 
     for format_name, result in results.items():
         print(f"\n{format_name.upper()}:")

@@ -45,20 +45,32 @@ class TelegramQuizBot:
         self.application = Application.builder().token(token).build()
 
         # Register handlers
-        self.application.add_handler(CommandHandler("start", self.start_command))
+        self.application.add_handler(
+            CommandHandler(
+                "start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
         self.application.add_handler(CommandHandler("quiz", self.quiz_command))
-        self.application.add_handler(CommandHandler("continue", self.continue_command))
-        self.application.add_handler(CommandHandler("status", self.status_command))
-        self.application.add_handler(CallbackQueryHandler(self.button_callback))
+        self.application.add_handler(
+            CommandHandler(
+                "continue",
+                self.continue_command))
+        self.application.add_handler(
+            CommandHandler(
+                "status",
+                self.status_command))
+        self.application.add_handler(
+            CallbackQueryHandler(
+                self.button_callback))
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self.text_message)
         )
         self.application.add_handler(
-            MessageHandler(filters.PHOTO | filters.Document.ALL, self.file_message)
-        )
+            MessageHandler(
+                filters.PHOTO | filters.Document.ALL,
+                self.file_message))
 
-        # Store user sessions: {user_id: {quiz_id, session_id, quiz_token, awaiting_input}}
+        # Store user sessions: {user_id: {quiz_id, session_id, quiz_token,
+        # awaiting_input}}
         self.user_sessions: dict[int, dict[str, Any]] = {}
 
     async def start_command(
@@ -107,7 +119,8 @@ class TelegramQuizBot:
         quiz_token = context.args[0]
         user_id = update.effective_user.id
 
-        # Call start_quiz API - it will automatically resume if there's an active session
+        # Call start_quiz API - it will automatically resume if there's an
+        # active session
         try:
             response = requests.post(
                 f"{self.api_base_url}/quiz/start_quiz",
@@ -211,7 +224,14 @@ class TelegramQuizBot:
                 "Use /quiz <token> to start a new quiz, or /continue <token> to resume an unfinished one."
             )
 
-    async def download_and_send_file(self, update: Update, url: str, attachment_type: str, format_type: str, caption: str | None = None, reply_markup=None) -> bool:
+    async def download_and_send_file(
+            self,
+            update: Update,
+            url: str,
+            attachment_type: str,
+            format_type: str,
+            caption: str | None = None,
+            reply_markup=None) -> bool:
         """
         Download a file and upload it to Telegram (fallback when URL sending fails).
 
@@ -255,11 +275,26 @@ class TelegramQuizBot:
                 return False
 
             # Block private IP ranges (basic check)
-            if hostname.startswith(('10.', '172.16.', '172.17.', '172.18.', '172.19.',
-                                   '172.20.', '172.21.', '172.22.', '172.23.',
-                                   '172.24.', '172.25.', '172.26.', '172.27.',
-                                   '172.28.', '172.29.', '172.30.', '172.31.',
-                                   '192.168.', '169.254.')):
+            if hostname.startswith(
+                ('10.',
+                 '172.16.',
+                 '172.17.',
+                 '172.18.',
+                 '172.19.',
+                 '172.20.',
+                 '172.21.',
+                 '172.22.',
+                 '172.23.',
+                 '172.24.',
+                 '172.25.',
+                 '172.26.',
+                 '172.27.',
+                 '172.28.',
+                 '172.29.',
+                 '172.30.',
+                 '172.31.',
+                 '192.168.',
+                 '169.254.')):
                 logger.error(f"Blocked private IP URL: {url}")
                 return False
 
@@ -275,13 +310,16 @@ class TelegramQuizBot:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
                     if response.status != 200:
-                        logger.error(f"Failed to download file from {url}: HTTP {response.status}")
+                        logger.error(
+                            f"Failed to download file from {url}: HTTP {
+                                response.status}")
                         return False
 
                     # Check Content-Length header if available
                     content_length = response.headers.get('Content-Length')
                     if content_length and int(content_length) > MAX_FILE_SIZE:
-                        logger.error(f"File too large: {content_length} bytes (max {MAX_FILE_SIZE})")
+                        logger.error(
+                            f"File too large: {content_length} bytes (max {MAX_FILE_SIZE})")
                         return False
 
                     # Get filename from URL or use format
@@ -296,7 +334,8 @@ class TelegramQuizBot:
                         async for chunk in response.content.iter_chunked(8192):
                             downloaded_size += len(chunk)
                             if downloaded_size > MAX_FILE_SIZE:
-                                logger.error(f"File exceeded size limit during download: {downloaded_size} bytes")
+                                logger.error(
+                                    f"File exceeded size limit during download: {downloaded_size} bytes")
                                 if os.path.exists(tmp_path):
                                     os.remove(tmp_path)
                                 return False
@@ -349,7 +388,8 @@ class TelegramQuizBot:
                             filename=filename
                         )
 
-                logger.info(f"Successfully sent {attachment_type} (format: {format_type}) via file upload")
+                logger.info(
+                    f"Successfully sent {attachment_type} (format: {format_type}) via file upload")
                 return True
 
             finally:
@@ -361,7 +401,12 @@ class TelegramQuizBot:
             logger.error(f"Failed to download and send file: {e}")
             return False
 
-    async def send_attachment(self, update: Update, attachment: dict, caption: str | None = None, reply_markup=None) -> bool:
+    async def send_attachment(
+            self,
+            update: Update,
+            attachment: dict,
+            caption: str | None = None,
+            reply_markup=None) -> bool:
         """
         Send an attachment using the appropriate Telegram method based on attachment type and format.
 
@@ -431,15 +476,20 @@ class TelegramQuizBot:
             return True
 
         except Exception as e:
-            # If URL sending failed, try downloading and uploading the file (if enabled)
+            # If URL sending failed, try downloading and uploading the file (if
+            # enabled)
             import os
-            enable_download = os.getenv('TELEGRAM_ENABLE_FILE_DOWNLOAD', 'false').lower() == 'true'
+            enable_download = os.getenv(
+                'TELEGRAM_ENABLE_FILE_DOWNLOAD',
+                'false').lower() == 'true'
 
             if enable_download:
-                logger.info(f"URL sending failed for {attachment_type} (format: {format_type}): {e}. Trying file upload...")
+                logger.info(
+                    f"URL sending failed for {attachment_type} (format: {format_type}): {e}. Trying file upload...")
                 return await self.download_and_send_file(update, url, attachment_type, format_type, caption, reply_markup)
             else:
-                logger.warning(f"URL sending failed for {attachment_type} (format: {format_type}): {e}. File download is disabled. Enable with TELEGRAM_ENABLE_FILE_DOWNLOAD=true")
+                logger.warning(
+                    f"URL sending failed for {attachment_type} (format: {format_type}): {e}. File download is disabled. Enable with TELEGRAM_ENABLE_FILE_DOWNLOAD=true")
                 return False
 
     async def send_question(self, update: Update, question_data: dict) -> None:
@@ -451,10 +501,12 @@ class TelegramQuizBot:
         # Check if it's a final message
         if question_type == "final_message":
             # Send final message with attachments if present
-            final_text = f"🎉 {question['text']}\n\nQuiz completed! Use /quiz to start another quiz."
+            final_text = f"🎉 {
+                question['text']}\n\nQuiz completed! Use /quiz to start another quiz."
 
             if attachments:
-                # Send first attachment with caption, then remaining attachments
+                # Send first attachment with caption, then remaining
+                # attachments
                 sent = await self.send_attachment(update, attachments[0], final_text)
                 if not sent:
                     # Fallback to text only if first attachment fails
@@ -542,7 +594,8 @@ class TelegramQuizBot:
                 "float": "decimal number",
                 "text": "text",
             }
-            text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
+            text += f"\n💡 Please type your answer ({
+                type_hint[question_type]}):"
 
             # Send with attachments if available
             if attachments:

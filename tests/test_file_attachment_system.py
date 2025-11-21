@@ -204,9 +204,12 @@ class TestFileAttachment:
         attachment = FileAttachment(metadata)
 
         # Public URL - safe to return to any adapter
-        assert attachment.get_url_for_adapter("telegram") == "https://i.imgur.com/abc123.png"
-        assert attachment.get_url_for_adapter("discord") == "https://i.imgur.com/abc123.png"
-        assert attachment.get_url_for_adapter("web") == "https://i.imgur.com/abc123.png"
+        assert attachment.get_url_for_adapter(
+            "telegram") == "https://i.imgur.com/abc123.png"
+        assert attachment.get_url_for_adapter(
+            "discord") == "https://i.imgur.com/abc123.png"
+        assert attachment.get_url_for_adapter(
+            "web") == "https://i.imgur.com/abc123.png"
 
     def test_to_safe_dict_never_exposes_platform_data(self):
         """Test that FileAttachment.to_safe_dict never exposes sensitive data."""
@@ -348,7 +351,8 @@ class TestFileStorage:
             platform="url",
             platform_data={"url": "https://example.com/expired.jpg"},
             user_id="user_123",
-            expires_at=datetime.now(timezone.utc) - timedelta(days=1)  # Expired yesterday
+            expires_at=datetime.now(timezone.utc) -
+            timedelta(days=1)  # Expired yesterday
         )
         storage_backend.store_file_metadata(expired_metadata)
 
@@ -358,7 +362,8 @@ class TestFileStorage:
             platform="url",
             platform_data={"url": "https://example.com/active.jpg"},
             user_id="user_123",
-            expires_at=datetime.now(timezone.utc) + timedelta(days=1)  # Expires tomorrow
+            expires_at=datetime.now(timezone.utc) +
+            timedelta(days=1)  # Expires tomorrow
         )
         storage_backend.store_file_metadata(active_metadata)
 
@@ -368,10 +373,12 @@ class TestFileStorage:
         assert deleted_count == 1
 
         # Verify expired file is gone
-        assert storage_backend.get_file_metadata(expired_metadata.file_id) is None
+        assert storage_backend.get_file_metadata(
+            expired_metadata.file_id) is None
 
         # Verify active file still exists
-        assert storage_backend.get_file_metadata(active_metadata.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            active_metadata.file_id) is not None
 
     def test_get_storage_stats(self, storage_backend):
         """Test getting storage statistics."""
