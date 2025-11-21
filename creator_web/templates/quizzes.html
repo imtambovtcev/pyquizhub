@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}My Quizzes - PyQuizHub Creator{% endblock %}
+
+{% block content %}
+<div class="quizzes-page">
+    <div class="page-header">
+        <h2>My Quizzes</h2>
+        <a href="/quiz/create" class="btn btn-primary">Create New Quiz</a>
+    </div>
+
+    <div id="quizzes-list" class="quizzes-grid">
+        <p class="loading">Loading quizzes...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadQuizzes();
+});
+
+async function loadQuizzes() {
+    try {
+        const response = await fetch('/api/quizzes');
+        const data = await response.json();
+
+        const container = document.getElementById('quizzes-list');
+
+        if (!data.quizzes || Object.keys(data.quizzes).length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>You haven't created any quizzes yet.</p>
+                    <a href="/quiz/create" class="btn btn-primary">Create Your First Quiz</a>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        for (const [quizId, quiz] of Object.entries(data.quizzes)) {
+            const card = createQuizCard(quizId, quiz);
+            container.appendChild(card);
+        }
+    } catch (error) {
+        console.error('Failed to load quizzes:', error);
+        document.getElementById('quizzes-list').innerHTML =
+            '<p class="error">Failed to load quizzes. Please try again.</p>';
+    }
+}
+
+function createQuizCard(quizId, quiz) {
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+    card.innerHTML = `
+        <h3>${quiz.metadata?.title || quizId}</h3>
+        <p class="quiz-description">${quiz.metadata?.description || 'No description'}</p>
+        <div class="quiz-meta">
+            <span>Questions: ${quiz.questions?.length || 0}</span>
+        </div>
+        <div class="quiz-actions">
+            <a href="/quiz/${quizId}" class="btn btn-small">View Details</a>
+            <a href="/quiz/${quizId}/statistics" class="btn btn-small btn-secondary">Statistics</a>
+        </div>
+    `;
+    return card;
+}
+</script>
+{% endblock %}

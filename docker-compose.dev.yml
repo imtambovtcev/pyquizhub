@@ -5,12 +5,35 @@
 # - Volume mounts for live code reloading
 # - Debug mode enabled
 # - All adapters and services
+# - Auto-initialization with test quizzes and creator account
 #
 # Usage:
 #   docker compose -f docker-compose.dev.yml up
 #   docker compose -f docker-compose.dev.yml down -v  # Clean database
+#
+# Default creator login (http://localhost:9001):
+#   Creator ID: dev_creator
+#   Password: creator123
 
 services:
+  # Development initialization - uploads test quizzes and creates default creator
+  dev-init:
+    build: .
+    command: poetry run python scripts/dev_init.py
+    environment:
+      - PYQUIZHUB_API_URL=http://api:8000
+      - PYQUIZHUB_ADMIN_TOKEN=${PYQUIZHUB_ADMIN_TOKEN}
+      - DEFAULT_CREATOR_ID=dev_creator
+      - DEFAULT_CREATOR_PASSWORD=${CREATOR_PASSWORD:-creator123}
+    volumes:
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: "no"
+
   api:
     build: .
     ports:
@@ -57,6 +80,25 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
     volumes:
       - ./admin_web:/app/admin_web  # Live code reloading
+    depends_on:
+      - api
+    networks:
+      - pyquizhub-network
+    restart: unless-stopped
+
+  creator-web:
+    build:
+      context: .
+      dockerfile: creator_web/Dockerfile
+    ports:
+      - "9001:9001"
+    environment:
+      - PYQUIZHUB_API_URL=http://api:8000
+      - PYQUIZHUB_CREATOR_TOKEN=${PYQUIZHUB_CREATOR_TOKEN}
+      - CREATOR_PORT=9001
+      - CREATOR_PASSWORD=${CREATOR_PASSWORD:-creator123}
+    volumes:
+      - ./creator_web:/app/creator_web  # Live code reloading
     depends_on:
       - api
     networks:

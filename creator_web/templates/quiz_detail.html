@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Details - PyQuizHub Creator{% endblock %}
+
+{% block content %}
+<div class="quiz-detail-page">
+    <div class="page-header">
+        <h2 id="quiz-title">Loading...</h2>
+        <div class="header-actions">
+            <a href="/quiz/{{ quiz_id }}/statistics" class="btn btn-secondary">View Statistics</a>
+        </div>
+    </div>
+
+    <div class="quiz-info">
+        <div class="info-section">
+            <h3>Quiz Information</h3>
+            <dl id="quiz-metadata">
+                <dt>Quiz ID</dt>
+                <dd><code>{{ quiz_id }}</code></dd>
+            </dl>
+        </div>
+
+        <div class="info-section">
+            <h3>Quick Stats</h3>
+            <div class="mini-stats">
+                <div class="mini-stat">
+                    <span class="value" id="stat-questions">-</span>
+                    <span class="label">Questions</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="value" id="stat-participants">-</span>
+                    <span class="label">Participants</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="value" id="stat-completions">-</span>
+                    <span class="label">Completions</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="token-section">
+        <h3>Generate Access Token</h3>
+        <div class="token-form">
+            <select id="token-type">
+                <option value="permanent">Permanent</option>
+                <option value="single-use">Single Use</option>
+            </select>
+            <button id="generate-token-btn" class="btn btn-primary">Generate Token</button>
+        </div>
+        <div id="token-result" class="token-result hidden"></div>
+    </div>
+
+    <div class="participants-section">
+        <h3>Recent Participants</h3>
+        <div id="participants-list" class="participants-list">
+            <p class="loading">Loading participants...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const QUIZ_ID = '{{ quiz_id }}';
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadQuizDetails();
+    loadParticipants();
+
+    document.getElementById('generate-token-btn').addEventListener('click', generateToken);
+});
+
+async function loadQuizDetails() {
+    try {
+        const response = await fetch(`/api/quiz/${QUIZ_ID}`);
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById('quiz-title').textContent = data.title || QUIZ_ID;
+
+            const metadata = document.getElementById('quiz-metadata');
+            metadata.innerHTML = `
+                <dt>Quiz ID</dt>
+                <dd><code>${QUIZ_ID}</code></dd>
+                <dt>Title</dt>
+                <dd>${data.title || 'Untitled'}</dd>
+                <dt>Description</dt>
+                <dd>${data.data?.metadata?.description || 'No description'}</dd>
+                <dt>Creator</dt>
+                <dd>${data.creator_id || 'Unknown'}</dd>
+            `;
+
+            document.getElementById('stat-questions').textContent =
+                data.data?.questions?.length || 0;
+        }
+    } catch (error) {
+        console.error('Failed to load quiz details:', error);
+    }
+
+    // Load statistics
+    try {
+        const statsResponse = await fetch(`/api/quiz/${QUIZ_ID}/statistics`);
+        const stats = await statsResponse.json();
+
+        if (statsResponse.ok) {
+            document.getElementById('stat-participants').textContent = stats.total_participants || 0;
+            document.getElementById('stat-completions').textContent = stats.total_completions || 0;
+        }
+    } catch (error) {
+        console.error('Failed to load statistics:', error);
+    }
+}
+
+async function loadParticipants() {
+    try {
+        const response = await fetch(`/api/quiz/${QUIZ_ID}/participants`);
+        const data = await response.json();
+
+        const container = document.getElementById('participants-list');
+
+        if (!data.user_ids || data.user_ids.length === 0) {
+            container.innerHTML = '<p class="empty-state">No participants yet.</p>';
+            return;
+        }
+
+        container.innerHTML = data.user_ids.slice(0, 10).map(userId => `
+            <div class="participant-item">
+                <span class="user-id">${userId}</span>
+            </div>
+        `).join('');
+
+        if (data.user_ids.length > 10) {
+            container.innerHTML += `<p class="more-info">And ${data.user_ids.length - 10} more...</p>`;
+        }
+    } catch (error) {
+        console.error('Failed to load participants:', error);
+        document.getElementById('participants-list').innerHTML =
+            '<p class="error">Failed to load participants.</p>';
+    }
+}
+
+async function generateToken() {
+    const tokenType = document.getElementById('token-type').value;
+    const resultDiv = document.getElementById('token-result');
+
+    try {
+        const response = await fetch('/api/token/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quiz_id: QUIZ_ID,
+                type: tokenType
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            resultDiv.className = 'token-result success';
+            resultDiv.innerHTML = `
+                <strong>Token Generated!</strong><br>
+                <code class="token-value">${data.token}</code>
+                <button onclick="copyToken('${data.token}')" class="btn btn-small">Copy</button>
+            `;
+        } else {
+            resultDiv.className = 'token-result error';
+            resultDiv.innerHTML = `<strong>Error:</strong> ${data.detail || data.error}`;
+        }
+
+        resultDiv.classList.remove('hidden');
+    } catch (error) {
+        resultDiv.className = 'token-result error';
+        resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+        resultDiv.classList.remove('hidden');
+    }
+}
+
+function copyToken(token) {
+    navigator.clipboard.writeText(token).then(() => {
+        alert('Token copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

@@ -68,6 +68,24 @@ services:
       - pyquizhub-network
     restart: always
 
+  creator-web:
+    build:
+      context: .
+      dockerfile: creator_web/Dockerfile
+    ports:
+      - "9001:9001"
+    environment:
+      - PYQUIZHUB_API_URL=http://api:8000
+      - PYQUIZHUB_CREATOR_TOKEN=${PYQUIZHUB_CREATOR_TOKEN}
+      - CREATOR_PORT=9001
+      - CREATOR_PASSWORD=${CREATOR_PASSWORD}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - pyquizhub-network
+    restart: always
+
   telegram-bot:
     build: .
     command: poetry run python -m pyquizhub.adapters.telegram.bot

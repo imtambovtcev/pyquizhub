@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PyQuizHub Creator</title>
+    <link rel="stylesheet" href="/static/css/creator.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .login-header p {
+            color: var(--text-muted);
+        }
+        .login-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .login-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .login-form input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 164, 0.2);
+        }
+        .login-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .login-btn:hover {
+            background: var(--primary-hover);
+        }
+        .login-btn:disabled {
+            background: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        .error-message {
+            color: var(--error-color);
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .tab-btn:hover {
+            color: var(--primary-color);
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: -2px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>PyQuizHub</h1>
+            <p>Creator Interface</p>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
+
+        <div class="auth-tabs">
+            <button class="tab-btn active" data-tab="login">Sign In</button>
+            <button class="tab-btn" data-tab="register">Register</button>
+        </div>
+
+        <form class="login-form" id="login-form">
+            <div class="form-group">
+                <label for="creator_id">Creator ID</label>
+                <input type="text" id="creator_id" name="creator_id"
+                       placeholder="Enter your creator ID" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password"
+                       placeholder="Enter your password" required>
+            </div>
+
+            <div class="form-group hidden" id="confirm-password-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password"
+                       placeholder="Confirm your password">
+            </div>
+
+            <button type="submit" class="login-btn" id="login-btn">
+                Sign In
+            </button>
+        </form>
+    </div>
+
+    <script>
+        let isRegisterMode = false;
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                isRegisterMode = (tab === 'register');
+
+                // Update active tab
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Show/hide confirm password
+                const confirmGroup = document.getElementById('confirm-password-group');
+                const submitBtn = document.getElementById('login-btn');
+
+                if (isRegisterMode) {
+                    confirmGroup.classList.remove('hidden');
+                    document.getElementById('confirm_password').required = true;
+                    submitBtn.textContent = 'Register';
+                } else {
+                    confirmGroup.classList.add('hidden');
+                    document.getElementById('confirm_password').required = false;
+                    submitBtn.textContent = 'Sign In';
+                }
+
+                // Clear errors
+                document.getElementById('error-message').classList.remove('show');
+            });
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('login-btn');
+            const errorDiv = document.getElementById('error-message');
+
+            const creatorId = document.getElementById('creator_id').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!creatorId) {
+                errorDiv.textContent = 'Creator ID is required';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (isRegisterMode) {
+                const confirmPassword = document.getElementById('confirm_password').value;
+                if (password !== confirmPassword) {
+                    errorDiv.textContent = 'Passwords do not match';
+                    errorDiv.classList.add('show');
+                    return;
+                }
+                if (password.length < 4) {
+                    errorDiv.textContent = 'Password must be at least 4 characters';
+                    errorDiv.classList.add('show');
+                    return;
+                }
+            }
+
+            btn.disabled = true;
+            btn.textContent = isRegisterMode ? 'Registering...' : 'Signing in...';
+            errorDiv.classList.remove('show');
+
+            try {
+                const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        creator_id: creatorId,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Redirect to dashboard
+                    window.location.href = '/';
+                } else {
+                    errorDiv.textContent = data.error || (isRegisterMode ? 'Registration failed' : 'Login failed');
+                    errorDiv.classList.add('show');
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                errorDiv.textContent = 'Connection error. Please try again.';
+                errorDiv.classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = isRegisterMode ? 'Register' : 'Sign In';
+            }
+        });
+    </script>
+</body>
+</html>

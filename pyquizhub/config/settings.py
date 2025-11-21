@@ -176,17 +176,77 @@ class RolePermissionsConfig(BaseModel):
     )
 
 
+class UserAuthSettings(BaseModel):
+    """
+    User authentication provider configuration.
+
+    Configures available authentication methods for quiz takers.
+    Note: Whether anonymous access is allowed is set per-quiz in metadata.auth.
+
+    Available auth providers:
+    - api_key: Simple API key authentication (header-based)
+    - oauth2: OAuth2/OIDC provider (future)
+    - custom: Webhook-based custom auth (future)
+
+    The auth system is designed for extensibility - deployers can implement
+    their own auth by subclassing UserAuthProvider.
+    """
+    # Prefix for anonymous user IDs (when quiz allows anonymous)
+    anonymous_id_prefix: str = Field(
+        default="anon_",
+        description="Prefix for anonymous user IDs"
+    )
+
+    # API key auth (simple header-based auth)
+    api_key_enabled: bool = Field(
+        default=False,
+        description="Enable API key authentication for users"
+    )
+    api_key_header: str = Field(
+        default="X-User-API-Key",
+        description="Header name for user API key"
+    )
+
+    # OAuth2/OIDC (placeholder for future implementation)
+    oauth2_enabled: bool = Field(
+        default=False,
+        description="Enable OAuth2/OIDC authentication"
+    )
+    oauth2_provider_url: str | None = Field(
+        default=None,
+        description="OAuth2 provider URL (e.g., https://auth.example.com)"
+    )
+    oauth2_client_id: str | None = Field(
+        default=None,
+        description="OAuth2 client ID"
+    )
+
+    # Custom webhook auth (placeholder for future implementation)
+    custom_auth_enabled: bool = Field(
+        default=False,
+        description="Enable custom webhook-based authentication"
+    )
+    custom_auth_url: str | None = Field(
+        default=None,
+        description="URL to call for custom auth validation"
+    )
+
+
 class SecuritySettings(BaseModel):
     """Security configuration."""
     use_tokens: bool = Field(
         default=True,
-        description="Enable token-based authentication")
+        description="Enable token-based authentication for API access (admin/creator/user)")
     admin_token_env: str = Field(default="PYQUIZHUB_ADMIN_TOKEN")
     creator_token_env: str = Field(default="PYQUIZHUB_CREATOR_TOKEN")
     user_token_env: str = Field(default="PYQUIZHUB_USER_TOKEN")
     permissions: RolePermissionsConfig = Field(
         default_factory=RolePermissionsConfig,
         description="Role-based permissions configuration"
+    )
+    user_auth: UserAuthSettings = Field(
+        default_factory=UserAuthSettings,
+        description="User authentication configuration for quiz takers"
     )
 
 
@@ -701,4 +761,5 @@ __all__ = [
     'APIIntegrationPermissions',
     'RolePermissions',
     'RolePermissionsConfig',
+    'UserAuthSettings',
 ]

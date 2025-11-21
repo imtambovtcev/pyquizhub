@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Token Management - PyQuizHub Creator{% endblock %}
+
+{% block content %}
+<div class="tokens-page">
+    <h2>Token Management</h2>
+
+    <div class="generate-section">
+        <h3>Generate New Token</h3>
+        <div class="generate-form">
+            <div class="form-group">
+                <label for="quiz-select">Select Quiz:</label>
+                <select id="quiz-select">
+                    <option value="">Loading quizzes...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="token-type">Token Type:</label>
+                <select id="token-type">
+                    <option value="permanent">Permanent</option>
+                    <option value="single-use">Single Use</option>
+                </select>
+            </div>
+            <button id="generate-btn" class="btn btn-primary">Generate Token</button>
+        </div>
+        <div id="generate-result" class="result-box hidden"></div>
+    </div>
+
+    <div class="tokens-list-section">
+        <h3>Your Tokens</h3>
+        <p class="help-text">Note: Token listing requires admin access. Use the admin interface to view all tokens.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadQuizzes();
+
+    document.getElementById('generate-btn').addEventListener('click', generateToken);
+});
+
+async function loadQuizzes() {
+    try {
+        const response = await fetch('/api/quizzes');
+        const data = await response.json();
+
+        const select = document.getElementById('quiz-select');
+
+        if (!data.quizzes || Object.keys(data.quizzes).length === 0) {
+            select.innerHTML = '<option value="">No quizzes available</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">Select a quiz...</option>';
+        for (const [quizId, quiz] of Object.entries(data.quizzes)) {
+            const title = quiz.metadata?.title || quizId;
+            select.innerHTML += `<option value="${quizId}">${title}</option>`;
+        }
+    } catch (error) {
+        console.error('Failed to load quizzes:', error);
+        document.getElementById('quiz-select').innerHTML =
+            '<option value="">Failed to load quizzes</option>';
+    }
+}
+
+async function generateToken() {
+    const quizId = document.getElementById('quiz-select').value;
+    const tokenType = document.getElementById('token-type').value;
+    const resultDiv = document.getElementById('generate-result');
+
+    if (!quizId) {
+        resultDiv.className = 'result-box error';
+        resultDiv.innerHTML = 'Please select a quiz first.';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/token/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quiz_id: quizId,
+                type: tokenType
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            resultDiv.className = 'result-box success';
+            resultDiv.innerHTML = `
+                <strong>Token Generated!</strong><br>
+                <code class="token-value">${data.token}</code>
+                <button onclick="copyToClipboard('${data.token}')" class="btn btn-small">Copy</button>
+            `;
+        } else {
+            resultDiv.className = 'result-box error';
+            resultDiv.innerHTML = `<strong>Error:</strong> ${data.detail || data.error}`;
+        }
+
+        resultDiv.classList.remove('hidden');
+    } catch (error) {
+        resultDiv.className = 'result-box error';
+        resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+        resultDiv.classList.remove('hidden');
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Token copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

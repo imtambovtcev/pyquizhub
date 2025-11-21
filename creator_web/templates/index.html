@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Creator Dashboard - PyQuizHub{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Creator Dashboard</h2>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>My Quizzes</h3>
+            <p class="stat-value" id="quiz-count">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Participants</h3>
+            <p class="stat-value" id="participant-count">-</p>
+        </div>
+        <div class="stat-card">
+            <h3>Active Tokens</h3>
+            <p class="stat-value" id="token-count">-</p>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="/quiz/create" class="btn btn-primary">Create New Quiz</a>
+            <a href="/quizzes" class="btn btn-secondary">View My Quizzes</a>
+        </div>
+    </div>
+
+    <div class="recent-activity">
+        <h3>Recent Activity</h3>
+        <div id="activity-list" class="activity-list">
+            <p class="loading">Loading recent activity...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load dashboard stats
+    loadDashboardStats();
+});
+
+async function loadDashboardStats() {
+    try {
+        // For now, show placeholder data
+        // TODO: Implement proper API endpoints for creator-specific stats
+        document.getElementById('quiz-count').textContent = '0';
+        document.getElementById('participant-count').textContent = '0';
+        document.getElementById('token-count').textContent = '0';
+
+        document.getElementById('activity-list').innerHTML =
+            '<p class="empty-state">No recent activity. Create your first quiz!</p>';
+    } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+    }
+}
+</script>
+{% endblock %}

@@ -15,6 +15,7 @@ quiz engine instances.
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
+from pyquizhub.core.auth.service import UserAuthService, AuthResult
 from pyquizhub.models import (
     NextQuestionResponseModel,
     AnswerRequestModel,
@@ -30,6 +31,33 @@ from pyquizhub.logging.setup import get_logger
 logger = get_logger(__name__)
 logger.debug("Loaded router_quiz.py")
 router = APIRouter()
+
+# Global auth service instance (initialized on first use)
+_auth_service: UserAuthService | None = None
+
+
+def get_auth_service() -> UserAuthService:
+    """
+    Get the user authentication service.
+
+    Initializes from config on first access.
+    """
+    global _auth_service
+    if _auth_service is None:
+        from pyquizhub.config.settings import get_config_manager
+        config = get_config_manager()
+        if config._settings is None:
+            config.load()
+        _auth_service = UserAuthService.from_config(
+            config._settings.security.user_auth
+        )
+    return _auth_service
+
+
+def reset_auth_service() -> None:
+    """Reset the auth service (for testing)."""
+    global _auth_service
+    _auth_service = None
 
 
 def _get_file_storage():
@@ -205,6 +233,11 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     will be resumed instead of creating a new one. This ensures users can continue
     their quizzes across different adapters (CLI, web, Telegram, etc.).
 
+    Authentication:
+    - By default, anonymous users are allowed (backward compatible)
+    - Quizzes can require authentication via metadata.auth settings
+    - Deployers can configure auth providers in config
+
     Args:
         request: StartQuizRequestModel containing token and user ID
         req: FastAPI Request object containing application state
@@ -213,7 +246,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         StartQuizResponseModel: Quiz session data and current question
 
     Raises:
-        HTTPException: If token is invalid or quiz not found
+        HTTPException: If token is invalid, quiz not found, or auth fails
     """
     logger.debug(
         f"Starting quiz with token: {
@@ -228,9 +261,28 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         logger.error(f"Invalid or expired token: {request.token}")
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 
+    # Load quiz data early to check auth requirements
+    quiz_data = storage_manager.get_quiz(quiz_id)
+
+    # Authenticate user (checks quiz-level auth settings)
+    auth_service = get_auth_service()
+    auth_result = auth_service.authenticate(
+        request=req,
+        quiz_data=quiz_data,
+        provided_user_id=request.user_id
+    )
+
+    if not auth_result.authenticated:
+        logger.warning(f"Authentication failed for quiz {quiz_id}: {auth_result.error}")
+        raise HTTPException(status_code=403, detail=auth_result.error)
+
+    # Use authenticated user_id (may differ from provided if generated)
+    user_id = auth_result.user_id
+    logger.debug(f"Authenticated user: {user_id} via {auth_result.auth_method}")
+
     # Check for existing active sessions
     session_ids = storage_manager.get_sessions_by_quiz_and_user(
-        quiz_id, request.user_id
+        quiz_id, user_id
     )
 
     # Find the first uncompleted session
@@ -239,11 +291,9 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         if session_data and not session_data.get("completed", True):
             # Found an active session - resume it
             logger.info(
-                f"Resuming existing session {session_id} for user {
-                    request.user_id} on quiz {quiz_id}")
+                f"Resuming existing session {session_id} for user {user_id} on quiz {quiz_id}")
 
-            # Load quiz data to get current question
-            quiz_data = storage_manager.get_quiz(quiz_id)
+            # Quiz data already loaded above for auth check
             file_storage = _get_file_storage()
             engine = QuizEngine(quiz_data, file_storage)
 
@@ -261,24 +311,21 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
             return StartQuizResponseModel(
                 quiz_id=quiz_id,
-                user_id=request.user_id,
+                user_id=user_id,
                 session_id=session_id,
                 title=quiz_data["metadata"]["title"],
                 question=current_question
             )
 
     # No active session found - create a new one
-    logger.info(
-        f"Creating new quiz session for user {
-            request.user_id} on quiz {quiz_id}")
+    logger.info(f"Creating new quiz session for user {user_id} on quiz {quiz_id}")
 
     # Check token type and remove if single-use
     token_type = storage_manager.get_token_type(request.token)
     if token_type == "single-use":
         storage_manager.remove_token(request.token)
 
-    # Load quiz data
-    quiz_data = storage_manager.get_quiz(quiz_id)
+    # Quiz data already loaded above for auth check
 
     # Create engine instance with file storage (stateless, created per request)
     file_storage = _get_file_storage()
@@ -297,7 +344,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     session_data = {
         # Metadata (API layer)
         "session_id": session_id,
-        "user_id": request.user_id,
+        "user_id": user_id,
         "quiz_id": quiz_id,
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
@@ -312,9 +359,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     # Persist session immediately
     storage_manager.save_session_state(session_data)
 
-    logger.info(
-        f"Started quiz session {session_id} for user {
-            request.user_id} on quiz {quiz_id}")
+    logger.info(f"Started quiz session {session_id} for user {user_id} on quiz {quiz_id}")
 
     # If first question is a final_message, auto-complete the quiz
     if _is_final_message(first_question):
@@ -325,7 +370,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
         # Save final results
         storage_manager.add_results(
-            user_id=request.user_id,
+            user_id=user_id,
             quiz_id=quiz_id,
             session_id=session_id,
             results={
@@ -340,7 +385,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         # Return with completed status (question=None indicates completion)
         return StartQuizResponseModel(
             quiz_id=quiz_id,
-            user_id=request.user_id,
+            user_id=user_id,
             session_id=session_id,
             title=quiz_data["metadata"]["title"],
             question=first_question  # Show the final message
@@ -348,7 +393,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
     return StartQuizResponseModel(
         quiz_id=quiz_id,
-        user_id=request.user_id,
+        user_id=user_id,
         session_id=session_id,
         title=quiz_data["metadata"]["title"],
         question=first_question
