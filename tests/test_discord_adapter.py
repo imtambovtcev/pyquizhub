@@ -20,9 +20,6 @@ from discord.ext import commands
 from pyquizhub.adapters.discord.bot import DiscordQuizBot, QuizButtonView
 
 
-pytestmark = pytest.mark.asyncio
-
-
 @pytest.fixture
 def mock_discord_token():
     """Mock Discord bot token."""
