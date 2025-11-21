@@ -429,3 +429,108 @@ async def list_files(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e)
         )
+
+
+@router.post("/analyze_text/{file_id}")
+async def analyze_text_file(
+    file_id: str,
+    pattern: Optional[str] = Form(None),
+    case_sensitive: bool = Form(True),
+    max_matches: int = Form(100),
+    request: Request = None,
+    file_manager: FileManager = Depends(get_file_manager),
+):
+    """
+    Analyze a text file with optional regex search.
+
+    This endpoint allows safe regex searching in uploaded text files
+    with protection against ReDoS attacks.
+
+    Args:
+        file_id: ID of the uploaded file
+        pattern: Optional regex pattern to search for
+        case_sensitive: Whether search is case-sensitive (default: True)
+        max_matches: Maximum number of matches to return (default: 100)
+
+    Returns:
+        Analysis results including:
+        - line_count: number of lines
+        - word_count: number of words
+        - char_count: number of characters
+        - text_sample: first 500 chars
+        - search_results: if pattern provided
+
+    Raises:
+        HTTPException:
+            - 400: Invalid regex pattern
+            - 403: Permission denied
+            - 404: File not found
+            - 415: File is not a text file
+    """
+    # Verify authorization
+    user_id, role = verify_token(request=request)
+
+    logger.info(f"Text analysis request: file_id={file_id}, pattern={pattern}, user={user_id}")
+
+    # Retrieve file
+    try:
+        file_data, metadata = await file_manager.get_file(
+            file_id=file_id,
+            requester_id=user_id,
+            requester_role=role,
+        )
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"File not found: {file_id}"
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
+
+    # Check if file is a text file
+    if metadata.category not in ["documents"]:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"File is not a text file: {metadata.category}"
+        )
+
+    # Analyze file
+    try:
+        from pyquizhub.core.engine.text_file_analyzer import TextFileAnalyzer
+        from pyquizhub.core.engine.regex_validator import RegexValidationError
+
+        analysis = TextFileAnalyzer.analyze_file(
+            file_data=file_data,
+            pattern=pattern,
+            case_sensitive=case_sensitive,
+            max_matches=max_matches
+        )
+
+        return {
+            "file_id": file_id,
+            "filename": metadata.filename,
+            "analysis": analysis,
+            "status": "success"
+        }
+
+    except RegexValidationError as e:
+        logger.warning(f"Invalid regex pattern: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid regex pattern: {e}"
+        )
+    except ValueError as e:
+        logger.error(f"Text file analysis failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during text analysis: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Text analysis failed"
+        )

@@ -1,0 +1,137 @@
+{
+  "metadata": {
+    "title": "Text File Analysis Quiz",
+    "description": "Upload a text file and search for patterns using regex",
+    "version": "1.0",
+    "category": "text_analysis"
+  },
+  "variables": {
+    "uploaded_file_id": {
+      "type": "string",
+      "mutable_by": ["user"],
+      "tags": ["user_input"],
+      "default": ""
+    },
+    "line_count": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "word_count": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "char_count": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "match_count": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "text_sample": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    }
+  },
+  "api_integrations": [
+    {
+      "id": "text_analyzer",
+      "method": "POST",
+      "timing": "before_question",
+      "question_id": 2,
+      "prepare_request": {
+        "url_template": "http://172.18.0.1:8000/uploads/analyze_text/{uploaded_file_id}",
+        "required_variables": ["uploaded_file_id"],
+        "body_template": {
+          "pattern": "\\b\\w+@\\w+\\.\\w+\\b",
+          "case_sensitive": true,
+          "max_matches": 100
+        },
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      },
+      "extract_response": {
+        "variables": {
+          "line_count": {
+            "path": "analysis.line_count",
+            "type": "integer"
+          },
+          "word_count": {
+            "path": "analysis.word_count",
+            "type": "integer"
+          },
+          "char_count": {
+            "path": "analysis.char_count",
+            "type": "integer"
+          },
+          "match_count": {
+            "path": "analysis.search_results.count",
+            "type": "integer"
+          },
+          "text_sample": {
+            "path": "analysis.text_sample",
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "type": "file_upload",
+        "text": "Upload a text file for analysis",
+        "description": "Upload any text file (*.txt, *.md, *.log, etc.) to analyze its content and search for email addresses.",
+        "file_types": [
+          "text/plain",
+          "text/markdown",
+          "text/csv",
+          "application/json"
+        ],
+        "max_size_mb": 5
+      },
+      "score_updates": [
+        {
+          "condition": "answer.file_id != ''",
+          "update": {
+            "uploaded_file_id": "answer.file_id"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "type": "final_message",
+        "text": "📄 **Text File Analysis Results**\n\n**File Statistics:**\n- Lines: {variables.line_count}\n- Words: {variables.word_count}\n- Characters: {variables.char_count}\n\n**Email Search Results:**\n- Email addresses found: {variables.match_count}\n\n**Text Sample (first 500 chars):**\n```\n{variables.text_sample}\n```\n\nThank you for using the text analysis tool!"
+      },
+      "score_updates": []
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "uploaded_file_id != ''",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
+}

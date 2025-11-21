@@ -183,6 +183,7 @@ def main():
     print("=== File Upload Quizzes (Demo) ===")
     file_upload_quizzes = [
         "quizzes/color_detector_quiz.json",  # Color analysis with file upload
+        "quizzes/text_analysis_quiz.json",  # Text file analysis with regex search
     ]
 
     for quiz_file in file_upload_quizzes:

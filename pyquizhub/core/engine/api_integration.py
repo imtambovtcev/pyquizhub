@@ -201,7 +201,13 @@ class APIIntegrationManager:
         Returns:
             Headers dictionary
         """
-        headers = api_config.get("headers", {}).copy()
+        # Check for headers in both old format (api_config.headers) and new format (prepare_request.headers)
+        headers = {}
+        if "prepare_request" in api_config and "headers" in api_config["prepare_request"]:
+            headers = api_config["prepare_request"]["headers"].copy()
+        elif "headers" in api_config:
+            headers = api_config["headers"].copy()
+
         auth_config = api_config.get("auth", {})
         auth_type = AuthType(auth_config.get("type", "none"))
 
@@ -526,14 +532,26 @@ class APIIntegrationManager:
                         timeout=timeout
                     )
                 else:
-                    # Use JSON for regular requests
-                    response = requests.request(
-                        method=method,
-                        url=url,
-                        headers=headers,
-                        json=body,
-                        timeout=timeout
-                    )
+                    # Check if Content-Type is form-encoded
+                    content_type = headers.get('Content-Type', '').lower()
+                    if 'application/x-www-form-urlencoded' in content_type:
+                        # Use form-encoded data
+                        response = requests.request(
+                            method=method,
+                            url=url,
+                            headers=headers,
+                            data=body,
+                            timeout=timeout
+                        )
+                    else:
+                        # Use JSON for regular requests
+                        response = requests.request(
+                            method=method,
+                            url=url,
+                            headers=headers,
+                            json=body,
+                            timeout=timeout
+                        )
                 response.raise_for_status()
                 return response
             except requests.RequestException as e:
