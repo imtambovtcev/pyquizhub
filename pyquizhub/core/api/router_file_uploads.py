@@ -35,6 +35,14 @@ from pyquizhub.core.storage.file import (
     ValidationError,
 )
 from pyquizhub.core.api.dependencies import verify_token_and_rate_limit
+from pyquizhub.core.api.errors import (
+    raise_error,
+    validation_error,
+    not_found_error,
+    permission_error,
+    authentication_error,
+    server_error
+)
 
 logger = get_logger(__name__)
 
@@ -107,10 +115,7 @@ def verify_token(
         user_id, role = config.verify_token_and_get_role(authorization)
         return user_id, role
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e)
-        )
+        authentication_error(str(e))
 
 
 def check_file_upload_permission(role: str) -> None:
@@ -128,10 +133,9 @@ def check_file_upload_permission(role: str) -> None:
     config = get_config_manager()
 
     if not config.can_upload_files(role):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"File uploads not allowed for role '{role}'. "
-                   "Contact administrator to enable file uploads."
+        permission_error(
+            f"File uploads not allowed for role '{role}'",
+            details=["Contact administrator to enable file uploads"]
         )
 
 
@@ -187,15 +191,18 @@ async def upload_file(
         file_data = io.BytesIO(file_content)
     except (OSError, IOError, MemoryError) as e:
         logger.error(f"Failed to read uploaded file: {str(e)}")
-        raise HTTPException(
+        raise_error(
+            message="Failed to read file",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to read file: {str(e)}"
+            details=[str(e)],
+            code="FILE_READ_ERROR"
         )
     except UnicodeDecodeError as e:
         logger.error(f"File encoding error: {str(e)}")
-        raise HTTPException(
+        raise_error(
+            message="File contains invalid characters or encoding",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File contains invalid characters or encoding"
+            code="ENCODING_ERROR"
         )
 
     # Upload file using file manager
@@ -233,29 +240,27 @@ async def upload_file(
 
     except ValidationError as e:
         logger.warning(f"File validation failed: {str(e)}")
-        raise HTTPException(
+        raise_error(
+            message="File validation failed",
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=str(e)
+            details=[str(e)],
+            code="VALIDATION_ERROR"
         )
     except PermissionError as e:
         logger.warning(f"Upload permission denied: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
     except IOError as e:
         # Quota exceeded or storage failure
         logger.error(f"Upload failed: {str(e)}")
         if "quota" in str(e).lower():
-            raise HTTPException(
+            raise_error(
+                message="Quota exceeded",
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=str(e)
+                details=[str(e)],
+                code="QUOTA_EXCEEDED"
             )
         else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Upload failed: {str(e)}"
-            )
+            server_error(f"Upload failed: {str(e)}")
 
 
 @router.get("/download/{file_id}")
@@ -322,16 +327,10 @@ async def download_file(
         )
 
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id}"
-        )
+        not_found_error("File", file_id)
     except PermissionError as e:
         logger.warning(f"Download permission denied: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
 
 @router.delete("/{file_id}")
@@ -379,22 +378,13 @@ async def delete_file(
                 "message": "File deleted successfully"
             }
         else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"File not found: {file_id}"
-            )
+            not_found_error("File", file_id)
 
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id}"
-        )
+        not_found_error("File", file_id)
     except PermissionError as e:
         logger.warning(f"Delete permission denied: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
 
 @router.get("/quota")
@@ -484,10 +474,7 @@ async def list_files(
         }
 
     except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
 
 @router.post("/analyze_text/{file_id}")
@@ -533,9 +520,9 @@ async def analyze_text_file(
 
     # Validate max_matches parameter
     if max_matches < 1 or max_matches > 1000:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="max_matches must be between 1 and 1000"
+        validation_error(
+            details=["max_matches must be between 1 and 1000"],
+            field="max_matches"
         )
 
     logger.info(
@@ -549,21 +536,17 @@ async def analyze_text_file(
             requester_role=role,
         )
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id}"
-        )
+        not_found_error("File", file_id)
     except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
     # Check if file is a text file
     if metadata.category not in ["documents"]:
-        raise HTTPException(
+        raise_error(
+            message="File is not a text file",
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"File is not a text file: {metadata.category}"
+            details=[f"File category: {metadata.category}"],
+            code="INVALID_FILE_TYPE"
         )
 
     # Analyze file
@@ -584,25 +567,20 @@ async def analyze_text_file(
 
     except RegexValidationError as e:
         logger.warning(f"Invalid regex pattern: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid regex pattern: {e}"
+        validation_error(
+            details=[f"Invalid regex pattern: {e}"],
+            field="pattern"
         )
     except ValueError as e:
         logger.error(f"Text file analysis failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        validation_error(details=[str(e)])
     except (UnicodeDecodeError, LookupError) as e:
         logger.error(f"File encoding error during analysis: {e}")
-        raise HTTPException(
+        raise_error(
+            message="File contains invalid encoding or unsupported character set",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File contains invalid encoding or unsupported character set"
+            code="ENCODING_ERROR"
         )
     except (OSError, IOError, MemoryError) as e:
         logger.error(f"File read error during analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Text analysis failed due to file read error"
-        )
+        server_error("Text analysis failed due to file read error")

@@ -9,7 +9,7 @@ This module provides API endpoints for administrative operations including:
 - Token management
 """
 
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends, status
 from pyquizhub.models import (
     QuizDetailResponseModel,
     QuizResultResponseModel,
@@ -30,6 +30,15 @@ from pyquizhub.core.api.router_creator import create_quiz_logic, generate_token_
 import os
 from pyquizhub.logging.setup import get_logger
 from pyquizhub.core.storage.storage_manager import StorageManager
+from pyquizhub.core.api.errors import (
+    raise_error,
+    validation_error,
+    not_found_error,
+    permission_error,
+    authentication_error,
+    server_error,
+    storage_error
+)
 
 logger = get_logger(__name__)
 logger.debug("Loaded router_admin.py")
@@ -53,24 +62,19 @@ def admin_token_dependency(request: Request):
 
     # Check if admin token is configured
     if not expected_token:
-        raise HTTPException(
+        raise_error(
+            message="Admin token not configured",
             status_code=500,
-            detail="Admin token not configured"
+            code="CONFIG_ERROR"
         )
 
     # Check if token is provided
     if not token:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid admin token"
-        )
+        authentication_error("Invalid admin token")
 
     # Check if token matches
     if token != expected_token:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid admin token"
-        )
+        authentication_error("Invalid admin token")
 
 
 @router.get("/quiz/{quiz_id}",
@@ -132,19 +136,13 @@ def admin_update_quiz(quiz_id: str, req: Request):
             "quiz_id": quiz_id}
     except FileNotFoundError:
         logger.error(f"Quiz {quiz_id} not found for update")
-        raise HTTPException(status_code=404, detail="Quiz not found")
+        not_found_error("Quiz", quiz_id)
     except (ValueError, KeyError) as e:
         logger.error(f"Invalid quiz data for {quiz_id}: {e}")
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid quiz data: {str(e)}"
-        )
+        validation_error(details=[f"Invalid quiz data: {str(e)}"])
     except (OSError, IOError) as e:
         logger.error(f"Storage error updating quiz {quiz_id}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to update quiz due to storage error"
-        )
+        server_error("Failed to update quiz due to storage error")
 
 
 @router.delete("/quiz/{quiz_id}",
@@ -172,16 +170,13 @@ def admin_delete_quiz(quiz_id: str, req: Request):
         return {"message": f"Quiz {quiz_id} deleted successfully"}
     except FileNotFoundError:
         logger.error(f"Quiz {quiz_id} not found for deletion")
-        raise HTTPException(status_code=404, detail="Quiz not found")
+        not_found_error("Quiz", quiz_id)
     except PermissionError as e:
         logger.error(f"Permission denied for quiz deletion: {e}")
-        raise HTTPException(status_code=403, detail=str(e))
+        permission_error(str(e))
     except (OSError, IOError) as e:
         logger.error(f"Storage error deleting quiz {quiz_id}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to delete quiz due to storage error"
-        )
+        server_error("Failed to delete quiz due to storage error")
 
 
 @router.get("/results/{quiz_id}",
@@ -369,16 +364,13 @@ def admin_delete_token(token: str, req: Request):
         return {"message": f"Token {token} deleted successfully"}
     except FileNotFoundError:
         logger.error(f"Token {token} not found for deletion")
-        raise HTTPException(status_code=404, detail="Token not found")
+        not_found_error("Token", token)
     except (ValueError, KeyError) as e:
         logger.error(f"Invalid token format: {e}")
-        raise HTTPException(status_code=400, detail=f"Invalid token: {str(e)}")
+        validation_error(details=[f"Invalid token: {str(e)}"])
     except (OSError, IOError) as e:
         logger.error(f"Storage error deleting token: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to delete token due to storage error"
-        )
+        server_error("Failed to delete token due to storage error")
 
 
 # ============================================================================
@@ -408,16 +400,10 @@ def admin_get_all_users(req: Request):
         return AllUsersResponseModel(users=all_users)
     except (OSError, IOError) as e:
         logger.error(f"Storage error retrieving users: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve users due to storage error"
-        )
+        server_error("Failed to retrieve users due to storage error")
     except (ValueError, KeyError) as e:
         logger.error(f"Data format error retrieving users: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve users due to data corruption"
-        )
+        server_error("Failed to retrieve users due to data corruption")
 
 
 # ============================================================================
@@ -447,16 +433,10 @@ def admin_get_all_results(req: Request):
         return AllResultsResponseModel(results=all_results)
     except (OSError, IOError) as e:
         logger.error(f"Storage error retrieving results: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve results due to storage error"
-        )
+        server_error("Failed to retrieve results due to storage error")
     except (ValueError, KeyError) as e:
         logger.error(f"Data format error retrieving results: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve results due to data corruption"
-        )
+        server_error("Failed to retrieve results due to data corruption")
 
 
 # ============================================================================
@@ -505,13 +485,7 @@ def admin_get_all_sessions(req: Request):
         return AllSessionsResponseModel(sessions=sessions)
     except (OSError, IOError) as e:
         logger.error(f"Storage error retrieving sessions: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve sessions due to storage error"
-        )
+        server_error("Failed to retrieve sessions due to storage error")
     except (ValueError, KeyError) as e:
         logger.error(f"Data format error retrieving sessions: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve sessions due to data corruption"
-        )
+        server_error("Failed to retrieve sessions due to data corruption")
