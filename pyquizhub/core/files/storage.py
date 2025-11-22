@@ -4,10 +4,8 @@ File storage interface.
 Defines abstract interface for storing file metadata.
 Implementations handle SQL and file-based storage.
 
-TODO: Implement automatic file cleanup scheduler
-- cleanup_expired_files() method exists but no scheduler calls it
-- Consider: background task, cron job, or periodic FastAPI startup task
-- Should run periodically (e.g., hourly) to remove expired files
+File cleanup scheduler is implemented in main.py as a background task
+that runs periodically to remove expired files.
 """
 
 from __future__ import annotations
