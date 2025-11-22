@@ -185,11 +185,17 @@ async def upload_file(
     try:
         file_content = await file.read()
         file_data = io.BytesIO(file_content)
-    except Exception as e:
+    except (OSError, IOError, MemoryError) as e:
         logger.error(f"Failed to read uploaded file: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to read file: {str(e)}"
+        )
+    except UnicodeDecodeError as e:
+        logger.error(f"File encoding error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File contains invalid characters or encoding"
         )
 
     # Upload file using file manager
@@ -588,9 +594,15 @@ async def analyze_text_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except Exception as e:
-        logger.error(f"Unexpected error during text analysis: {e}")
+    except (UnicodeDecodeError, LookupError) as e:
+        logger.error(f"File encoding error during analysis: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File contains invalid encoding or unsupported character set"
+        )
+    except (OSError, IOError, MemoryError) as e:
+        logger.error(f"File read error during analysis: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Text analysis failed"
+            detail="Text analysis failed due to file read error"
         )

@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import Any
+import httpx
 
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
@@ -466,8 +467,17 @@ class QuizEngine:
                     state,
                     api_context
                 )
-            except Exception as e:
-                self.logger.error(f"API call failed: {e}")
+            except httpx.HTTPError as e:
+                self.logger.error(f"HTTP error in API call: {e}")
+                # Continue with quiz even if API call fails
+            except httpx.TimeoutException as e:
+                self.logger.error(f"API request timed out: {e}")
+                # Continue with quiz even if API call fails
+            except (ValueError, KeyError) as e:
+                self.logger.error(f"API configuration error: {e}")
+                # Continue with quiz even if API call fails
+            except (OSError, IOError) as e:
+                self.logger.error(f"File operation error in API call: {e}")
                 # Continue with quiz even if API call fails
 
         return state

@@ -538,3 +538,87 @@ class TestAPIIntegrationManager:
 
             # Verify error was recorded
             assert result_state["api_data"]["test_api"]["success"] is False
+
+    async def test_file_upload_with_custom_field_name(self, api_manager, session_state):
+        """Test file upload with custom field name."""
+        from pyquizhub.core.engine.api_integration import FileUploadMarker
+
+        api_config = {
+            "id": "test_api",
+            "url": "https://api.example.com/upload",
+            "method": "POST",
+            "auth": {"type": "none"},
+            "prepare_request": {
+                "file_field_name": "document"  # Custom field name
+            }
+        }
+
+        # Create a FileUploadMarker
+        file_marker = FileUploadMarker(
+            filename="test.pdf",
+            file_data=b"test file content",
+            mime_type="application/pdf"
+        )
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"uploaded": True}
+
+        mock_client = create_mock_httpx_client(mock_response)
+
+        # Mock _prepare_body to return the file marker
+        with patch.object(api_manager, '_prepare_body', return_value=file_marker):
+            with patch('httpx.AsyncClient', return_value=mock_client):
+                result_state = await api_manager.execute_api_call(
+                    api_config,
+                    session_state,
+                    {}
+                )
+
+                # Verify file was uploaded with custom field name
+                assert mock_client.request.called
+                call_kwargs = mock_client.request.call_args[1]
+                assert 'files' in call_kwargs
+                assert 'document' in call_kwargs['files']  # Custom field name
+                assert call_kwargs['files']['document'][0] == 'test.pdf'
+                assert call_kwargs['files']['document'][1] == b"test file content"
+                assert call_kwargs['files']['document'][2] == 'application/pdf'
+
+    async def test_file_upload_default_field_name(self, api_manager, session_state):
+        """Test file upload with default field name when not specified."""
+        from pyquizhub.core.engine.api_integration import FileUploadMarker
+
+        api_config = {
+            "id": "test_api",
+            "url": "https://api.example.com/upload",
+            "method": "POST",
+            "auth": {"type": "none"}
+            # No prepare_request.file_field_name specified
+        }
+
+        file_marker = FileUploadMarker(
+            filename="image.png",
+            file_data=b"image data",
+            mime_type="image/png"
+        )
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"uploaded": True}
+
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch.object(api_manager, '_prepare_body', return_value=file_marker):
+            with patch('httpx.AsyncClient', return_value=mock_client):
+                result_state = await api_manager.execute_api_call(
+                    api_config,
+                    session_state,
+                    {}
+                )
+
+                # Verify file was uploaded with default field name 'file'
+                assert mock_client.request.called
+                call_kwargs = mock_client.request.call_args[1]
+                assert 'files' in call_kwargs
+                assert 'file' in call_kwargs['files']  # Default field name
+                assert call_kwargs['files']['file'][0] == 'image.png'

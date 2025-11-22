@@ -72,8 +72,14 @@ def _get_file_storage():
         base_dir = os.path.join(os.getcwd(), ".pyquizhub", "uploads")
         os.makedirs(base_dir, exist_ok=True)
         return LocalStorageBackend(base_dir, config)
-    except Exception as e:
-        logger.warning(f"Failed to initialize file storage: {e}")
+    except (OSError, IOError, PermissionError) as e:
+        logger.warning(f"Failed to create file storage directory: {e}")
+        return None
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning(f"Failed to import file storage module: {e}")
+        return None
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Invalid file storage configuration: {e}")
         return None
 
 

@@ -133,11 +133,17 @@ def admin_update_quiz(quiz_id: str, req: Request):
     except FileNotFoundError:
         logger.error(f"Quiz {quiz_id} not found for update")
         raise HTTPException(status_code=404, detail="Quiz not found")
-    except Exception as e:
-        logger.error(f"Failed to update quiz {quiz_id}: {e}")
+    except (ValueError, KeyError) as e:
+        logger.error(f"Invalid quiz data for {quiz_id}: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid quiz data: {str(e)}"
+        )
+    except (OSError, IOError) as e:
+        logger.error(f"Storage error updating quiz {quiz_id}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to update quiz: {str(e)}"
+            detail="Failed to update quiz due to storage error"
         )
 
 
@@ -167,11 +173,14 @@ def admin_delete_quiz(quiz_id: str, req: Request):
     except FileNotFoundError:
         logger.error(f"Quiz {quiz_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Quiz not found")
-    except Exception as e:
-        logger.error(f"Failed to delete quiz {quiz_id}: {e}")
+    except PermissionError as e:
+        logger.error(f"Permission denied for quiz deletion: {e}")
+        raise HTTPException(status_code=403, detail=str(e))
+    except (OSError, IOError) as e:
+        logger.error(f"Storage error deleting quiz {quiz_id}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to delete quiz: {str(e)}"
+            detail="Failed to delete quiz due to storage error"
         )
 
 
@@ -358,11 +367,17 @@ def admin_delete_token(token: str, req: Request):
         storage_manager.remove_token(token)
         logger.info(f"Admin deleted token: {token}")
         return {"message": f"Token {token} deleted successfully"}
-    except Exception as e:
-        logger.error(f"Failed to delete token {token}: {e}")
+    except FileNotFoundError:
+        logger.error(f"Token {token} not found for deletion")
+        raise HTTPException(status_code=404, detail="Token not found")
+    except (ValueError, KeyError) as e:
+        logger.error(f"Invalid token format: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid token: {str(e)}")
+    except (OSError, IOError) as e:
+        logger.error(f"Storage error deleting token: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to delete token: {str(e)}"
+            detail="Failed to delete token due to storage error"
         )
 
 
@@ -391,11 +406,17 @@ def admin_get_all_users(req: Request):
         all_users = storage_manager.get_users()
         logger.info(f"Admin retrieved {len(all_users)} users")
         return AllUsersResponseModel(users=all_users)
-    except Exception as e:
-        logger.error(f"Failed to retrieve users: {e}")
+    except (OSError, IOError) as e:
+        logger.error(f"Storage error retrieving users: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve users: {str(e)}"
+            detail="Failed to retrieve users due to storage error"
+        )
+    except (ValueError, KeyError) as e:
+        logger.error(f"Data format error retrieving users: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve users due to data corruption"
         )
 
 
@@ -424,11 +445,17 @@ def admin_get_all_results(req: Request):
         all_results = storage_manager.get_all_results()
         logger.info(f"Admin retrieved all results")
         return AllResultsResponseModel(results=all_results)
-    except Exception as e:
-        logger.error(f"Failed to retrieve results: {e}")
+    except (OSError, IOError) as e:
+        logger.error(f"Storage error retrieving results: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve results: {str(e)}"
+            detail="Failed to retrieve results due to storage error"
+        )
+    except (ValueError, KeyError) as e:
+        logger.error(f"Data format error retrieving results: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve results due to data corruption"
         )
 
 
@@ -476,9 +503,15 @@ def admin_get_all_sessions(req: Request):
 
         logger.info(f"Admin retrieved {len(sessions)} sessions")
         return AllSessionsResponseModel(sessions=sessions)
-    except Exception as e:
-        logger.error(f"Failed to retrieve sessions: {e}")
+    except (OSError, IOError) as e:
+        logger.error(f"Storage error retrieving sessions: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve sessions: {str(e)}"
+            detail="Failed to retrieve sessions due to storage error"
+        )
+    except (ValueError, KeyError) as e:
+        logger.error(f"Data format error retrieving sessions: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve sessions due to data corruption"
         )

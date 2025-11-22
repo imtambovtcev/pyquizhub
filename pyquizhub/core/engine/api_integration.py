@@ -122,6 +122,11 @@ class APIIntegrationManager:
             # Check if we need to refresh auth token
             await self._refresh_auth_if_needed(api_config, session_state)
 
+            # Get file field name from prepare_request if specified
+            file_field_name = None
+            if "prepare_request" in api_config:
+                file_field_name = api_config["prepare_request"].get("file_field_name")
+
             # Make request
             self.logger.info(f"Making {method} request to {url}")
             response = await self._make_request(
@@ -129,7 +134,8 @@ class APIIntegrationManager:
                 url=url,
                 headers=headers,
                 body=body,
-                timeout=api_config.get("timeout", self.default_timeout)
+                timeout=api_config.get("timeout", self.default_timeout),
+                file_field_name=file_field_name
             )
 
             # Process response and extract variables into
@@ -508,7 +514,8 @@ class APIIntegrationManager:
         url: str,
         headers: dict[str, str],
         body: dict[str, Any] | FileUploadMarker | None,
-        timeout: int
+        timeout: int,
+        file_field_name: str | None = None
     ) -> httpx.Response:
         """
         Make HTTP request with retry logic.
@@ -521,6 +528,7 @@ class APIIntegrationManager:
             headers: Request headers
             body: Request body (dict for JSON, FileUploadMarker for file upload)
             timeout: Timeout in seconds
+            file_field_name: Field name for file uploads (defaults to 'file')
 
         Returns:
             Response object
@@ -534,11 +542,11 @@ class APIIntegrationManager:
                     # Check if body is a file upload marker
                     if isinstance(body, FileUploadMarker):
                         # Use multipart/form-data for file uploads
-                        # TODO: Make field name configurable in quiz JSON via prepare_request.file_field_name
-                        # Currently hardcoded as 'image' which only works with
-                        # Color API
+                        # Use provided field name or default to 'file'
+                        field_name = file_field_name if file_field_name else 'file'
+
                         files = {
-                            'image': (
+                            field_name: (
                                 body.filename,
                                 body.file_data,
                                 body.mime_type
