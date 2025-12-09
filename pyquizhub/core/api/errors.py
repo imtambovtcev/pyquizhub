@@ -132,7 +132,8 @@ def authentication_error(message: str = "Authentication failed") -> None:
     )
 
 
-def server_error(message: str = "Internal server error", details: list[str] | None = None) -> None:
+def server_error(message: str = "Internal server error",
+                 details: list[str] | None = None) -> None:
     """Raise a server error."""
     raise_error(
         message=message,

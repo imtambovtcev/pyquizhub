@@ -274,4 +274,7 @@ class FileAttachment:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        return f"FileAttachment(file_id={self.file_id}, type={self.file_type}, platform={self.platform})"
+        return f"FileAttachment(file_id={
+            self.file_id}, type={
+            self.file_type}, platform={
+            self.platform})"

@@ -175,7 +175,8 @@ async def upload_file(
             - 429: Rate limit exceeded
             - 503: File uploads disabled
     """
-    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    # Unpack authenticated user info (already verified and rate-limited by
+    # dependency)
     user_id, role = auth
 
     # Check file upload permission for this role
@@ -293,7 +294,8 @@ async def download_file(
             - 404: File not found
             - 429: Rate limit exceeded
     """
-    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    # Unpack authenticated user info (already verified and rate-limited by
+    # dependency)
     user_id, role = auth
 
     logger.info(
@@ -357,7 +359,8 @@ async def delete_file(
             - 404: File not found
             - 429: Rate limit exceeded
     """
-    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    # Unpack authenticated user info (already verified and rate-limited by
+    # dependency)
     user_id, role = auth
 
     logger.info(
@@ -409,7 +412,8 @@ async def get_quota_info(
             - 401: Missing or invalid authorization
             - 429: Rate limit exceeded
     """
-    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    # Unpack authenticated user info (already verified and rate-limited by
+    # dependency)
     user_id, role = auth
 
     # Get quota info
@@ -454,7 +458,8 @@ async def list_files(
             - 403: Permission denied
             - 429: Rate limit exceeded
     """
-    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    # Unpack authenticated user info (already verified and rate-limited by
+    # dependency)
     user_id, role = auth
 
     # List files
@@ -515,7 +520,8 @@ async def analyze_text_file(
             - 415: File is not a text file
             - 429: Rate limit exceeded
     """
-    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    # Unpack authenticated user info (already verified and rate-limited by
+    # dependency)
     user_id, role = auth
 
     # Validate max_matches parameter
@@ -579,8 +585,7 @@ async def analyze_text_file(
         raise_error(
             message="File contains invalid encoding or unsupported character set",
             status_code=status.HTTP_400_BAD_REQUEST,
-            code="ENCODING_ERROR"
-        )
+            code="ENCODING_ERROR")
     except (OSError, IOError, MemoryError) as e:
         logger.error(f"File read error during analysis: {e}")
         server_error("Text analysis failed due to file read error")

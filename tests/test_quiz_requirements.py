@@ -35,7 +35,8 @@ class TestURLAccessPattern:
 
     def test_url_with_variable_suffix(self):
         """Test URL with variable part at the end."""
-        pattern = URLAccessPattern.parse("https://api.example.com/v1/{city}/weather")
+        pattern = URLAccessPattern.parse(
+            "https://api.example.com/v1/{city}/weather")
 
         assert pattern.is_fully_dynamic is False
         assert pattern.has_variable_suffix is True
@@ -43,7 +44,8 @@ class TestURLAccessPattern:
 
     def test_url_with_variable_in_path(self):
         """Test URL with variable in middle of path."""
-        pattern = URLAccessPattern.parse("https://api.example.com/{version}/data")
+        pattern = URLAccessPattern.parse(
+            "https://api.example.com/{version}/data")
 
         assert pattern.is_fully_dynamic is False
         assert pattern.has_variable_suffix is True
@@ -83,7 +85,8 @@ class TestURLAccessPattern:
 
     def test_serialization_roundtrip(self):
         """Test to_dict and from_dict."""
-        original = URLAccessPattern.parse("https://api.example.com/{city}/weather")
+        original = URLAccessPattern.parse(
+            "https://api.example.com/{city}/weather")
         data = original.to_dict()
         restored = URLAccessPattern.from_dict(data)
 
@@ -102,15 +105,19 @@ class TestURLAccessPattern:
         """Test permission matching with exact URL."""
         pattern = URLAccessPattern.parse("https://api.example.com/v1/data")
 
-        assert pattern.matches_permission("https://api.example.com/v1/data") is True
-        assert pattern.matches_permission("https://api.example.com/v1/other") is False
+        assert pattern.matches_permission(
+            "https://api.example.com/v1/data") is True
+        assert pattern.matches_permission(
+            "https://api.example.com/v1/other") is False
 
     def test_permission_matching_prefix_wildcard(self):
         """Test permission matching with prefix wildcard."""
-        pattern = URLAccessPattern.parse("https://api.example.com/v1/users/123")
+        pattern = URLAccessPattern.parse(
+            "https://api.example.com/v1/users/123")
 
         assert pattern.matches_permission("https://api.example.com/*") is True
-        assert pattern.matches_permission("https://api.example.com/v1/*") is True
+        assert pattern.matches_permission(
+            "https://api.example.com/v1/*") is True
         assert pattern.matches_permission("https://other.com/*") is False
 
 
@@ -259,7 +266,8 @@ class TestQuizRequirementsAnalyzer:
         assert requirements.has_external_attachments is True
         # Check the new URLAccessPattern structure
         assert requirements.attachments[0].url_pattern.is_fully_dynamic is True
-        assert requirements.attachments[0].url_pattern.original_template == "{variables.dynamic_url}"
+        assert requirements.attachments[
+            0].url_pattern.original_template == "{variables.dynamic_url}"
 
     def test_quiz_with_regex_validation(self):
         """Test detection of regex usage."""
@@ -330,15 +338,17 @@ class TestPermissionChecking:
             file_uploads=FileUploadPermissions(
                 enabled=True,
                 max_file_size_mb=100,
-                allowed_categories=["images", "audio", "video", "documents", "archives"],
-                quota_mb=10000
-            ),
+                allowed_categories=[
+                    "images",
+                    "audio",
+                    "video",
+                    "documents",
+                    "archives"],
+                quota_mb=10000),
             api_integrations=APIIntegrationPermissions(
                 enabled=True,
                 allowed_hosts=["*"],
-                max_requests_per_quiz=1000
-            )
-        )
+                max_requests_per_quiz=1000))
 
     @pytest.fixture
     def creator_permissions(self):
@@ -376,7 +386,11 @@ class TestPermissionChecking:
             )
         )
 
-    def test_simple_quiz_allowed_for_all(self, admin_permissions, creator_permissions, user_permissions):
+    def test_simple_quiz_allowed_for_all(
+            self,
+            admin_permissions,
+            creator_permissions,
+            user_permissions):
         """Test simple quiz is allowed for all roles."""
         quiz_data = {
             "metadata": {"title": "Simple Quiz", "version": "1.0"},
@@ -387,8 +401,12 @@ class TestPermissionChecking:
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
 
-        for perms in [admin_permissions, creator_permissions, user_permissions]:
-            result = QuizRequirementsAnalyzer.check_permissions(requirements, perms)
+        for perms in [
+                admin_permissions,
+                creator_permissions,
+                user_permissions]:
+            result = QuizRequirementsAnalyzer.check_permissions(
+                requirements, perms)
             assert result.allowed is True
 
     def test_api_quiz_denied_for_user(self, user_permissions):
@@ -407,7 +425,8 @@ class TestPermissionChecking:
         }
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, user_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, user_permissions)
 
         assert result.allowed is False
         assert len(result.missing_permissions) > 0
@@ -429,10 +448,12 @@ class TestPermissionChecking:
         }
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, creator_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, creator_permissions)
 
         assert result.allowed is False
-        assert any("api.external.com" in msg for msg in result.missing_permissions)
+        assert any(
+            "api.external.com" in msg for msg in result.missing_permissions)
 
     def test_local_api_allowed_for_creator(self, creator_permissions):
         """Test local API hosts allowed for creator role."""
@@ -450,7 +471,8 @@ class TestPermissionChecking:
         }
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, creator_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, creator_permissions)
 
         assert result.allowed is True
 
@@ -471,7 +493,8 @@ class TestPermissionChecking:
         }
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, user_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, user_permissions)
 
         assert result.allowed is False
         assert any("File uploads" in msg for msg in result.missing_permissions)
@@ -493,7 +516,8 @@ class TestPermissionChecking:
         }
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, creator_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, creator_permissions)
 
         assert result.allowed is False
         assert any("video" in msg for msg in result.missing_permissions)
@@ -501,29 +525,30 @@ class TestPermissionChecking:
     def test_admin_can_do_everything(self, admin_permissions):
         """Test admin role can create any quiz."""
         quiz_data = {
-            "metadata": {"title": "Complex Quiz", "version": "1.0"},
+            "metadata": {
+                "title": "Complex Quiz",
+                "version": "1.0"},
             "api_integrations": [
                 {
                     "id": "external",
                     "method": "POST",
                     "timing": "before_question",
-                    "prepare_request": {"url_template": "https://any.external.api.com/data"}
-                }
-            ],
+                    "prepare_request": {
+                        "url_template": "https://any.external.api.com/data"}}],
             "questions": [
                 {
                     "id": 1,
                     "data": {
                         "type": "file_upload",
-                        "text": "Upload any file",
-                        "allowed_types": ["video", "audio", "archives"]
-                    }
-                }
-            ]
-        }
+                                "text": "Upload any file",
+                                "allowed_types": [
+                                    "video",
+                                    "audio",
+                                    "archives"]}}]}
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, admin_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, admin_permissions)
 
         assert result.allowed is True
         assert len(result.missing_permissions) == 0
@@ -548,7 +573,8 @@ class TestPermissionChecking:
         }
 
         requirements = QuizRequirementsAnalyzer.analyze(quiz_data)
-        result = QuizRequirementsAnalyzer.check_permissions(requirements, admin_permissions)
+        result = QuizRequirementsAnalyzer.check_permissions(
+            requirements, admin_permissions)
 
         assert result.allowed is True
         assert len(result.warnings) > 0

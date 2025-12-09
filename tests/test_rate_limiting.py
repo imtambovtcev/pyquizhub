@@ -48,7 +48,8 @@ class TestTokenBucket:
             last_update=time.time()
         )
         assert bucket.consume(1) is False
-        # Tokens may have increased slightly due to time elapsed, but should be close to 0.5
+        # Tokens may have increased slightly due to time elapsed, but should be
+        # close to 0.5
         assert 0.49 < bucket.tokens < 0.51
 
     def test_token_bucket_refill(self):
@@ -146,7 +147,8 @@ class TestRateLimiter:
             limiter.check_rate_limit("user_b", "user", limits)
             limiter.check_rate_limit("user_b", "user", limits)
         except HTTPException:
-            pytest.fail("Different user should have separate rate limit bucket")
+            pytest.fail(
+                "Different user should have separate rate limit bucket")
 
     def test_rate_limiter_separate_buckets_per_role(self):
         """Test same user with different roles has separate buckets."""
@@ -174,7 +176,8 @@ class TestRateLimiter:
             limiter.check_rate_limit("alice", "admin", admin_limits)
             limiter.check_rate_limit("alice", "admin", admin_limits)
         except HTTPException:
-            pytest.fail("Different role should have separate rate limit bucket")
+            pytest.fail(
+                "Different role should have separate rate limit bucket")
 
     def test_rate_limiter_get_remaining(self):
         """Test getting remaining requests."""
@@ -212,7 +215,10 @@ class TestRateLimiter:
         # Manually set last_seen to 25 hours ago
         key = "old_user:user"
         minute_bucket, hour_bucket, _ = limiter._buckets[key]
-        limiter._buckets[key] = (minute_bucket, hour_bucket, time.time() - 90000)
+        limiter._buckets[key] = (
+            minute_bucket,
+            hour_bucket,
+            time.time() - 90000)
 
         # Force cleanup by setting last_cleanup to more than an hour ago
         limiter._last_cleanup = time.time() - 3601

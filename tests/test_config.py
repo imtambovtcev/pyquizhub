@@ -420,7 +420,8 @@ class TestRolePermissions:
         # Creators have more permissions
         assert permissions.creator.file_uploads.enabled is True
         assert permissions.creator.api_integrations.enabled is True
-        assert permissions.creator.api_integrations.allowed_hosts == ["localhost", "127.0.0.1"]
+        assert permissions.creator.api_integrations.allowed_hosts == [
+            "localhost", "127.0.0.1"]
 
         # Admins have full access
         assert permissions.admin.file_uploads.enabled is True
@@ -497,7 +498,8 @@ class TestTokenVerification:
         config_manager = get_config_manager()
         config_manager.load(config_file)
 
-        user_id, role = config_manager.verify_token_and_get_role("admin_secret")
+        user_id, role = config_manager.verify_token_and_get_role(
+            "admin_secret")
         assert role == "admin"
 
     def test_verify_token_creator(self, config_file, monkeypatch):
@@ -507,7 +509,8 @@ class TestTokenVerification:
         config_manager = get_config_manager()
         config_manager.load(config_file)
 
-        user_id, role = config_manager.verify_token_and_get_role("creator_secret")
+        user_id, role = config_manager.verify_token_and_get_role(
+            "creator_secret")
         assert role == "creator"
 
     def test_verify_token_user(self, config_file, monkeypatch):
@@ -547,7 +550,8 @@ class TestTokenVerification:
         config_manager = get_config_manager()
         config_manager.load(config_file)
 
-        user_id, role = config_manager.verify_token_and_get_role("shared_token")
+        user_id, role = config_manager.verify_token_and_get_role(
+            "shared_token")
         assert role == "admin"  # Admin takes priority
 
 

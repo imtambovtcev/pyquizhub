@@ -266,12 +266,16 @@ async def start_quiz(request: StartQuizRequestModel, req: Request):
     )
 
     if not auth_result.authenticated:
-        logger.warning(f"Authentication failed for quiz {quiz_id}: {auth_result.error}")
+        logger.warning(
+            f"Authentication failed for quiz {quiz_id}: {
+                auth_result.error}")
         raise HTTPException(status_code=403, detail=auth_result.error)
 
     # Use authenticated user_id (may differ from provided if generated)
     user_id = auth_result.user_id
-    logger.debug(f"Authenticated user: {user_id} via {auth_result.auth_method}")
+    logger.debug(
+        f"Authenticated user: {user_id} via {
+            auth_result.auth_method}")
 
     # Check for existing active sessions
     session_ids = storage_manager.get_sessions_by_quiz_and_user(
@@ -311,7 +315,8 @@ async def start_quiz(request: StartQuizRequestModel, req: Request):
             )
 
     # No active session found - create a new one
-    logger.info(f"Creating new quiz session for user {user_id} on quiz {quiz_id}")
+    logger.info(
+        f"Creating new quiz session for user {user_id} on quiz {quiz_id}")
 
     # Check token type and remove if single-use
     token_type = storage_manager.get_token_type(request.token)
@@ -352,7 +357,8 @@ async def start_quiz(request: StartQuizRequestModel, req: Request):
     # Persist session immediately
     storage_manager.save_session_state(session_data)
 
-    logger.info(f"Started quiz session {session_id} for user {user_id} on quiz {quiz_id}")
+    logger.info(
+        f"Started quiz session {session_id} for user {user_id} on quiz {quiz_id}")
 
     # If first question is a final_message, auto-complete the quiz
     if _is_final_message(first_question):
@@ -396,7 +402,10 @@ async def start_quiz(request: StartQuizRequestModel, req: Request):
 @router.post("/submit_answer/{quiz_id}",
              response_model=SubmitAnswerResponseModel,
              dependencies=[Depends(user_token_dependency)])
-async def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
+async def submit_answer(
+        quiz_id: str,
+        request: AnswerRequestModel,
+        req: Request):
     """
     Submit an answer and get the next question.
 

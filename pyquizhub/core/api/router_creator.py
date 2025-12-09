@@ -106,8 +106,10 @@ def create_quiz_logic(
 
     # Analyze quiz requirements
     requirements = QuizRequirementsAnalyzer.analyze(quiz_dict)
-    logger.debug(f"Quiz requirements: api={requirements.requires_api_integrations}, "
-                f"files={requirements.requires_file_uploads}")
+    logger.debug(
+        f"Quiz requirements: api={
+            requirements.requires_api_integrations}, " f"files={
+            requirements.requires_file_uploads}")
 
     # Check permissions against creator's role
     config = get_config_manager()
@@ -118,13 +120,13 @@ def create_quiz_logic(
 
     if not permission_check.allowed:
         logger.warning(f"Quiz creation denied for role '{creator_role}': "
-                      f"{permission_check.missing_permissions}")
+                       f"{permission_check.missing_permissions}")
         # Format missing permissions as details list
         details_list = [
-            f"Missing permission: {perm}" for perm in permission_check.missing_permissions
-        ]
+            f"Missing permission: {perm}" for perm in permission_check.missing_permissions]
         if permission_check.warnings:
-            details_list.extend([f"Warning: {warn}" for warn in permission_check.warnings])
+            details_list.extend(
+                [f"Warning: {warn}" for warn in permission_check.warnings])
 
         permission_error(
             message="Quiz requires permissions you don't have",
@@ -144,7 +146,9 @@ def create_quiz_logic(
 
     storage_manager.add_quiz(quiz_id, quiz_data, request.creator_id)
 
-    logger.info(f"Quiz {quiz_id} created by {creator_role} {request.creator_id}")
+    logger.info(
+        f"Quiz {quiz_id} created by {creator_role} {
+            request.creator_id}")
 
     return QuizCreationResponseModel(
         quiz_id=quiz_id, title=request.quiz.metadata.title)
@@ -351,7 +355,8 @@ def creator_participated_users(quiz_id: str, req: Request):
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
         logger.error(
             f"Permission denied for user {user_id} to access participated users for quiz {quiz_id}")
-        permission_error(f"User '{user_id}' cannot access participants for quiz '{quiz_id}'")
+        permission_error(
+            f"User '{user_id}' cannot access participants for quiz '{quiz_id}'")
     return get_participated_users_logic(storage_manager, quiz_id)
 
 
@@ -378,5 +383,6 @@ def creator_get_results_by_quiz(quiz_id: str, req: Request):
     if not storage_manager.user_has_permission_for_quiz_creation(user_id):
         logger.error(
             f"Permission denied for user {user_id} to access results for quiz {quiz_id}")
-        permission_error(f"User '{user_id}' cannot access results for quiz '{quiz_id}'")
+        permission_error(
+            f"User '{user_id}' cannot access results for quiz '{quiz_id}'")
     return get_results_by_quiz_logic(storage_manager, quiz_id)

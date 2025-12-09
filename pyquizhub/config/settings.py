@@ -74,18 +74,21 @@ class RateLimitSettings(BaseModel):
 
 class FileUploadPermissions(BaseModel):
     """File upload permissions per role."""
-    enabled: bool = Field(default=False, description="Whether file uploads are allowed")
+    enabled: bool = Field(
+        default=False,
+        description="Whether file uploads are allowed")
     max_file_size_mb: int = Field(default=5, ge=1, le=100)
     allowed_categories: list[str] = Field(
         default_factory=lambda: ["documents"],
-        description="Allowed file categories: images, audio, video, documents, archives"
-    )
+        description="Allowed file categories: images, audio, video, documents, archives")
     quota_mb: int = Field(default=50, ge=1, le=10000)
 
 
 class APIIntegrationPermissions(BaseModel):
     """API integration permissions per role."""
-    enabled: bool = Field(default=False, description="Whether external API calls are allowed")
+    enabled: bool = Field(
+        default=False,
+        description="Whether external API calls are allowed")
     allowed_hosts: list[str] = Field(
         default_factory=list,
         description="Allowed hosts for API calls (empty = none allowed)"
@@ -96,8 +99,10 @@ class APIIntegrationPermissions(BaseModel):
 class RolePermissions(BaseModel):
     """Permissions for a specific role."""
     rate_limits: RateLimitSettings = Field(default_factory=RateLimitSettings)
-    file_uploads: FileUploadPermissions = Field(default_factory=FileUploadPermissions)
-    api_integrations: APIIntegrationPermissions = Field(default_factory=APIIntegrationPermissions)
+    file_uploads: FileUploadPermissions = Field(
+        default_factory=FileUploadPermissions)
+    api_integrations: APIIntegrationPermissions = Field(
+        default_factory=APIIntegrationPermissions)
 
 
 class RolePermissionsConfig(BaseModel):
@@ -147,7 +152,10 @@ class RolePermissionsConfig(BaseModel):
             ),
             api_integrations=APIIntegrationPermissions(
                 enabled=True,
-                allowed_hosts=["localhost", "127.0.0.1"],  # Only local by default
+                allowed_hosts=[
+                    "localhost",
+                    "127.0.0.1"],
+                # Only local by default
                 max_requests_per_quiz=20
             )
         ),
@@ -163,7 +171,8 @@ class RolePermissionsConfig(BaseModel):
             file_uploads=FileUploadPermissions(
                 enabled=True,
                 max_file_size_mb=100,
-                allowed_categories=["images", "audio", "video", "documents", "archives"],
+                allowed_categories=["images", "audio",
+                                    "video", "documents", "archives"],
                 quota_mb=10000
             ),
             api_integrations=APIIntegrationPermissions(
@@ -645,7 +654,8 @@ class ConfigManager:
         elif role_lower == "user":
             return permissions.user
         else:
-            raise ValueError(f"Invalid role: {role}. Valid roles: admin, creator, user")
+            raise ValueError(
+                f"Invalid role: {role}. Valid roles: admin, creator, user")
 
     def verify_token_and_get_role(self, token: str | None) -> tuple[str, str]:
         """
