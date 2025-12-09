@@ -26,6 +26,10 @@ logger = get_logger(__name__)
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB limit
 BLOCKED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
+# Image formats that Discord can embed directly via URL
+# Other formats (SVG, TIFF, BMP, etc.) need to be uploaded as files
+DISCORD_EMBEDDABLE_IMAGE_FORMATS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+
 
 class DiscordQuizBot(commands.Bot):
     """Discord bot for PyQuizHub quizzes."""
@@ -510,39 +514,52 @@ class DiscordQuizBot(commands.Bot):
         if not url:
             return False
 
-        try:
-            # Try sending via embed first (works for most URLs)
-            embed = discord.Embed(color=discord.Color.blue())
+        enable_download = os.getenv('DISCORD_ENABLE_FILE_DOWNLOAD', 'true').lower() == 'true'
 
-            if caption:
-                embed.description = caption
-
-            if attachment_type == "image":
+        # Check if this is an embeddable image (jpg, png, gif, webp)
+        if self._is_embeddable_image(attachment):
+            try:
+                embed = discord.Embed(color=discord.Color.blue())
+                if caption:
+                    embed.description = caption
                 embed.set_image(url=url)
-            elif attachment_type == "video":
-                # Discord embeds don't support video well, use link
-                embed.description = (caption or "") + f"\n🎬 [Watch Video]({url})"
-            elif attachment_type == "audio":
-                embed.description = (caption or "") + f"\n🎵 [Listen to Audio]({url})"
-            else:
-                embed.description = (caption or "") + f"\n📎 [Download File]({url})"
+                await channel.send(embed=embed, view=view)
+                return True
+            except discord.HTTPException as e:
+                logger.info(f"Image embed failed: {e}. Trying file upload...")
+                if enable_download:
+                    return await self.download_and_send_file(
+                        channel, url, attachment_type, format_type, caption, view
+                    )
+                return False
 
+        # For non-embeddable images and other types, download and upload as file
+        # This includes SVG, TIFF, BMP, audio, video, documents
+        if enable_download and attachment_type in ("image", "audio", "video", "document", "file"):
+            success = await self.download_and_send_file(
+                channel, url, attachment_type, format_type, caption, view
+            )
+            if success:
+                return True
+            # Fall back to link if download fails
+            logger.info(f"File download failed for {attachment_type}, falling back to link")
+
+        # Fallback: show link in embed
+        try:
+            embed = discord.Embed(color=discord.Color.blue())
+            type_icons = {
+                "video": "🎬",
+                "audio": "🎵",
+                "document": "📄",
+            }
+            icon = type_icons.get(attachment_type, "📎")
+            type_label = attachment_type.title() if attachment_type else "File"
+            embed.description = (caption or "") + f"\n{icon} [{type_label}]({url})"
             await channel.send(embed=embed, view=view)
             return True
-
         except discord.HTTPException as e:
-            # If embed fails, try downloading and uploading
-            logger.info(f"Embed failed for {attachment_type}: {e}. Trying file upload...")
-
-            enable_download = os.getenv('DISCORD_ENABLE_FILE_DOWNLOAD', 'true').lower() == 'true'
-
-            if enable_download:
-                return await self.download_and_send_file(
-                    channel, url, attachment_type, format_type, caption, view
-                )
-            else:
-                logger.warning(f"File download disabled. Set DISCORD_ENABLE_FILE_DOWNLOAD=true")
-                return False
+            logger.error(f"Failed to send attachment link: {e}")
+            return False
 
     async def send_question(
         self,
@@ -560,18 +577,26 @@ class DiscordQuizBot(commands.Bot):
             final_text = f"🎉 {question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
 
             if attachments:
+                first_att = attachments[0]
                 # Send first attachment with text
-                embed = discord.Embed(
-                    description=final_text,
-                    color=discord.Color.green()
-                )
-                if attachments[0].get("type") == "image":
-                    embed.set_image(url=attachments[0]["url"])
-                await channel.send(embed=embed)
+                if self._is_embeddable_image(first_att):
+                    embed = discord.Embed(
+                        description=final_text,
+                        color=discord.Color.green()
+                    )
+                    embed.set_image(url=first_att["url"])
+                    await channel.send(embed=embed)
+                else:
+                    # Non-embeddable attachment: download and upload with typing indicator
+                    async with channel.typing():
+                        await channel.send(final_text)
+                        await self.send_attachment(channel, first_att, first_att.get("caption"))
 
-                # Send additional attachments
-                for att in attachments[1:]:
-                    await self.send_attachment(channel, att, att.get("caption"))
+                # Send additional attachments with typing indicator
+                if len(attachments) > 1:
+                    async with channel.typing():
+                        for att in attachments[1:]:
+                            await self.send_attachment(channel, att, att.get("caption"))
             else:
                 await channel.send(final_text)
 
@@ -586,30 +611,12 @@ class DiscordQuizBot(commands.Bot):
         # Handle different question types
         if question_type == "multiple_choice":
             view = QuizButtonView(self, user_id, question["options"])
-
-            if attachments and attachments[0].get("type") == "image":
-                embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=attachments[0]["url"])
-                await channel.send(embed=embed, view=view)
-
-                for att in attachments[1:]:
-                    await self.send_attachment(channel, att, att.get("caption"))
-            else:
-                await channel.send(text, view=view)
+            await self._send_question_with_attachments(channel, text, attachments, view)
 
         elif question_type == "multiple_select":
             text += "\n💡 Select multiple options (comma-separated) or click buttons:\n"
             view = QuizButtonView(self, user_id, question["options"])
-
-            if attachments and attachments[0].get("type") == "image":
-                embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=attachments[0]["url"])
-                await channel.send(embed=embed, view=view)
-
-                for att in attachments[1:]:
-                    await self.send_attachment(channel, att, att.get("caption"))
-            else:
-                await channel.send(text, view=view)
+            await self._send_question_with_attachments(channel, text, attachments, view)
 
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = "multiple_select"
@@ -621,16 +628,7 @@ class DiscordQuizBot(commands.Bot):
                 "text": "text",
             }
             text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
-
-            if attachments and attachments[0].get("type") == "image":
-                embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=attachments[0]["url"])
-                await channel.send(embed=embed)
-
-                for att in attachments[1:]:
-                    await self.send_attachment(channel, att, att.get("caption"))
-            else:
-                await channel.send(text)
+            await self._send_question_with_attachments(channel, text, attachments)
 
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = question_type
@@ -648,34 +646,86 @@ class DiscordQuizBot(commands.Bot):
             if description:
                 text += f"\n\n{description}"
 
-            if attachments and attachments[0].get("type") == "image":
-                embed = discord.Embed(description=text, color=discord.Color.blue())
-                embed.set_image(url=attachments[0]["url"])
-                await channel.send(embed=embed)
-
-                for att in attachments[1:]:
-                    await self.send_attachment(channel, att, att.get("caption"))
-            else:
-                await channel.send(text)
+            await self._send_question_with_attachments(channel, text, attachments)
 
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = "file_upload"
 
         else:
             text_with_hint = text + "\n💡 Please type your answer:"
-
-            if attachments and attachments[0].get("type") == "image":
-                embed = discord.Embed(description=text_with_hint, color=discord.Color.blue())
-                embed.set_image(url=attachments[0]["url"])
-                await channel.send(embed=embed)
-
-                for att in attachments[1:]:
-                    await self.send_attachment(channel, att, att.get("caption"))
-            else:
-                await channel.send(text_with_hint)
+            await self._send_question_with_attachments(channel, text_with_hint, attachments)
 
             if user_id in self.user_sessions:
                 self.user_sessions[user_id]["awaiting_input"] = "text"
+
+    def _is_embeddable_image(self, attachment: dict) -> bool:
+        """
+        Check if an image attachment can be embedded directly in Discord.
+
+        Discord only supports embedding certain image formats via URL.
+        Other formats (SVG, TIFF, BMP, etc.) need to be uploaded as files.
+        """
+        if attachment.get("type") != "image":
+            return False
+
+        # Check format field first
+        format_type = attachment.get("format", "").lower()
+        if format_type in DISCORD_EMBEDDABLE_IMAGE_FORMATS:
+            return True
+
+        # Fallback: check URL extension if format not specified
+        url = attachment.get("url", "")
+        if url:
+            # Extract extension from URL path (ignoring query params)
+            path = url.split("?")[0]
+            ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+            if ext in DISCORD_EMBEDDABLE_IMAGE_FORMATS:
+                return True
+
+        return False
+
+    async def _send_question_with_attachments(
+        self,
+        channel: discord.abc.Messageable,
+        text: str,
+        attachments: list[dict],
+        view: discord.ui.View | None = None
+    ) -> None:
+        """
+        Helper to send question text with attachments.
+
+        Handles all attachment types properly:
+        - Embeddable images (jpg, png, gif, webp): embedded in message via URL
+        - Non-embeddable images (svg, tiff, bmp): downloaded and uploaded as files
+        - Audio/Video/Documents: downloaded and uploaded as Discord files
+
+        Uses typing indicator while downloading attachments to
+        provide visual feedback that content is loading.
+        """
+        if not attachments:
+            # No attachments, just send text
+            await channel.send(text, view=view)
+            return
+
+        first_att = attachments[0]
+
+        if self._is_embeddable_image(first_att):
+            # Embeddable image can be embedded directly via URL
+            embed = discord.Embed(description=text, color=discord.Color.blue())
+            embed.set_image(url=first_att["url"])
+            await channel.send(embed=embed, view=view)
+        else:
+            # Non-embeddable attachment: show typing while downloading
+            # Send text with view first, then download/upload attachment
+            async with channel.typing():
+                await channel.send(text, view=view)
+                await self.send_attachment(channel, first_att, first_att.get("caption"))
+
+        # Send additional attachments with typing indicator
+        if len(attachments) > 1:
+            async with channel.typing():
+                for att in attachments[1:]:
+                    await self.send_attachment(channel, att, att.get("caption"))
 
     async def handle_text_answer(self, message: discord.Message) -> None:
         """Handle text messages as answers."""
