@@ -45,12 +45,19 @@ class AuthResult:
     @classmethod
     def success(cls, user_id: str, auth_method: str) -> 'AuthResult':
         """Create a successful auth result."""
-        return cls(authenticated=True, user_id=user_id, auth_method=auth_method)
+        return cls(
+            authenticated=True,
+            user_id=user_id,
+            auth_method=auth_method)
 
     @classmethod
     def failure(cls, error: str, auth_method: str = "none") -> 'AuthResult':
         """Create a failed auth result."""
-        return cls(authenticated=False, user_id=None, auth_method=auth_method, error=error)
+        return cls(
+            authenticated=False,
+            user_id=None,
+            auth_method=auth_method,
+            error=error)
 
 
 class UserAuthProvider(ABC):
@@ -151,7 +158,8 @@ class UserAuthService:
         """
         self.settings = settings
         self._providers: list[UserAuthProvider] = []
-        self._anonymous_provider = AnonymousAuthProvider(settings.anonymous_id_prefix)
+        self._anonymous_provider = AnonymousAuthProvider(
+            settings.anonymous_id_prefix)
 
         # Initialize non-anonymous providers based on settings
         if settings.api_key_enabled:
@@ -169,7 +177,11 @@ class UserAuthService:
         """Create auth service from config settings."""
         return cls(settings)
 
-    def add_provider(self, provider: UserAuthProvider, priority: int = -1) -> None:
+    def add_provider(
+            self,
+            provider: UserAuthProvider,
+            priority: int = -
+            1) -> None:
         """
         Add a custom auth provider.
 
@@ -204,12 +216,15 @@ class UserAuthService:
         # Check if quiz allows anonymous access (default: True)
         quiz_allows_anonymous = self._quiz_allows_anonymous(quiz_data)
 
-        # If user_id is provided in the request, use it (backward compatibility)
+        # If user_id is provided in the request, use it (backward
+        # compatibility)
         if provided_user_id and self._is_valid_user_id(provided_user_id):
-            # If quiz requires auth, provided ID must come from authenticated source
+            # If quiz requires auth, provided ID must come from authenticated
+            # source
             if not quiz_allows_anonymous:
                 # Try to authenticate via configured providers
-                logger.debug("Quiz requires authentication, validating provided ID")
+                logger.debug(
+                    "Quiz requires authentication, validating provided ID")
                 return self._authenticate_with_providers(request)
 
             logger.debug(f"Using provided user_id: {provided_user_id}")

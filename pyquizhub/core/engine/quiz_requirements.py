@@ -42,7 +42,8 @@ class URLAccessPattern:
     original_template: str
     fixed_prefix: str  # e.g., "https://api.example.com/v1/" or full URL if fixed
     has_variable_suffix: bool  # True if there's {variable} after fixed part
-    is_fully_dynamic: bool  # True if entire URL is a variable like {variables.url}
+    # True if entire URL is a variable like {variables.url}
+    is_fully_dynamic: bool
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -144,7 +145,8 @@ class URLAccessPattern:
         if self.has_variable_suffix:
             # URL has variable suffix - needs wildcard permission
             # Check if fixed_prefix is allowed with wildcard
-            return allowed_pattern.endswith("/*") and self.fixed_prefix.startswith(allowed_pattern[:-1])
+            return allowed_pattern.endswith(
+                "/*") and self.fixed_prefix.startswith(allowed_pattern[:-1])
 
         # Exact match required
         return self.fixed_prefix == allowed_pattern
@@ -200,7 +202,8 @@ class QuizRequirements:
     # API Integration requirements
     requires_api_integrations: bool = False
     api_integrations: list[APIRequirement] = field(default_factory=list)
-    api_url_patterns: list[URLAccessPattern] = field(default_factory=list)  # All API URL patterns
+    api_url_patterns: list[URLAccessPattern] = field(
+        default_factory=list)  # All API URL patterns
 
     # File upload requirements
     requires_file_uploads: bool = False
@@ -210,7 +213,8 @@ class QuizRequirements:
     # Attachment requirements
     has_external_attachments: bool = False
     attachments: list[AttachmentRequirement] = field(default_factory=list)
-    attachment_url_patterns: list[URLAccessPattern] = field(default_factory=list)  # All attachment URL patterns
+    attachment_url_patterns: list[URLAccessPattern] = field(
+        default_factory=list)  # All attachment URL patterns
 
     # Other requirements
     uses_regex: bool = False
@@ -287,10 +291,13 @@ class QuizRequirements:
     def from_dict(cls, data: dict[str, Any]) -> "QuizRequirements":
         """Create from stored dictionary."""
         reqs = cls()
-        reqs.requires_api_integrations = data.get("requires_api_integrations", False)
+        reqs.requires_api_integrations = data.get(
+            "requires_api_integrations", False)
         reqs.requires_file_uploads = data.get("requires_file_uploads", False)
-        reqs.file_categories_needed = set(data.get("file_categories_needed", []))
-        reqs.has_external_attachments = data.get("has_external_attachments", False)
+        reqs.file_categories_needed = set(
+            data.get("file_categories_needed", []))
+        reqs.has_external_attachments = data.get(
+            "has_external_attachments", False)
         reqs.uses_regex = data.get("uses_regex", False)
         reqs.max_questions = data.get("max_questions", 0)
         reqs.has_score_updates = data.get("has_score_updates", False)
@@ -298,17 +305,22 @@ class QuizRequirements:
 
         # Reconstruct API URL patterns
         for pattern_data in data.get("api_url_patterns", []):
-            reqs.api_url_patterns.append(URLAccessPattern.from_dict(pattern_data))
+            reqs.api_url_patterns.append(
+                URLAccessPattern.from_dict(pattern_data))
 
         # Reconstruct attachment URL patterns
         for pattern_data in data.get("attachment_url_patterns", []):
-            reqs.attachment_url_patterns.append(URLAccessPattern.from_dict(pattern_data))
+            reqs.attachment_url_patterns.append(
+                URLAccessPattern.from_dict(pattern_data))
 
         # Reconstruct complex objects
         for api_data in data.get("api_integrations", []):
-            # Handle both old format (hosts list) and new format (url_pattern dict)
-            if "url_pattern" in api_data and isinstance(api_data["url_pattern"], dict):
-                url_pattern = URLAccessPattern.from_dict(api_data["url_pattern"])
+            # Handle both old format (hosts list) and new format (url_pattern
+            # dict)
+            if "url_pattern" in api_data and isinstance(
+                    api_data["url_pattern"], dict):
+                url_pattern = URLAccessPattern.from_dict(
+                    api_data["url_pattern"])
             else:
                 # Legacy format - reconstruct from hosts (best effort)
                 hosts = api_data.get("hosts", [])
@@ -335,8 +347,10 @@ class QuizRequirements:
 
         for att_data in data.get("attachments", []):
             # Handle both old format and new format
-            if "url_pattern" in att_data and isinstance(att_data["url_pattern"], dict):
-                url_pattern = URLAccessPattern.from_dict(att_data["url_pattern"])
+            if "url_pattern" in att_data and isinstance(
+                    att_data["url_pattern"], dict):
+                url_pattern = URLAccessPattern.from_dict(
+                    att_data["url_pattern"])
             else:
                 # Legacy format
                 old_pattern = att_data.get("url_pattern", "fixed")
@@ -409,13 +423,17 @@ class QuizRequirementsAnalyzer:
         if "transitions" in quiz_data and quiz_data["transitions"]:
             reqs.has_transitions = True
 
-        logger.debug(f"Quiz requirements analysis complete: api={reqs.requires_api_integrations}, "
-                    f"files={reqs.requires_file_uploads}, attachments={reqs.has_external_attachments}")
+        logger.debug(
+            f"Quiz requirements analysis complete: api={
+                reqs.requires_api_integrations}, " f"files={
+                reqs.requires_file_uploads}, attachments={
+                reqs.has_external_attachments}")
 
         return reqs
 
     @staticmethod
-    def _analyze_api_integrations(quiz_data: dict[str, Any], reqs: QuizRequirements) -> None:
+    def _analyze_api_integrations(
+            quiz_data: dict[str, Any], reqs: QuizRequirements) -> None:
         """Extract API integration requirements."""
         api_integrations = quiz_data.get("api_integrations", [])
 
@@ -426,7 +444,9 @@ class QuizRequirementsAnalyzer:
 
         for api_config in api_integrations:
             # Parse URL template into access pattern
-            url_template = api_config.get("prepare_request", {}).get("url_template", "")
+            url_template = api_config.get(
+                "prepare_request", {}).get(
+                "url_template", "")
             url_pattern = URLAccessPattern.parse(url_template)
 
             reqs.api_integrations.append(APIRequirement(
@@ -440,7 +460,8 @@ class QuizRequirementsAnalyzer:
             reqs.api_url_patterns.append(url_pattern)
 
     @staticmethod
-    def _analyze_questions(quiz_data: dict[str, Any], reqs: QuizRequirements) -> None:
+    def _analyze_questions(
+            quiz_data: dict[str, Any], reqs: QuizRequirements) -> None:
         """Analyze questions for file uploads, attachments, and other features."""
         questions = quiz_data.get("questions", [])
         reqs.max_questions = len(questions)
@@ -529,10 +550,10 @@ class QuizRequirementsAnalyzer:
                                 "cannot verify permissions statically. Requires '*' permission."
                             )
                     elif url_pattern.has_variable_suffix:
-                        # URL with variable suffix - check if fixed prefix is allowed with wildcard
+                        # URL with variable suffix - check if fixed prefix is
+                        # allowed with wildcard
                         pattern_allowed = QuizRequirementsAnalyzer._check_url_pattern_allowed(
-                            url_pattern, allowed_patterns
-                        )
+                            url_pattern, allowed_patterns)
                         if not pattern_allowed:
                             result.allowed = False
                             result.missing_permissions.append(
@@ -542,8 +563,7 @@ class QuizRequirementsAnalyzer:
                     else:
                         # Fixed URL - check exact match or wildcard
                         pattern_allowed = QuizRequirementsAnalyzer._check_url_pattern_allowed(
-                            url_pattern, allowed_patterns
-                        )
+                            url_pattern, allowed_patterns)
                         if not pattern_allowed:
                             result.allowed = False
                             result.missing_permissions.append(
@@ -552,7 +572,8 @@ class QuizRequirementsAnalyzer:
                             )
 
                 # Check request count limit
-                if len(requirements.api_integrations) > api_perms.max_requests_per_quiz:
+                if len(
+                        requirements.api_integrations) > api_perms.max_requests_per_quiz:
                     result.allowed = False
                     result.missing_permissions.append(
                         f"Quiz has {len(requirements.api_integrations)} API integrations, "
@@ -576,9 +597,8 @@ class QuizRequirementsAnalyzer:
                     if category not in allowed_categories:
                         result.allowed = False
                         result.missing_permissions.append(
-                            f"File category '{category}' is not allowed for your role. "
-                            f"Allowed: {list(allowed_categories)}"
-                        )
+                            f"File category '{category}' is not allowed for your role. " f"Allowed: {
+                                list(allowed_categories)}")
 
         # External attachments - check URL patterns
         if requirements.has_external_attachments:
@@ -614,13 +634,16 @@ class QuizRequirementsAnalyzer:
                     except Exception:
                         pass
                 if hosts:
-                    warnings.append(f"Fixed attachments from: {', '.join(hosts)}")
+                    warnings.append(
+                        f"Fixed attachments from: {
+                            ', '.join(hosts)}")
 
             if warnings:
                 result.warnings.append(
-                    f"Quiz includes {len(requirements.attachments)} external attachments. "
-                    + "; ".join(warnings)
-                )
+                    f"Quiz includes {
+                        len(
+                            requirements.attachments)} external attachments. " +
+                    "; ".join(warnings))
 
         return result
 
@@ -648,7 +671,8 @@ class QuizRequirementsAnalyzer:
                 if url_pattern.fixed_prefix:
                     try:
                         parsed = urlparse(url_pattern.fixed_prefix)
-                        if parsed.netloc and parsed.netloc.split(":")[0] in ["localhost", "127.0.0.1"]:
+                        if parsed.netloc and parsed.netloc.split(
+                                ":")[0] in ["localhost", "127.0.0.1"]:
                             return True
                     except Exception:
                         pass

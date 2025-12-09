@@ -50,7 +50,8 @@ async def file_cleanup_task(file_storage, interval_seconds: int = 3600):
         file_storage: File storage instance (FileBasedFileStorage or SQLFileStorage)
         interval_seconds: Cleanup interval in seconds (default: 1 hour)
     """
-    logger.info(f"File cleanup scheduler started (interval: {interval_seconds}s)")
+    logger.info(
+        f"File cleanup scheduler started (interval: {interval_seconds}s)")
 
     while True:
         try:
@@ -59,7 +60,8 @@ async def file_cleanup_task(file_storage, interval_seconds: int = 3600):
             deleted_count = file_storage.cleanup_expired_files()
 
             if deleted_count > 0:
-                logger.info(f"File cleanup completed: {deleted_count} expired files removed")
+                logger.info(
+                    f"File cleanup completed: {deleted_count} expired files removed")
             else:
                 logger.debug("File cleanup completed: no expired files found")
 
@@ -100,13 +102,18 @@ async def lifespan(app: FastAPI):
     # Start file cleanup background task (disabled by default)
     cleanup_enabled = getattr(_config_manager, 'file_cleanup_enabled', False)
     if cleanup_enabled:
-        cleanup_interval = getattr(_config_manager, 'file_cleanup_interval_seconds', 3600)
+        cleanup_interval = getattr(
+            _config_manager,
+            'file_cleanup_interval_seconds',
+            3600)
         app.state.cleanup_task = asyncio.create_task(
             file_cleanup_task(app.state.file_storage, cleanup_interval)
         )
-        logger.info(f"File cleanup scheduler enabled (interval: {cleanup_interval}s)")
+        logger.info(
+            f"File cleanup scheduler enabled (interval: {cleanup_interval}s)")
     else:
-        logger.debug("File cleanup scheduler disabled (set file_cleanup_enabled=true to enable)")
+        logger.debug(
+            "File cleanup scheduler disabled (set file_cleanup_enabled=true to enable)")
 
     logger.info("Application startup complete")
 

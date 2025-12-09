@@ -95,15 +95,18 @@ class TestFileCleanupScheduler:
             pass
 
         # Verify expired file was deleted
-        assert storage_backend.get_file_metadata(expired_metadata.file_id) is None
+        assert storage_backend.get_file_metadata(
+            expired_metadata.file_id) is None
 
         # Verify active file still exists
-        assert storage_backend.get_file_metadata(active_metadata.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            active_metadata.file_id) is not None
 
     @pytest.mark.asyncio
     async def test_cleanup_task_handles_errors(self, storage_backend):
         """Test that cleanup task continues running even if cleanup fails."""
-        # Mock cleanup_expired_files to raise error on first call, succeed on second
+        # Mock cleanup_expired_files to raise error on first call, succeed on
+        # second
         original_cleanup = storage_backend.cleanup_expired_files
         call_count = 0
 
@@ -131,7 +134,8 @@ class TestFileCleanupScheduler:
         except asyncio.CancelledError:
             pass
 
-        # Verify cleanup was called at least twice (first failed, second succeeded)
+        # Verify cleanup was called at least twice (first failed, second
+        # succeeded)
         assert call_count >= 2
 
     @pytest.mark.asyncio
@@ -159,7 +163,8 @@ class TestFileCleanupScheduler:
         assert task.cancelled() or task.exception() is None
 
     @pytest.mark.asyncio
-    async def test_cleanup_task_deletes_multiple_expired_files(self, storage_backend):
+    async def test_cleanup_task_deletes_multiple_expired_files(
+            self, storage_backend):
         """Test that cleanup task deletes all expired files in one run."""
         # Create multiple expired files
         expired_files = []
@@ -194,7 +199,8 @@ class TestFileCleanupScheduler:
             assert storage_backend.get_file_metadata(metadata.file_id) is None
 
     @pytest.mark.asyncio
-    async def test_cleanup_task_preserves_non_expired_files(self, storage_backend):
+    async def test_cleanup_task_preserves_non_expired_files(
+            self, storage_backend):
         """Test that cleanup task doesn't delete non-expired files."""
         # Create files with various expiration times
         soon_to_expire = FileMetadata.create_new(
@@ -240,9 +246,12 @@ class TestFileCleanupScheduler:
             pass
 
         # Verify all non-expired files still exist
-        assert storage_backend.get_file_metadata(soon_to_expire.file_id) is not None
-        assert storage_backend.get_file_metadata(far_future.file_id) is not None
-        assert storage_backend.get_file_metadata(no_expiration.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            soon_to_expire.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            far_future.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            no_expiration.file_id) is not None
 
     @pytest.mark.asyncio
     async def test_cleanup_task_with_custom_interval(self, storage_backend):
@@ -295,7 +304,8 @@ class TestFileCleanupSchedulerDisabledByDefault:
         assert cleanup_enabled is False
 
     @pytest.mark.asyncio
-    async def test_cleanup_task_not_started_when_disabled(self, storage_backend):
+    async def test_cleanup_task_not_started_when_disabled(
+            self, storage_backend):
         """Test that cleanup task logic respects disabled flag."""
         # Create expired file
         expired = FileMetadata.create_new(
@@ -383,12 +393,16 @@ class TestFileCleanupIntegration:
 
         # Verify expired files are gone
         assert storage_backend.get_file_metadata(expired_old.file_id) is None
-        assert storage_backend.get_file_metadata(expired_recent.file_id) is None
+        assert storage_backend.get_file_metadata(
+            expired_recent.file_id) is None
 
         # Verify non-expired files still exist
-        assert storage_backend.get_file_metadata(expires_soon.file_id) is not None
-        assert storage_backend.get_file_metadata(expires_later.file_id) is not None
-        assert storage_backend.get_file_metadata(no_expiration.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            expires_soon.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            expires_later.file_id) is not None
+        assert storage_backend.get_file_metadata(
+            no_expiration.file_id) is not None
 
     @pytest.mark.asyncio
     async def test_cleanup_handles_timezone_correctly(self, storage_backend):
@@ -452,7 +466,8 @@ class TestFileCleanupIntegration:
 
         # Verify all active files still exist
         for metadata in active_files:
-            assert storage_backend.get_file_metadata(metadata.file_id) is not None
+            assert storage_backend.get_file_metadata(
+                metadata.file_id) is not None
 
     @pytest.mark.asyncio
     async def test_cleanup_idempotency(self, storage_backend):
@@ -480,7 +495,8 @@ class TestFileCleanupIntegration:
         assert deleted_count_3 == 0
 
     @pytest.mark.asyncio
-    async def test_cleanup_preserves_files_without_expiration(self, storage_backend):
+    async def test_cleanup_preserves_files_without_expiration(
+            self, storage_backend):
         """Test that files without expiration are never deleted."""
         # Create multiple files without expiration
         permanent_files = []
@@ -488,10 +504,10 @@ class TestFileCleanupIntegration:
             metadata = FileMetadata.create_new(
                 file_type="document",
                 platform="url",
-                platform_data={"url": f"https://example.com/permanent_{i}.pdf"},
+                platform_data={
+                    "url": f"https://example.com/permanent_{i}.pdf"},
                 user_id="user_123",
-                expires_at=None
-            )
+                expires_at=None)
             storage_backend.store_file_metadata(metadata)
             permanent_files.append(metadata)
 
@@ -502,7 +518,8 @@ class TestFileCleanupIntegration:
 
         # Verify all files still exist
         for metadata in permanent_files:
-            assert storage_backend.get_file_metadata(metadata.file_id) is not None
+            assert storage_backend.get_file_metadata(
+                metadata.file_id) is not None
 
     @pytest.mark.asyncio
     async def test_cleanup_task_runs_and_deletes_files(self, storage_backend):

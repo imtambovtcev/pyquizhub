@@ -125,7 +125,8 @@ class APIIntegrationManager:
             # Get file field name from prepare_request if specified
             file_field_name = None
             if "prepare_request" in api_config:
-                file_field_name = api_config["prepare_request"].get("file_field_name")
+                file_field_name = api_config["prepare_request"].get(
+                    "file_field_name")
 
             # Make request
             self.logger.info(f"Making {method} request to {url}")
@@ -590,8 +591,8 @@ class APIIntegrationManager:
                     if attempt == self.max_retries - 1:
                         raise
                     self.logger.warning(
-                        f"Request attempt {attempt + 1} failed: {e}, retrying..."
-                    )
+                        f"Request attempt {
+                            attempt + 1} failed: {e}, retrying...")
 
             raise httpx.HTTPError("Max retries exceeded")
 

@@ -92,7 +92,9 @@ def clean_database() -> bool:
             if delete_response.status_code == 200:
                 print(f"  Deleted quiz: {quiz_id}")
             else:
-                print(f"  Warning: Could not delete quiz {quiz_id}: {delete_response.status_code}")
+                print(
+                    f"  Warning: Could not delete quiz {quiz_id}: {
+                        delete_response.status_code}")
 
         print("Database cleaned!")
         return True
@@ -152,7 +154,8 @@ def upload_quizzes() -> dict:
                 else:
                     print(f"    Warning: Could not generate token")
             else:
-                print(f"  Error uploading {quiz_file}: {response.status_code} - {response.text}")
+                print(
+                    f"  Error uploading {quiz_file}: {response.status_code} - {response.text}")
 
         except Exception as e:
             print(f"  Error with {quiz_file}: {e}")

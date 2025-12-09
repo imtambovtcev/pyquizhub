@@ -135,14 +135,15 @@ class RateLimiter:
                     "error": "Rate limit exceeded",
                     "limit_type": "per_minute",
                     "limit": limits.requests_per_minute,
-                    "retry_after": int((1.0 - minute_bucket.tokens) / minute_bucket.rate)
-                }
-            )
+                    "retry_after": int(
+                        (1.0 - minute_bucket.tokens) / minute_bucket.rate)})
 
         # Check per-hour limit
         if not hour_bucket.consume():
             # Refund the minute bucket token since we're rejecting
-            minute_bucket.tokens = min(minute_bucket.capacity, minute_bucket.tokens + 1)
+            minute_bucket.tokens = min(
+                minute_bucket.capacity,
+                minute_bucket.tokens + 1)
 
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -150,9 +151,8 @@ class RateLimiter:
                     "error": "Rate limit exceeded",
                     "limit_type": "per_hour",
                     "limit": limits.requests_per_hour,
-                    "retry_after": int((1.0 - hour_bucket.tokens) / hour_bucket.rate)
-                }
-            )
+                    "retry_after": int(
+                        (1.0 - hour_bucket.tokens) / hour_bucket.rate)})
 
     def get_remaining(
         self, user_id: str, role: str, limits: RateLimitSettings

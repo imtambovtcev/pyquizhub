@@ -41,7 +41,8 @@ def _require_env(var_name: str) -> str:
 API_BASE_URL = _require_env('PYQUIZHUB_API_URL')
 CREATOR_TOKEN = _require_env('PYQUIZHUB_CREATOR_TOKEN')
 PORT = int(os.environ.get('CREATOR_PORT', '9001'))
-# Password for creator login - separate from CREATOR_TOKEN which is for API auth
+# Password for creator login - separate from CREATOR_TOKEN which is for
+# API auth
 CREATOR_PASSWORD = os.environ.get('CREATOR_PASSWORD', 'creator123')
 
 
@@ -152,10 +153,12 @@ def register():
         return jsonify({"error": "Creator ID is required"}), 400
 
     if len(creator_id) < 3:
-        return jsonify({"error": "Creator ID must be at least 3 characters"}), 400
+        return jsonify(
+            {"error": "Creator ID must be at least 3 characters"}), 400
 
     if len(password) < 4:
-        return jsonify({"error": "Password must be at least 4 characters"}), 400
+        return jsonify(
+            {"error": "Password must be at least 4 characters"}), 400
 
     # Check if creator already exists
     if creator_id in _registered_creators:
@@ -244,21 +247,29 @@ def quizzes_page():
 @login_required
 def create_quiz_page():
     """Quiz creation page - JSON upload."""
-    return render_template('create_quiz.html', creator_id=get_current_creator_id())
+    return render_template(
+        'create_quiz.html',
+        creator_id=get_current_creator_id())
 
 
 @app.route('/quiz/<quiz_id>')
 @login_required
 def quiz_detail_page(quiz_id):
     """Quiz detail page - view quiz and statistics."""
-    return render_template('quiz_detail.html', quiz_id=quiz_id, creator_id=get_current_creator_id())
+    return render_template(
+        'quiz_detail.html',
+        quiz_id=quiz_id,
+        creator_id=get_current_creator_id())
 
 
 @app.route('/quiz/<quiz_id>/statistics')
 @login_required
 def quiz_statistics_page(quiz_id):
     """Quiz statistics page - detailed analytics."""
-    return render_template('statistics.html', quiz_id=quiz_id, creator_id=get_current_creator_id())
+    return render_template(
+        'statistics.html',
+        quiz_id=quiz_id,
+        creator_id=get_current_creator_id())
 
 
 @app.route('/tokens')
@@ -279,7 +290,8 @@ def get_quizzes():
     creator_id = get_current_creator_id()
     # TODO: Need creator-specific endpoint to list only their quizzes
     # For now, return empty list
-    return jsonify({"quizzes": {}, "creator_id": creator_id, "message": "List creator's quizzes - endpoint needed"}), 200
+    return jsonify({"quizzes": {}, "creator_id": creator_id,
+                   "message": "List creator's quizzes - endpoint needed"}), 200
 
 
 @app.route('/api/quiz/<quiz_id>', methods=['GET'])
@@ -287,7 +299,8 @@ def get_quizzes():
 def get_quiz(quiz_id):
     """Get a specific quiz."""
     creator_id = get_current_creator_id()
-    data, status = make_creator_request(f'quiz/{quiz_id}', creator_id=creator_id)
+    data, status = make_creator_request(
+        f'quiz/{quiz_id}', creator_id=creator_id)
     return jsonify(data), status
 
 
@@ -328,7 +341,8 @@ def create_quiz():
     creator_id = get_current_creator_id()
     # Set creator_id in the request
     quiz_data['creator_id'] = creator_id
-    data, status = make_creator_request('create_quiz', 'POST', quiz_data, creator_id=creator_id)
+    data, status = make_creator_request(
+        'create_quiz', 'POST', quiz_data, creator_id=creator_id)
     return jsonify(data), status
 
 
@@ -345,7 +359,8 @@ def generate_token():
         return jsonify({"error": "Missing quiz_id"}), 400
 
     creator_id = get_current_creator_id()
-    data, status = make_creator_request('generate_token', 'POST', token_data, creator_id=creator_id)
+    data, status = make_creator_request(
+        'generate_token', 'POST', token_data, creator_id=creator_id)
     return jsonify(data), status
 
 
@@ -358,7 +373,8 @@ def generate_token():
 def get_quiz_results(quiz_id):
     """Get results for a specific quiz."""
     creator_id = get_current_creator_id()
-    data, status = make_creator_request(f'results/{quiz_id}', creator_id=creator_id)
+    data, status = make_creator_request(
+        f'results/{quiz_id}', creator_id=creator_id)
     return jsonify(data), status
 
 
@@ -367,7 +383,8 @@ def get_quiz_results(quiz_id):
 def get_quiz_participants(quiz_id):
     """Get participants who took a quiz."""
     creator_id = get_current_creator_id()
-    data, status = make_creator_request(f'participated_users/{quiz_id}', creator_id=creator_id)
+    data, status = make_creator_request(
+        f'participated_users/{quiz_id}', creator_id=creator_id)
     return jsonify(data), status
 
 
@@ -378,7 +395,8 @@ def get_quiz_statistics(quiz_id):
     creator_id = get_current_creator_id()
 
     # Get results
-    results_data, results_status = make_creator_request(f'results/{quiz_id}', creator_id=creator_id)
+    results_data, results_status = make_creator_request(
+        f'results/{quiz_id}', creator_id=creator_id)
 
     if results_status != 200:
         return jsonify(results_data), results_status

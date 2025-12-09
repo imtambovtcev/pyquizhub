@@ -250,7 +250,8 @@ class TestAdminAPI:
             api_client: TestClient,
             user_headers):
         """Test that admin endpoints reject non-admin tokens."""
-        # These should fail with user token (not admin) - 401 (wrong credentials)
+        # These should fail with user token (not admin) - 401 (wrong
+        # credentials)
         response = api_client.get("/admin/all_users", headers=user_headers)
         assert response.status_code == 401
 

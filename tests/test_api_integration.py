@@ -112,7 +112,8 @@ class TestAPIIntegrationManager:
             headers = mock_client.request.call_args[1]['headers']
             assert headers['X-API-Key'] == 'secret-key-123'
 
-    async def test_bearer_token_authentication(self, api_manager, session_state):
+    async def test_bearer_token_authentication(
+            self, api_manager, session_state):
         """Test Bearer token authentication."""
         api_config = {
             "id": "test_api",
@@ -164,7 +165,8 @@ class TestAPIIntegrationManager:
             assert 'Authorization' in headers
             assert headers['Authorization'].startswith('Basic ')
 
-    async def test_template_variable_substitution(self, api_manager, session_state):
+    async def test_template_variable_substitution(
+            self, api_manager, session_state):
         """Test template variable substitution in URL and body."""
         api_config = {
             "id": "test_api",
@@ -279,7 +281,8 @@ class TestAPIIntegrationManager:
         mock_client = AsyncMock()
         mock_client.__aenter__.return_value = mock_client
         mock_client.__aexit__.return_value = None
-        mock_client.request = AsyncMock(side_effect=httpx.TimeoutException("Request timed out"))
+        mock_client.request = AsyncMock(
+            side_effect=httpx.TimeoutException("Request timed out"))
 
         with patch('httpx.AsyncClient', return_value=mock_client):
             result_state = await api_manager.execute_api_call(
@@ -304,11 +307,11 @@ class TestAPIIntegrationManager:
         mock_response.status_code = 500
         # Create proper HTTPStatusError with required arguments
         mock_request = Mock()
-        mock_response.raise_for_status = Mock(side_effect=httpx.HTTPStatusError(
-            "500 Server Error",
-            request=mock_request,
-            response=mock_response
-        ))
+        mock_response.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "500 Server Error",
+                request=mock_request,
+                response=mock_response))
 
         mock_client = create_mock_httpx_client(mock_response)
 
@@ -322,7 +325,8 @@ class TestAPIIntegrationManager:
             # Verify error was recorded
             assert result_state["api_data"]["test_api"]["success"] is False
 
-    async def test_retry_logic_success_after_retry(self, api_manager, session_state):
+    async def test_retry_logic_success_after_retry(
+            self, api_manager, session_state):
         """Test retry logic succeeds after initial failures."""
         api_config = {
             "id": "test_api",
@@ -476,7 +480,8 @@ class TestAPIIntegrationManager:
                 "user": "test_user", "value": 42}
             assert result_state["api_data"]["test_api"]["status_code"] == 201
 
-    async def test_array_index_in_response_path(self, api_manager, session_state):
+    async def test_array_index_in_response_path(
+            self, api_manager, session_state):
         """Test array indexing in response path."""
         api_config = {
             "id": "test_api",
@@ -539,7 +544,8 @@ class TestAPIIntegrationManager:
             # Verify error was recorded
             assert result_state["api_data"]["test_api"]["success"] is False
 
-    async def test_file_upload_with_custom_field_name(self, api_manager, session_state):
+    async def test_file_upload_with_custom_field_name(
+            self, api_manager, session_state):
         """Test file upload with custom field name."""
         from pyquizhub.core.engine.api_integration import FileUploadMarker
 
@@ -584,7 +590,8 @@ class TestAPIIntegrationManager:
                 assert call_kwargs['files']['document'][1] == b"test file content"
                 assert call_kwargs['files']['document'][2] == 'application/pdf'
 
-    async def test_file_upload_default_field_name(self, api_manager, session_state):
+    async def test_file_upload_default_field_name(
+            self, api_manager, session_state):
         """Test file upload with default field name when not specified."""
         from pyquizhub.core.engine.api_integration import FileUploadMarker
 
