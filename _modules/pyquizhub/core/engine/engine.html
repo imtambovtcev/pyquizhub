@@ -94,6 +94,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.safe_evaluator</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeEvaluator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.json_validator</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuizJSONValidator</span>
@@ -197,7 +198,7 @@
 
 <div class="viewcode-block" id="QuizEngine.start_quiz">
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine.start_quiz">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">start_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start_quiz</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create initial quiz state.</span>
 
@@ -224,7 +225,7 @@
         <span class="p">}</span>
 
         <span class="c1"># Execute ON_QUIZ_START API calls</span>
-        <span class="n">initial_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+        <span class="n">initial_state</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
             <span class="n">initial_state</span><span class="p">,</span>
             <span class="n">RequestTiming</span><span class="o">.</span><span class="n">ON_QUIZ_START</span><span class="p">,</span>
             <span class="n">context</span><span class="o">=</span><span class="p">{}</span>
@@ -232,7 +233,7 @@
 
         <span class="c1"># Execute BEFORE_QUESTION API calls for the first question</span>
         <span class="n">first_question_id</span> <span class="o">=</span> <span class="n">initial_state</span><span class="p">[</span><span class="s2">&quot;current_question_id&quot;</span><span class="p">]</span>
-        <span class="n">initial_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+        <span class="n">initial_state</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
             <span class="n">initial_state</span><span class="p">,</span>
             <span class="n">RequestTiming</span><span class="o">.</span><span class="n">BEFORE_QUESTION</span><span class="p">,</span>
             <span class="n">context</span><span class="o">=</span><span class="p">{</span>
@@ -282,7 +283,7 @@
 
 <div class="viewcode-block" id="QuizEngine.answer_question">
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine.answer_question">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">answer_question</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">answer</span><span class="p">:</span> <span class="nb">any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">answer_question</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">answer</span><span class="p">:</span> <span class="nb">any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Process answer and return NEW state (pure function).</span>
 
@@ -334,7 +335,7 @@
             <span class="s2">&quot;answer&quot;</span><span class="p">:</span> <span class="n">answer</span><span class="p">,</span>
             <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
         <span class="p">}</span>
-        <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+        <span class="n">new_state</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
             <span class="n">new_state</span><span class="p">,</span>
             <span class="n">RequestTiming</span><span class="o">.</span><span class="n">AFTER_ANSWER</span><span class="p">,</span>
             <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
@@ -418,7 +419,7 @@
                 <span class="s2">&quot;question_id&quot;</span><span class="p">:</span> <span class="n">next_question_id</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
             <span class="p">}</span>
-            <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+            <span class="n">new_state</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
                 <span class="n">new_state</span><span class="p">,</span>
                 <span class="n">RequestTiming</span><span class="o">.</span><span class="n">BEFORE_QUESTION</span><span class="p">,</span>
                 <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
@@ -426,7 +427,7 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Execute ON_QUIZ_END API calls</span>
-            <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
+            <span class="n">new_state</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_api_calls</span><span class="p">(</span>
                 <span class="n">new_state</span><span class="p">,</span>
                 <span class="n">RequestTiming</span><span class="o">.</span><span class="n">ON_QUIZ_END</span><span class="p">,</span>
                 <span class="n">context</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;final_scores&quot;</span><span class="p">:</span> <span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]}</span>
@@ -523,7 +524,7 @@
 
 <div class="viewcode-block" id="QuizEngine._execute_api_calls">
 <a class="viewcode-back" href="../../../../core/engine.html#pyquizhub.core.engine.engine.QuizEngine._execute_api_calls">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_execute_api_calls</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_execute_api_calls</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">timing</span><span class="p">:</span> <span class="n">RequestTiming</span><span class="p">,</span>
@@ -562,13 +563,22 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_storage</span><span class="p">:</span>
                     <span class="n">api_context</span><span class="p">[</span><span class="s1">&#39;_file_storage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_storage</span>
 
-                <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span><span class="o">.</span><span class="n">execute_api_call</span><span class="p">(</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_manager</span><span class="o">.</span><span class="n">execute_api_call</span><span class="p">(</span>
                     <span class="n">api_config</span><span class="p">,</span>
                     <span class="n">state</span><span class="p">,</span>
                     <span class="n">api_context</span>
                 <span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API call failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HTTP error in API call: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Continue with quiz even if API call fails</span>
+            <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">TimeoutException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API request timed out: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Continue with quiz even if API call fails</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API configuration error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Continue with quiz even if API call fails</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File operation error in API call: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="c1"># Continue with quiz even if API call fails</span>
 
         <span class="k">return</span> <span class="n">state</span></div>
