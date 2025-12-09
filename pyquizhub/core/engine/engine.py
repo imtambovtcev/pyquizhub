@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import Any
+import httpx
 
 from .safe_evaluator import SafeEvaluator
 from .json_validator import QuizJSONValidator
@@ -111,7 +112,7 @@ class QuizEngine:
 
         return quiz_data
 
-    def start_quiz(self) -> dict:
+    async def start_quiz(self) -> dict:
         """
         Create initial quiz state.
 
@@ -138,7 +139,7 @@ class QuizEngine:
         }
 
         # Execute ON_QUIZ_START API calls
-        initial_state = self._execute_api_calls(
+        initial_state = await self._execute_api_calls(
             initial_state,
             RequestTiming.ON_QUIZ_START,
             context={}
@@ -146,7 +147,7 @@ class QuizEngine:
 
         # Execute BEFORE_QUESTION API calls for the first question
         first_question_id = initial_state["current_question_id"]
-        initial_state = self._execute_api_calls(
+        initial_state = await self._execute_api_calls(
             initial_state,
             RequestTiming.BEFORE_QUESTION,
             context={
@@ -190,7 +191,7 @@ class QuizEngine:
         self.logger.debug(f"Retrieved question {question_id}")
         return question
 
-    def answer_question(self, state: dict, answer: any) -> dict:
+    async def answer_question(self, state: dict, answer: any) -> dict:
         """
         Process answer and return NEW state (pure function).
 
@@ -242,7 +243,7 @@ class QuizEngine:
             "answer": answer,
             **new_state["scores"]
         }
-        new_state = self._execute_api_calls(
+        new_state = await self._execute_api_calls(
             new_state,
             RequestTiming.AFTER_ANSWER,
             context=context,
@@ -326,7 +327,7 @@ class QuizEngine:
                 "question_id": next_question_id,
                 **new_state["scores"]
             }
-            new_state = self._execute_api_calls(
+            new_state = await self._execute_api_calls(
                 new_state,
                 RequestTiming.BEFORE_QUESTION,
                 context=context,
@@ -334,7 +335,7 @@ class QuizEngine:
             )
         else:
             # Execute ON_QUIZ_END API calls
-            new_state = self._execute_api_calls(
+            new_state = await self._execute_api_calls(
                 new_state,
                 RequestTiming.ON_QUIZ_END,
                 context={"final_scores": new_state["scores"]}
@@ -422,7 +423,7 @@ class QuizEngine:
                 return next_question_id
         return None
 
-    def _execute_api_calls(
+    async def _execute_api_calls(
         self,
         state: dict[str, Any],
         timing: RequestTiming,
@@ -461,13 +462,22 @@ class QuizEngine:
                 if self.file_storage:
                     api_context['_file_storage'] = self.file_storage
 
-                state = self.api_manager.execute_api_call(
+                state = await self.api_manager.execute_api_call(
                     api_config,
                     state,
                     api_context
                 )
-            except Exception as e:
-                self.logger.error(f"API call failed: {e}")
+            except httpx.HTTPError as e:
+                self.logger.error(f"HTTP error in API call: {e}")
+                # Continue with quiz even if API call fails
+            except httpx.TimeoutException as e:
+                self.logger.error(f"API request timed out: {e}")
+                # Continue with quiz even if API call fails
+            except (ValueError, KeyError) as e:
+                self.logger.error(f"API configuration error: {e}")
+                # Continue with quiz even if API call fails
+            except (OSError, IOError) as e:
+                self.logger.error(f"File operation error in API call: {e}")
                 # Continue with quiz even if API call fails
 
         return state

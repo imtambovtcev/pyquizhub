@@ -15,6 +15,8 @@ quiz engine instances.
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pyquizhub.core.storage.storage_manager import StorageManager
 from pyquizhub.core.engine.engine import QuizEngine
+from pyquizhub.core.auth.service import UserAuthService, AuthResult
+from pyquizhub.core.api.dependencies import user_token_with_rate_limit
 from pyquizhub.models import (
     NextQuestionResponseModel,
     AnswerRequestModel,
@@ -31,6 +33,33 @@ logger = get_logger(__name__)
 logger.debug("Loaded router_quiz.py")
 router = APIRouter()
 
+# Global auth service instance (initialized on first use)
+_auth_service: UserAuthService | None = None
+
+
+def get_auth_service() -> UserAuthService:
+    """
+    Get the user authentication service.
+
+    Initializes from config on first access.
+    """
+    global _auth_service
+    if _auth_service is None:
+        from pyquizhub.config.settings import get_config_manager
+        config = get_config_manager()
+        if config._settings is None:
+            config.load()
+        _auth_service = UserAuthService.from_config(
+            config._settings.security.user_auth
+        )
+    return _auth_service
+
+
+def reset_auth_service() -> None:
+    """Reset the auth service (for testing)."""
+    global _auth_service
+    _auth_service = None
+
 
 def _get_file_storage():
     """Get file storage backend instance for API file uploads."""
@@ -43,27 +72,19 @@ def _get_file_storage():
         base_dir = os.path.join(os.getcwd(), ".pyquizhub", "uploads")
         os.makedirs(base_dir, exist_ok=True)
         return LocalStorageBackend(base_dir, config)
-    except Exception as e:
-        logger.warning(f"Failed to initialize file storage: {e}")
+    except (OSError, IOError, PermissionError) as e:
+        logger.warning(f"Failed to create file storage directory: {e}")
+        return None
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning(f"Failed to import file storage module: {e}")
+        return None
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Invalid file storage configuration: {e}")
         return None
 
 
-def user_token_dependency(request: Request):
-    """
-    Dependency to validate user authentication token.
-
-    Args:
-        request: FastAPI Request object containing headers
-
-    Raises:
-        HTTPException: If user token is invalid
-    """
-    from pyquizhub.config.settings import get_config_manager
-    token = request.headers.get("Authorization")
-    config_manager = get_config_manager()
-    expected_token = config_manager.get_token("user")
-    if token != expected_token:
-        raise HTTPException(status_code=403, detail="Invalid user token")
+# Use rate-limited dependency (imported above)
+user_token_dependency = user_token_with_rate_limit
 
 
 def _is_final_message(question: dict) -> bool:
@@ -197,13 +218,18 @@ def continue_session(session_id: str, req: Request):
 
 @router.post("/start_quiz", response_model=StartQuizResponseModel,
              dependencies=[Depends(user_token_dependency)])
-def start_quiz(request: StartQuizRequestModel, req: Request):
+async def start_quiz(request: StartQuizRequestModel, req: Request):
     """
     Start a new quiz session for a user, or continue an existing active session.
 
     If the user has an active (uncompleted) session for this quiz, that session
     will be resumed instead of creating a new one. This ensures users can continue
     their quizzes across different adapters (CLI, web, Telegram, etc.).
+
+    Authentication:
+    - By default, anonymous users are allowed (backward compatible)
+    - Quizzes can require authentication via metadata.auth settings
+    - Deployers can configure auth providers in config
 
     Args:
         request: StartQuizRequestModel containing token and user ID
@@ -213,7 +239,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         StartQuizResponseModel: Quiz session data and current question
 
     Raises:
-        HTTPException: If token is invalid or quiz not found
+        HTTPException: If token is invalid, quiz not found, or auth fails
     """
     logger.debug(
         f"Starting quiz with token: {
@@ -228,9 +254,28 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         logger.error(f"Invalid or expired token: {request.token}")
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 
+    # Load quiz data early to check auth requirements
+    quiz_data = storage_manager.get_quiz(quiz_id)
+
+    # Authenticate user (checks quiz-level auth settings)
+    auth_service = get_auth_service()
+    auth_result = auth_service.authenticate(
+        request=req,
+        quiz_data=quiz_data,
+        provided_user_id=request.user_id
+    )
+
+    if not auth_result.authenticated:
+        logger.warning(f"Authentication failed for quiz {quiz_id}: {auth_result.error}")
+        raise HTTPException(status_code=403, detail=auth_result.error)
+
+    # Use authenticated user_id (may differ from provided if generated)
+    user_id = auth_result.user_id
+    logger.debug(f"Authenticated user: {user_id} via {auth_result.auth_method}")
+
     # Check for existing active sessions
     session_ids = storage_manager.get_sessions_by_quiz_and_user(
-        quiz_id, request.user_id
+        quiz_id, user_id
     )
 
     # Find the first uncompleted session
@@ -239,11 +284,9 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         if session_data and not session_data.get("completed", True):
             # Found an active session - resume it
             logger.info(
-                f"Resuming existing session {session_id} for user {
-                    request.user_id} on quiz {quiz_id}")
+                f"Resuming existing session {session_id} for user {user_id} on quiz {quiz_id}")
 
-            # Load quiz data to get current question
-            quiz_data = storage_manager.get_quiz(quiz_id)
+            # Quiz data already loaded above for auth check
             file_storage = _get_file_storage()
             engine = QuizEngine(quiz_data, file_storage)
 
@@ -261,31 +304,28 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
             return StartQuizResponseModel(
                 quiz_id=quiz_id,
-                user_id=request.user_id,
+                user_id=user_id,
                 session_id=session_id,
                 title=quiz_data["metadata"]["title"],
                 question=current_question
             )
 
     # No active session found - create a new one
-    logger.info(
-        f"Creating new quiz session for user {
-            request.user_id} on quiz {quiz_id}")
+    logger.info(f"Creating new quiz session for user {user_id} on quiz {quiz_id}")
 
     # Check token type and remove if single-use
     token_type = storage_manager.get_token_type(request.token)
     if token_type == "single-use":
         storage_manager.remove_token(request.token)
 
-    # Load quiz data
-    quiz_data = storage_manager.get_quiz(quiz_id)
+    # Quiz data already loaded above for auth check
 
     # Create engine instance with file storage (stateless, created per request)
     file_storage = _get_file_storage()
     engine = QuizEngine(quiz_data, file_storage)
 
     # Get initial state from engine
-    engine_state = engine.start_quiz()
+    engine_state = await engine.start_quiz()
 
     # Generate session ID (API layer responsibility)
     session_id = str(uuid.uuid4())
@@ -297,7 +337,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     session_data = {
         # Metadata (API layer)
         "session_id": session_id,
-        "user_id": request.user_id,
+        "user_id": user_id,
         "quiz_id": quiz_id,
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
@@ -312,20 +352,18 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
     # Persist session immediately
     storage_manager.save_session_state(session_data)
 
-    logger.info(
-        f"Started quiz session {session_id} for user {
-            request.user_id} on quiz {quiz_id}")
+    logger.info(f"Started quiz session {session_id} for user {user_id} on quiz {quiz_id}")
 
     # If first question is a final_message, auto-complete the quiz
     if _is_final_message(first_question):
         logger.info(
             f"First question is final_message, auto-completing quiz {quiz_id}")
         # Process final message (no answer needed)
-        final_state = engine.answer_question(engine_state, None)
+        final_state = await engine.answer_question(engine_state, None)
 
         # Save final results
         storage_manager.add_results(
-            user_id=request.user_id,
+            user_id=user_id,
             quiz_id=quiz_id,
             session_id=session_id,
             results={
@@ -340,7 +378,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
         # Return with completed status (question=None indicates completion)
         return StartQuizResponseModel(
             quiz_id=quiz_id,
-            user_id=request.user_id,
+            user_id=user_id,
             session_id=session_id,
             title=quiz_data["metadata"]["title"],
             question=first_question  # Show the final message
@@ -348,7 +386,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 
     return StartQuizResponseModel(
         quiz_id=quiz_id,
-        user_id=request.user_id,
+        user_id=user_id,
         session_id=session_id,
         title=quiz_data["metadata"]["title"],
         question=first_question
@@ -358,7 +396,7 @@ def start_quiz(request: StartQuizRequestModel, req: Request):
 @router.post("/submit_answer/{quiz_id}",
              response_model=SubmitAnswerResponseModel,
              dependencies=[Depends(user_token_dependency)])
-def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
+async def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
     """
     Submit an answer and get the next question.
 
@@ -429,7 +467,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
 
     # Process answer (pure function, returns new state)
     try:
-        new_engine_state = engine.answer_question(engine_state, answer)
+        new_engine_state = await engine.answer_question(engine_state, answer)
     except ValueError as e:
         logger.error(f"Invalid answer for session {session_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -455,7 +493,7 @@ def submit_answer(quiz_id: str, request: AnswerRequestModel, req: Request):
         logger.info(
             f"Next question is final_message, auto-completing quiz {quiz_id}")
         # Process final message (no answer needed)
-        final_state = engine.answer_question(new_engine_state, None)
+        final_state = await engine.answer_question(new_engine_state, None)
 
         # Save final results
         storage_manager.add_results(

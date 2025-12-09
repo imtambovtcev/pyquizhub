@@ -235,30 +235,30 @@ class TestAdminAPI:
 
     def test_admin_endpoints_require_auth(self, api_client: TestClient):
         """Test that admin endpoints require authentication."""
-        # Test without headers
+        # Test without headers - should return 401 (Unauthorized)
         response = api_client.get("/admin/all_users")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         response = api_client.get("/admin/all_results")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         response = api_client.get("/admin/all_sessions")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_admin_endpoints_reject_user_token(
             self,
             api_client: TestClient,
             user_headers):
         """Test that admin endpoints reject non-admin tokens."""
-        # These should fail with user token (not admin)
+        # These should fail with user token (not admin) - 401 (wrong credentials)
         response = api_client.get("/admin/all_users", headers=user_headers)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         response = api_client.get("/admin/all_results", headers=user_headers)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
         response = api_client.get("/admin/all_sessions", headers=user_headers)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_get_all_quizzes(self, api_client: TestClient, admin_headers):
         """Test retrieving all quizzes via admin endpoint."""

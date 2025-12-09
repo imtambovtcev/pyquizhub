@@ -1,13 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Create Quiz - PyQuizHub Admin{% endblock %}
+{% block title %}Create Quiz - PyQuizHub Creator{% endblock %}
 
 {% block content %}
-<div class="create-quiz">
-    <div class="page-header">
-        <h2>Create New Quiz</h2>
-        <a href="/quizzes" class="btn btn-secondary">Back to Quizzes</a>
-    </div>
+<div class="create-quiz-page">
+    <h2>Create New Quiz</h2>
     <div id="quiz-editor-container"></div>
 </div>
 {% endblock %}
@@ -17,8 +14,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     new QuizEditor('quiz-editor-container', {
-        requireCreatorId: true,  // Admin must specify creator_id
-        showVisualEditor: true,  // Show visual editor tab (placeholder)
+        requireCreatorId: false,  // Creator ID comes from session
+        showVisualEditor: true,
         showLoadTemplate: true,
         autoSaveDraft: true,
         onQuizCreated: function(quizId) {

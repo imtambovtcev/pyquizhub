@@ -65,14 +65,189 @@ class APISettings(BaseModel):
         description="Port for uvicorn")
 
 
+class RateLimitSettings(BaseModel):
+    """Rate limiting configuration per role."""
+    requests_per_minute: int = Field(default=60, ge=1, le=10000)
+    requests_per_hour: int = Field(default=1000, ge=1, le=100000)
+    burst_size: int = Field(default=10, ge=1, le=100)
+
+
+class FileUploadPermissions(BaseModel):
+    """File upload permissions per role."""
+    enabled: bool = Field(default=False, description="Whether file uploads are allowed")
+    max_file_size_mb: int = Field(default=5, ge=1, le=100)
+    allowed_categories: list[str] = Field(
+        default_factory=lambda: ["documents"],
+        description="Allowed file categories: images, audio, video, documents, archives"
+    )
+    quota_mb: int = Field(default=50, ge=1, le=10000)
+
+
+class APIIntegrationPermissions(BaseModel):
+    """API integration permissions per role."""
+    enabled: bool = Field(default=False, description="Whether external API calls are allowed")
+    allowed_hosts: list[str] = Field(
+        default_factory=list,
+        description="Allowed hosts for API calls (empty = none allowed)"
+    )
+    max_requests_per_quiz: int = Field(default=10, ge=0, le=1000)
+
+
+class RolePermissions(BaseModel):
+    """Permissions for a specific role."""
+    rate_limits: RateLimitSettings = Field(default_factory=RateLimitSettings)
+    file_uploads: FileUploadPermissions = Field(default_factory=FileUploadPermissions)
+    api_integrations: APIIntegrationPermissions = Field(default_factory=APIIntegrationPermissions)
+
+
+class RolePermissionsConfig(BaseModel):
+    """
+    Permissions configuration for all roles.
+
+    Default philosophy: secure by default for beginners.
+    - Users: minimal permissions, no file uploads, no API calls
+    - Creators: can create quizzes with limited API access
+    - Admins: full access (configured separately)
+
+    Advanced users can override via config.yaml or environment variables.
+    """
+    user: RolePermissions = Field(
+        default_factory=lambda: RolePermissions(
+            rate_limits=RateLimitSettings(
+                requests_per_minute=30,
+                requests_per_hour=500,
+                burst_size=20  # Increased for tests that make many rapid requests
+            ),
+            file_uploads=FileUploadPermissions(
+                enabled=False,  # Users cannot upload files by default
+                max_file_size_mb=2,
+                allowed_categories=["documents"],
+                quota_mb=10
+            ),
+            api_integrations=APIIntegrationPermissions(
+                enabled=False,  # Users cannot trigger API calls by default
+                allowed_hosts=[],
+                max_requests_per_quiz=0
+            )
+        ),
+        description="Permissions for regular users (quiz takers)"
+    )
+    creator: RolePermissions = Field(
+        default_factory=lambda: RolePermissions(
+            rate_limits=RateLimitSettings(
+                requests_per_minute=60,
+                requests_per_hour=1000,
+                burst_size=10
+            ),
+            file_uploads=FileUploadPermissions(
+                enabled=True,
+                max_file_size_mb=10,
+                allowed_categories=["images", "documents"],
+                quota_mb=100
+            ),
+            api_integrations=APIIntegrationPermissions(
+                enabled=True,
+                allowed_hosts=["localhost", "127.0.0.1"],  # Only local by default
+                max_requests_per_quiz=20
+            )
+        ),
+        description="Permissions for quiz creators"
+    )
+    admin: RolePermissions = Field(
+        default_factory=lambda: RolePermissions(
+            rate_limits=RateLimitSettings(
+                requests_per_minute=1000,
+                requests_per_hour=10000,
+                burst_size=50
+            ),
+            file_uploads=FileUploadPermissions(
+                enabled=True,
+                max_file_size_mb=100,
+                allowed_categories=["images", "audio", "video", "documents", "archives"],
+                quota_mb=10000
+            ),
+            api_integrations=APIIntegrationPermissions(
+                enabled=True,
+                allowed_hosts=["*"],  # Admins can call any host
+                max_requests_per_quiz=1000
+            )
+        ),
+        description="Permissions for administrators"
+    )
+
+
+class UserAuthSettings(BaseModel):
+    """
+    User authentication provider configuration.
+
+    Configures available authentication methods for quiz takers.
+    Note: Whether anonymous access is allowed is set per-quiz in metadata.auth.
+
+    Available auth providers:
+    - api_key: Simple API key authentication (header-based)
+    - oauth2: OAuth2/OIDC provider (future)
+    - custom: Webhook-based custom auth (future)
+
+    The auth system is designed for extensibility - deployers can implement
+    their own auth by subclassing UserAuthProvider.
+    """
+    # Prefix for anonymous user IDs (when quiz allows anonymous)
+    anonymous_id_prefix: str = Field(
+        default="anon_",
+        description="Prefix for anonymous user IDs"
+    )
+
+    # API key auth (simple header-based auth)
+    api_key_enabled: bool = Field(
+        default=False,
+        description="Enable API key authentication for users"
+    )
+    api_key_header: str = Field(
+        default="X-User-API-Key",
+        description="Header name for user API key"
+    )
+
+    # OAuth2/OIDC (placeholder for future implementation)
+    oauth2_enabled: bool = Field(
+        default=False,
+        description="Enable OAuth2/OIDC authentication"
+    )
+    oauth2_provider_url: str | None = Field(
+        default=None,
+        description="OAuth2 provider URL (e.g., https://auth.example.com)"
+    )
+    oauth2_client_id: str | None = Field(
+        default=None,
+        description="OAuth2 client ID"
+    )
+
+    # Custom webhook auth (placeholder for future implementation)
+    custom_auth_enabled: bool = Field(
+        default=False,
+        description="Enable custom webhook-based authentication"
+    )
+    custom_auth_url: str | None = Field(
+        default=None,
+        description="URL to call for custom auth validation"
+    )
+
+
 class SecuritySettings(BaseModel):
     """Security configuration."""
     use_tokens: bool = Field(
         default=True,
-        description="Enable token-based authentication")
+        description="Enable token-based authentication for API access (admin/creator/user)")
     admin_token_env: str = Field(default="PYQUIZHUB_ADMIN_TOKEN")
     creator_token_env: str = Field(default="PYQUIZHUB_CREATOR_TOKEN")
     user_token_env: str = Field(default="PYQUIZHUB_USER_TOKEN")
+    permissions: RolePermissionsConfig = Field(
+        default_factory=RolePermissionsConfig,
+        description="Role-based permissions configuration"
+    )
+    user_auth: UserAuthSettings = Field(
+        default_factory=UserAuthSettings,
+        description="User authentication configuration for quiz takers"
+    )
 
 
 class LoggingSettings(BaseModel):
@@ -444,6 +619,94 @@ class ConfigManager:
             return os.getenv(env_var)
         return None
 
+    def get_role_permissions(self, role: str) -> RolePermissions:
+        """
+        Get permissions for a specific role.
+
+        Args:
+            role: Role name (admin, creator, user)
+
+        Returns:
+            RolePermissions for the role
+
+        Raises:
+            ValueError: If role is invalid
+        """
+        if self._settings is None:
+            self.load()
+
+        role_lower = role.lower()
+        permissions = self._settings.security.permissions
+
+        if role_lower == "admin":
+            return permissions.admin
+        elif role_lower == "creator":
+            return permissions.creator
+        elif role_lower == "user":
+            return permissions.user
+        else:
+            raise ValueError(f"Invalid role: {role}. Valid roles: admin, creator, user")
+
+    def verify_token_and_get_role(self, token: str | None) -> tuple[str, str]:
+        """
+        Verify token and return (user_id, role).
+
+        Token matching priority:
+        1. Admin token -> role=admin
+        2. Creator token -> role=creator
+        3. User token -> role=user
+        4. No match -> raises error
+
+        Args:
+            token: Authorization token
+
+        Returns:
+            Tuple of (user_id, role)
+
+        Raises:
+            ValueError: If token is invalid or missing
+        """
+        if self._settings is None:
+            self.load()
+
+        if not self._settings.security.use_tokens:
+            # If tokens disabled, default to user role
+            return ("anonymous", "user")
+
+        if not token:
+            raise ValueError("Authorization token required")
+
+        # Check against each token type
+        admin_token = self.get_token("admin")
+        if admin_token and token == admin_token:
+            return ("admin", "admin")
+
+        creator_token = self.get_token("creator")
+        if creator_token and token == creator_token:
+            return ("creator", "creator")
+
+        user_token = self.get_token("user")
+        if user_token and token == user_token:
+            return ("user", "user")
+
+        raise ValueError("Invalid authorization token")
+
+    def can_upload_files(self, role: str) -> bool:
+        """Check if role can upload files."""
+        return self.get_role_permissions(role).file_uploads.enabled
+
+    def can_use_api_integrations(self, role: str) -> bool:
+        """Check if role can use API integrations."""
+        return self.get_role_permissions(role).api_integrations.enabled
+
+    def get_file_upload_limits(self, role: str) -> FileUploadPermissions:
+        """Get file upload limits for a role."""
+        return self.get_role_permissions(role).file_uploads
+
+    def get_rate_limits(self, role: str) -> RateLimitSettings:
+        """Get rate limits for a role."""
+        return self.get_role_permissions(role).rate_limits
+
 
 def get_config_manager() -> ConfigManager:
     """
@@ -493,4 +756,10 @@ __all__ = [
     'LoggingSettings',
     'FileStorageSettings',
     'SQLStorageSettings',
+    'RateLimitSettings',
+    'FileUploadPermissions',
+    'APIIntegrationPermissions',
+    'RolePermissions',
+    'RolePermissionsConfig',
+    'UserAuthSettings',
 ]

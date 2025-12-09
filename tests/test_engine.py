@@ -32,7 +32,7 @@ test_quiz_files = [f for f in os.listdir(
     jsons_dir) if f.startswith("test_quiz") and "file_types" not in f]
 
 
-def test_complex_quiz_flow():
+async def test_complex_quiz_flow():
     """Test the flow of the complex quiz with stateless engine."""
     from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(os.path.dirname(
@@ -40,7 +40,7 @@ def test_complex_quiz_flow():
     engine = QuizEngine(quiz_data)
 
     # Start the quiz (no session_id parameter)
-    state = engine.start_quiz()
+    state = await engine.start_quiz()
 
     # Check initial question
     current_question = engine.get_current_question(state)
@@ -52,13 +52,13 @@ def test_complex_quiz_flow():
     assert state["scores"]["pears"] == 0
 
     # Answer the first question (returns new state)
-    new_state = engine.answer_question(state, "yes")
+    new_state = await engine.answer_question(state, "yes")
     assert new_state["scores"]["fruits"] == 1
     assert new_state["scores"]["apples"] == 2
     assert new_state["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    new_state = engine.answer_question(new_state, "yes")
+    new_state = await engine.answer_question(new_state, "yes")
     assert new_state["completed"] is True
     assert new_state["current_question_id"] is None
 
@@ -76,7 +76,7 @@ def test_complex_quiz_flow():
     assert new_state["answers"][1]["answer"] == "yes"
 
 
-def test_complex_quiz_loop_flow():
+async def test_complex_quiz_loop_flow():
     """Test the flow of the complex quiz with loop (stateless engine)."""
     from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(os.path.dirname(
@@ -84,7 +84,7 @@ def test_complex_quiz_loop_flow():
     engine = QuizEngine(quiz_data)
 
     # Start the quiz (no session_id parameter)
-    state = engine.start_quiz()
+    state = await engine.start_quiz()
 
     # Check initial question
     current_question = engine.get_current_question(state)
@@ -96,19 +96,19 @@ def test_complex_quiz_loop_flow():
     assert state["scores"]["pears"] == 0
 
     # Answer the first question with "no"
-    state = engine.answer_question(state, "no")
+    state = await engine.answer_question(state, "no")
     assert state["scores"]["fruits"] == 0
     assert state["scores"]["apples"] == -1
     assert state["scores"]["pears"] == 0
 
     # Answer the first question again with "yes" (looped back)
-    state = engine.answer_question(state, "yes")
+    state = await engine.answer_question(state, "yes")
     assert state["scores"]["fruits"] == 1
     assert state["scores"]["apples"] == 1
     assert state["scores"]["pears"] == 0
 
     # Simulate moving to the next question
-    state = engine.answer_question(state, "yes")
+    state = await engine.answer_question(state, "yes")
     assert state["completed"] is True
     assert state["current_question_id"] is None
 
@@ -140,7 +140,7 @@ def test_invalid_transitions():
 
 
 @pytest.mark.parametrize("quiz_file", test_quiz_files)
-def test_quiz_types(quiz_file):
+async def test_quiz_types(quiz_file):
     """Test the flow of various quiz types with stateless engine."""
     from pyquizhub.core.engine.engine import QuizEngine
     quiz_data = load_quiz_data(os.path.join(jsons_dir, quiz_file))
@@ -151,8 +151,8 @@ def test_quiz_types(quiz_file):
     assert answer is not None, f"Correct answer not found in metadata for {quiz_file}"
 
     # Start the quiz (no session_id parameter)
-    state = engine.start_quiz()
+    state = await engine.start_quiz()
 
     # Answer the question
-    new_state = engine.answer_question(state, answer)
+    new_state = await engine.answer_question(state, answer)
     assert new_state["scores"]["score_a"] == 1

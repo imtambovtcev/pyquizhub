@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Statistics - PyQuizHub Creator{% endblock %}
+
+{% block content %}
+<div class="statistics-page">
+    <div class="page-header">
+        <h2>Statistics: <span id="quiz-title">Loading...</span></h2>
+        <a href="/quiz/{{ quiz_id }}" class="btn btn-secondary">Back to Quiz</a>
+    </div>
+
+    <div class="stats-overview">
+        <div class="stat-card large">
+            <h3>Total Participants</h3>
+            <p class="stat-value" id="total-participants">-</p>
+        </div>
+        <div class="stat-card large">
+            <h3>Total Completions</h3>
+            <p class="stat-value" id="total-completions">-</p>
+        </div>
+        <div class="stat-card large">
+            <h3>Average Score</h3>
+            <p class="stat-value" id="average-score">-</p>
+        </div>
+    </div>
+
+    <div class="stats-details">
+        <div class="stat-section">
+            <h3>Score Range</h3>
+            <div class="score-range">
+                <div class="range-item">
+                    <span class="label">Minimum</span>
+                    <span class="value" id="min-score">-</span>
+                </div>
+                <div class="range-item">
+                    <span class="label">Maximum</span>
+                    <span class="value" id="max-score">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-section">
+            <h3>Score Distribution</h3>
+            <div id="score-distribution" class="distribution-chart">
+                <p class="loading">Loading distribution...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-table-section">
+        <h3>Individual Results</h3>
+        <div id="results-table" class="results-table">
+            <p class="loading">Loading results...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const QUIZ_ID = '{{ quiz_id }}';
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadStatistics();
+    loadResults();
+});
+
+async function loadStatistics() {
+    try {
+        const response = await fetch(`/api/quiz/${QUIZ_ID}/statistics`);
+        const stats = await response.json();
+
+        if (response.ok) {
+            document.getElementById('total-participants').textContent = stats.total_participants || 0;
+            document.getElementById('total-completions').textContent = stats.total_completions || 0;
+            document.getElementById('average-score').textContent =
+                stats.average_score !== undefined ? stats.average_score.toFixed(1) : '-';
+            document.getElementById('min-score').textContent =
+                stats.min_score !== undefined ? stats.min_score : '-';
+            document.getElementById('max-score').textContent =
+                stats.max_score !== undefined ? stats.max_score : '-';
+
+            // Display distribution
+            const distContainer = document.getElementById('score-distribution');
+            if (stats.score_distribution && Object.keys(stats.score_distribution).length > 0) {
+                distContainer.innerHTML = Object.entries(stats.score_distribution)
+                    .map(([range, count]) => `
+                        <div class="dist-bar">
+                            <span class="range">${range}</span>
+                            <div class="bar" style="width: ${Math.max(count * 20, 10)}px;"></div>
+                            <span class="count">${count}</span>
+                        </div>
+                    `).join('');
+            } else {
+                distContainer.innerHTML = '<p class="empty-state">No score data available yet.</p>';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load statistics:', error);
+    }
+
+    // Also load quiz title
+    try {
+        const quizResponse = await fetch(`/api/quiz/${QUIZ_ID}`);
+        const quizData = await quizResponse.json();
+        if (quizResponse.ok) {
+            document.getElementById('quiz-title').textContent = quizData.title || QUIZ_ID;
+        }
+    } catch (error) {
+        console.error('Failed to load quiz title:', error);
+    }
+}
+
+async function loadResults() {
+    try {
+        const response = await fetch(`/api/quiz/${QUIZ_ID}/results`);
+        const data = await response.json();
+
+        const container = document.getElementById('results-table');
+
+        if (!data.results || Object.keys(data.results).length === 0) {
+            container.innerHTML = '<p class="empty-state">No results yet.</p>';
+            return;
+        }
+
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Session</th>
+                        <th>Score</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (const [userId, sessions] of Object.entries(data.results)) {
+            for (const [sessionId, result] of Object.entries(sessions)) {
+                const score = result.scores?.score !== undefined ? result.scores.score : '-';
+                const timestamp = result.timestamp
+                    ? new Date(result.timestamp).toLocaleString()
+                    : '-';
+
+                html += `
+                    <tr>
+                        <td>${userId}</td>
+                        <td><code>${sessionId.substring(0, 8)}...</code></td>
+                        <td>${score}</td>
+                        <td>${timestamp}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Failed to load results:', error);
+        document.getElementById('results-table').innerHTML =
+            '<p class="error">Failed to load results.</p>';
+    }
+}
+</script>
+{% endblock %}

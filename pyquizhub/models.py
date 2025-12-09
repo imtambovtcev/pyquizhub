@@ -4,12 +4,25 @@ from pydantic import BaseModel, model_validator
 from typing import Any
 
 
+# Quiz Auth Settings (per-quiz authentication configuration)
+class QuizAuthSettings(BaseModel):
+    """
+    Per-quiz authentication settings.
+
+    Each quiz decides its own authentication requirements:
+    - allow_anonymous: True (default) = anyone can take this quiz
+    - allow_anonymous: False = requires proper authentication (API key, OAuth, etc.)
+    """
+    allow_anonymous: bool = True  # Default: anonymous users allowed
+
+
 # Metadata Models
 class MetadataModel(BaseModel):
     title: str
     description: str | None = None
     author: str | None = None
     version: str | None = None
+    auth: QuizAuthSettings | None = None  # Optional per-quiz auth settings
 
 
 # Quiz Models

@@ -16,7 +16,7 @@ from pyquizhub.core.engine.engine import QuizEngine
 class TestFixedImageURL:
     """Test fixed image URLs in questions."""
 
-    def test_fixed_image_url_unchanged(self):
+    async def test_fixed_image_url_unchanged(self):
         """Test fixed image URL passes through unchanged."""
         quiz_data = {
             "metadata": {
@@ -55,7 +55,7 @@ class TestFixedImageURL:
         }
 
         engine = QuizEngine(quiz_data)
-        state = engine.start_quiz()
+        state = await engine.start_quiz()
 
         question = engine.get_current_question(state)
 
@@ -65,7 +65,7 @@ class TestFixedImageURL:
 class TestVariableSubstitutionInImageURL:
     """Test variable substitution in image URLs."""
 
-    def test_variable_substitution_in_image_url(self):
+    async def test_variable_substitution_in_image_url(self):
         """Test variables are correctly substituted in image URL."""
         quiz_data = {
             "metadata": {
@@ -111,14 +111,14 @@ class TestVariableSubstitutionInImageURL:
         }
 
         engine = QuizEngine(quiz_data)
-        state = engine.start_quiz()
+        state = await engine.start_quiz()
 
         question = engine.get_current_question(state)
 
         # Variable should be substituted
         assert question["data"]["attachments"][0]["url"] == "https://httpbin.org/image/png"
 
-    def test_multiple_variables_in_image_url(self):
+    async def test_multiple_variables_in_image_url(self):
         """Test multiple variables in image URL are substituted."""
         quiz_data = {
             "metadata": {
@@ -170,14 +170,14 @@ class TestVariableSubstitutionInImageURL:
         }
 
         engine = QuizEngine(quiz_data)
-        state = engine.start_quiz()
+        state = await engine.start_quiz()
 
         question = engine.get_current_question(state)
 
         # Both variables should be substituted
         assert question["data"]["attachments"][0]["url"] == "https://example.com/dogs/42.png"
 
-    def test_variable_changes_reflected_in_image_url(self):
+    async def test_variable_changes_reflected_in_image_url(self):
         """Test that variable changes are reflected in image URL."""
         quiz_data = {
             "metadata": {
@@ -243,10 +243,10 @@ class TestVariableSubstitutionInImageURL:
         }
 
         engine = QuizEngine(quiz_data)
-        state = engine.start_quiz()
+        state = await engine.start_quiz()
 
         # Answer the first question correctly to update level
-        state = engine.answer_question(state, "right")
+        state = await engine.answer_question(state, "right")
 
         question = engine.get_current_question(state)
 
@@ -258,9 +258,9 @@ class TestVariableSubstitutionInImageURL:
 class TestAPIBasedImageURL:
     """Test API-based image URLs."""
 
-    def test_api_image_url_substitution(self):
+    async def test_api_image_url_substitution(self):
         """Test image URL from API response is substituted."""
-        from unittest.mock import patch, Mock
+        from unittest.mock import patch, Mock, AsyncMock
 
         quiz_data = {
             "metadata": {
@@ -328,12 +328,18 @@ class TestAPIBasedImageURL:
             "message": "https://images.dog.ceo/breeds/hound-afghan/n02088094_1003.jpg",
             "status": "success"}
 
-        with patch('requests.request', return_value=mock_response) as mock_request:
+        # Mock httpx.AsyncClient context manager
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(return_value=mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
             engine = QuizEngine(quiz_data)
-            state = engine.start_quiz()
+            state = await engine.start_quiz()
 
             # Verify API was called
-            assert mock_request.called, "API should have been called during start_quiz"
+            assert mock_client.request.called, "API should have been called during start_quiz"
 
             question = engine.get_current_question(state)
 
@@ -348,7 +354,7 @@ class TestAPIBasedImageURL:
 class TestEdgeCases:
     """Test edge cases in image URL templating."""
 
-    def test_missing_image_url_field(self):
+    async def test_missing_image_url_field(self):
         """Test questions without image_url field work normally."""
         quiz_data = {
             "metadata": {
@@ -381,14 +387,14 @@ class TestEdgeCases:
         }
 
         engine = QuizEngine(quiz_data)
-        state = engine.start_quiz()
+        state = await engine.start_quiz()
 
         question = engine.get_current_question(state)
 
         # Should not have attachments field
         assert "attachments" not in question["data"]
 
-    def test_empty_image_url(self):
+    async def test_empty_image_url(self):
         """Test empty image_url is handled gracefully."""
         quiz_data = {
             "metadata": {
@@ -427,7 +433,7 @@ class TestEdgeCases:
         }
 
         engine = QuizEngine(quiz_data)
-        state = engine.start_quiz()
+        state = await engine.start_quiz()
 
         question = engine.get_current_question(state)
 

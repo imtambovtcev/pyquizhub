@@ -10,6 +10,8 @@ from pyquizhub.core.api.router_quiz import router as quiz_router
 from pyquizhub.core.api.router_creator import router as creator_router
 from pyquizhub.core.api.router_admin import router as admin_router
 from pyquizhub.core.api.router_files import router as files_router
+from pyquizhub.core.files.sql_file_storage import SQLFileStorage
+from pyquizhub.core.files.file_file_storage import FileBasedFileStorage
 from pyquizhub.core.api.router_file_uploads import router as file_uploads_router
 from fastapi.middleware import Middleware
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
@@ -17,6 +19,7 @@ from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, Depends, HTTPException
 from contextlib import asynccontextmanager
 import logging
+import asyncio
 
 
 # Use basic logging before config is loaded
@@ -39,6 +42,34 @@ logger = get_logger(__name__)
 logger.debug("Loaded main.py")
 
 
+async def file_cleanup_task(file_storage, interval_seconds: int = 3600):
+    """
+    Background task to periodically clean up expired files.
+
+    Args:
+        file_storage: File storage instance (FileBasedFileStorage or SQLFileStorage)
+        interval_seconds: Cleanup interval in seconds (default: 1 hour)
+    """
+    logger.info(f"File cleanup scheduler started (interval: {interval_seconds}s)")
+
+    while True:
+        try:
+            await asyncio.sleep(interval_seconds)
+            logger.debug("Running file cleanup task")
+            deleted_count = file_storage.cleanup_expired_files()
+
+            if deleted_count > 0:
+                logger.info(f"File cleanup completed: {deleted_count} expired files removed")
+            else:
+                logger.debug("File cleanup completed: no expired files found")
+
+        except asyncio.CancelledError:
+            logger.info("File cleanup task cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Error in file cleanup task: {e}", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -58,15 +89,44 @@ async def lifespan(app: FastAPI):
         logger.error(f"Unsupported storage type: {storage_type}")
         raise ValueError(f"Unsupported storage type: {storage_type}")
 
+    # Initialize file storage for file cleanup
+    if storage_type == "sql":
+        app.state.file_storage = SQLFileStorage(
+            _config_manager.storage_sql_connection_string)
+    else:  # file storage
+        app.state.file_storage = FileBasedFileStorage(
+            f"{_config_manager.storage_file_base_dir}/files")
+
+    # Start file cleanup background task (disabled by default)
+    cleanup_enabled = getattr(_config_manager, 'file_cleanup_enabled', False)
+    if cleanup_enabled:
+        cleanup_interval = getattr(_config_manager, 'file_cleanup_interval_seconds', 3600)
+        app.state.cleanup_task = asyncio.create_task(
+            file_cleanup_task(app.state.file_storage, cleanup_interval)
+        )
+        logger.info(f"File cleanup scheduler enabled (interval: {cleanup_interval}s)")
+    else:
+        logger.debug("File cleanup scheduler disabled (set file_cleanup_enabled=true to enable)")
+
     logger.info("Application startup complete")
 
     yield
 
     # Shutdown
     logger.debug("Shutting down the application")
+
+    # Cancel file cleanup task
+    if hasattr(app.state, "cleanup_task"):
+        app.state.cleanup_task.cancel()
+        try:
+            await app.state.cleanup_task
+        except asyncio.CancelledError:
+            logger.debug("Cleanup task cancelled successfully")
+
     if hasattr(app.state, "storage_manager"):
         storage_manager: StorageManager = app.state.storage_manager
         # storage_manager.close()
+
     logger.info("Application shutdown complete")
 
 

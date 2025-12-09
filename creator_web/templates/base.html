@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PyQuizHub Creator{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/creator.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="creator-nav">
+        <div class="nav-container">
+            <h1 class="nav-title">PyQuizHub Creator</h1>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link">Dashboard</a></li>
+                <li><a href="/quizzes" class="nav-link">My Quizzes</a></li>
+                <li><a href="/quiz/create" class="nav-link">Create Quiz</a></li>
+                <li><a href="/tokens" class="nav-link">Tokens</a></li>
+                {% if creator_id %}
+                <li class="nav-user">
+                    <span class="nav-link">{{ creator_id }}</span>
+                    <a href="/logout" class="nav-link nav-logout">Logout</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="creator-footer">
+        <p>PyQuizHub Creator Interface v1.0</p>
+    </footer>
+
+    <script src="/static/js/creator-common.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

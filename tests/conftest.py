@@ -13,6 +13,23 @@ import pytest
 import os
 from fastapi.testclient import TestClient
 from pyquizhub.config.settings import ConfigManager, get_config_manager
+from pyquizhub.core.api.rate_limiter import get_rate_limiter
+
+
+# Function-level fixture to reset rate limiter before each test
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """
+    Reset rate limiter state before each test.
+
+    This ensures that rate limit buckets don't persist across tests,
+    which would cause tests to fail with 429 errors when all requests
+    come from the same test client IP address.
+    """
+    limiter = get_rate_limiter()
+    limiter._buckets.clear()
+    yield
+    limiter._buckets.clear()
 
 
 # Session-level fixture to clear environment variables before any tests run

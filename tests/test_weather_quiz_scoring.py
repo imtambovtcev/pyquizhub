@@ -9,7 +9,7 @@ This module tests the weather quiz with API integration and all scoring ranges:
 - 20 points: more than 10°C away
 """
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, AsyncMock
 from starlette.testclient import TestClient
 from pyquizhub.config.settings import get_config_manager
 
@@ -46,9 +46,15 @@ def mock_weather_api():
         }
     }
 
-    # Patch requests.request (not requests.get) in the api_integration module
-    with patch('pyquizhub.core.engine.api_integration.requests.request', return_value=mock_response) as mock_request:
-        yield mock_request
+    # Mock httpx.AsyncClient context manager
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.request = AsyncMock(return_value=mock_response)
+
+    # Patch httpx.AsyncClient in the api_integration module
+    with patch('httpx.AsyncClient', return_value=mock_client) as mock_request:
+        yield mock_client
 
 
 @pytest.fixture(scope="module")
@@ -309,7 +315,7 @@ class TestWeatherQuizScoring:
         assert "15.5" in question_text  # Mocked wind speed
 
         # Verify the mock was called
-        assert mock_weather_api.called, "Weather API should have been called"
+        assert mock_weather_api.request.called, "Weather API should have been called"
 
     def test_variable_substitution_in_results(
             self, api_client: TestClient, user_headers, weather_quiz_setup):

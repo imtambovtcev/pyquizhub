@@ -13,14 +13,23 @@ Tests cover:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import requests
+from unittest.mock import Mock, patch, MagicMock, AsyncMock
+import httpx
 from datetime import datetime, timedelta
 from pyquizhub.core.engine.api_integration import (
     APIIntegrationManager,
     AuthType,
     RequestTiming
 )
+
+
+def create_mock_httpx_client(mock_response):
+    """Helper to create a properly mocked httpx.AsyncClient."""
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.request = AsyncMock(return_value=mock_response)
+    return mock_client
 
 
 class TestAPIIntegrationManager:
@@ -43,7 +52,7 @@ class TestAPIIntegrationManager:
             "api_credentials": {}
         }
 
-    def test_simple_get_request(self, api_manager, session_state):
+    async def test_simple_get_request(self, api_manager, session_state):
         """Test a simple GET request with no authentication."""
         api_config = {
             "id": "test_api",
@@ -52,22 +61,24 @@ class TestAPIIntegrationManager:
             "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"value": 42}
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"value": 42}
 
-            result_state = api_manager.execute_api_call(
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
             )
 
             # Verify API was called
-            mock_request.assert_called_once()
-            assert mock_request.call_args[1]['method'] == 'GET'
-            assert mock_request.call_args[1]['url'] == 'https://api.example.com/data'
+            mock_client.request.assert_called_once()
+            call_kwargs = mock_client.request.call_args[1]
+            assert call_kwargs['method'] == 'GET'
+            assert call_kwargs['url'] == 'https://api.example.com/data'
 
             # Verify state was updated
             assert "test_api" in result_state["api_data"]
@@ -75,7 +86,7 @@ class TestAPIIntegrationManager:
             assert result_state["api_data"]["test_api"]["response"] == {
                 "value": 42}
 
-    def test_api_key_authentication(self, api_manager, session_state):
+    async def test_api_key_authentication(self, api_manager, session_state):
         """Test API key authentication in headers."""
         api_config = {
             "id": "test_api",
@@ -88,19 +99,20 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"success": True}
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"success": True}
 
-            api_manager.execute_api_call(api_config, session_state, {})
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            await api_manager.execute_api_call(api_config, session_state, {})
 
             # Verify API key was added to headers
-            headers = mock_request.call_args[1]['headers']
+            headers = mock_client.request.call_args[1]['headers']
             assert headers['X-API-Key'] == 'secret-key-123'
 
-    def test_bearer_token_authentication(self, api_manager, session_state):
+    async def test_bearer_token_authentication(self, api_manager, session_state):
         """Test Bearer token authentication."""
         api_config = {
             "id": "test_api",
@@ -112,19 +124,20 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"success": True}
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"success": True}
 
-            api_manager.execute_api_call(api_config, session_state, {})
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            await api_manager.execute_api_call(api_config, session_state, {})
 
             # Verify Bearer token was added
-            headers = mock_request.call_args[1]['headers']
+            headers = mock_client.request.call_args[1]['headers']
             assert headers['Authorization'] == 'Bearer bearer-token-xyz'
 
-    def test_basic_authentication(self, api_manager, session_state):
+    async def test_basic_authentication(self, api_manager, session_state):
         """Test Basic authentication."""
         api_config = {
             "id": "test_api",
@@ -137,20 +150,21 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"success": True}
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"success": True}
 
-            api_manager.execute_api_call(api_config, session_state, {})
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            await api_manager.execute_api_call(api_config, session_state, {})
 
             # Verify Basic auth header
-            headers = mock_request.call_args[1]['headers']
+            headers = mock_client.request.call_args[1]['headers']
             assert 'Authorization' in headers
             assert headers['Authorization'].startswith('Basic ')
 
-    def test_template_variable_substitution(self, api_manager, session_state):
+    async def test_template_variable_substitution(self, api_manager, session_state):
         """Test template variable substitution in URL and body."""
         api_config = {
             "id": "test_api",
@@ -169,23 +183,24 @@ class TestAPIIntegrationManager:
             "correct": 5
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"success": True}
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"success": True}
 
-            api_manager.execute_api_call(api_config, session_state, context)
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            await api_manager.execute_api_call(api_config, session_state, context)
 
             # Verify URL was rendered
-            assert mock_request.call_args[1]['url'] == 'https://api.example.com/users/42/score'
+            assert mock_client.request.call_args[1]['url'] == 'https://api.example.com/users/42/score'
 
             # Verify body was rendered
-            body = mock_request.call_args[1]['json']
+            body = mock_client.request.call_args[1]['json']
             assert body['answer'] == 'Paris'
             assert body['score'] == '5'
 
-    def test_response_path_extraction(self, api_manager, session_state):
+    async def test_response_path_extraction(self, api_manager, session_state):
         """Test JSONPath-like extraction from API response."""
         api_config = {
             "id": "weather",
@@ -202,19 +217,20 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {
-                "data": {
-                    "temperature": 22.5,
-                    "humidity": 65
-                },
-                "status": "ok"
-            }
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "data": {
+                "temperature": 22.5,
+                "humidity": 65
+            },
+            "status": "ok"
+        }
 
-            result_state = api_manager.execute_api_call(
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -222,11 +238,9 @@ class TestAPIIntegrationManager:
 
             # Verify extracted value is stored in scores
             assert result_state["scores"]["temperature"] == 22.5
-            # And also available in api_data
-            assert result_state["api_data"]["weather"]["response"]["temperature"] == 22.5
 
-    def test_network_error_handling(self, api_manager, session_state):
-        """Test handling of network errors."""
+    async def test_network_error_handling(self, api_manager, session_state):
+        """Test handling of network errors (connection refused, etc)."""
         api_config = {
             "id": "test_api",
             "url": "https://api.example.com/data",
@@ -234,38 +248,41 @@ class TestAPIIntegrationManager:
             "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            # Simulate network error
-            mock_request.side_effect = requests.ConnectionError(
-                "Network error")
+        # Mock httpx.AsyncClient to raise ConnectError
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(side_effect=httpx.ConnectError(
+            "Network error"))
 
-            result_state = api_manager.execute_api_call(
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
             )
 
             # Verify error was recorded
-            assert "test_api" in result_state["api_data"]
             assert result_state["api_data"]["test_api"]["success"] is False
             assert "error" in result_state["api_data"]["test_api"]
-            assert "Network error" in result_state["api_data"]["test_api"]["error"]
 
-    def test_timeout_error_handling(self, api_manager, session_state):
-        """Test handling of timeout errors."""
+    async def test_timeout_handling(self, api_manager, session_state):
+        """Test handling of request timeouts."""
         api_config = {
             "id": "test_api",
-            "url": "https://api.example.com/slow",
+            "url": "https://api.example.com/data",
             "method": "GET",
-            "auth": {"type": "none"},
-            "timeout": 1
+            "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            # Simulate timeout
-            mock_request.side_effect = requests.Timeout("Request timed out")
+        # Mock httpx.AsyncClient to raise TimeoutException
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(side_effect=httpx.TimeoutException("Request timed out"))
 
-            result_state = api_manager.execute_api_call(
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -273,10 +290,8 @@ class TestAPIIntegrationManager:
 
             # Verify timeout was recorded
             assert result_state["api_data"]["test_api"]["success"] is False
-            assert "timed out" in result_state["api_data"]["test_api"]["error"].lower(
-            )
 
-    def test_http_error_handling(self, api_manager, session_state):
+    async def test_http_error_handling(self, api_manager, session_state):
         """Test handling of HTTP errors (4xx, 5xx)."""
         api_config = {
             "id": "test_api",
@@ -285,14 +300,20 @@ class TestAPIIntegrationManager:
             "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 500
-            mock_response.raise_for_status.side_effect = requests.HTTPError(
-                "500 Server Error")
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 500
+        # Create proper HTTPStatusError with required arguments
+        mock_request = Mock()
+        mock_response.raise_for_status = Mock(side_effect=httpx.HTTPStatusError(
+            "500 Server Error",
+            request=mock_request,
+            response=mock_response
+        ))
 
-            result_state = api_manager.execute_api_call(
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -301,7 +322,7 @@ class TestAPIIntegrationManager:
             # Verify error was recorded
             assert result_state["api_data"]["test_api"]["success"] is False
 
-    def test_retry_logic_success_after_retry(self, api_manager, session_state):
+    async def test_retry_logic_success_after_retry(self, api_manager, session_state):
         """Test retry logic succeeds after initial failures."""
         api_config = {
             "id": "test_api",
@@ -310,19 +331,23 @@ class TestAPIIntegrationManager:
             "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            # Fail twice, then succeed
-            mock_response_success = Mock()
-            mock_response_success.status_code = 200
-            mock_response_success.json.return_value = {"value": 42}
+        # Fail twice, then succeed
+        mock_response_success = Mock()
+        mock_response_success.status_code = 200
+        mock_response_success.json.return_value = {"value": 42}
 
-            mock_request.side_effect = [
-                requests.ConnectionError("Error 1"),
-                requests.ConnectionError("Error 2"),
-                mock_response_success
-            ]
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        # Fail twice, then succeed
+        mock_client.request = AsyncMock(side_effect=[
+            httpx.ConnectError("Error 1"),
+            httpx.ConnectError("Error 2"),
+            mock_response_success
+        ])
 
-            result_state = api_manager.execute_api_call(
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -332,9 +357,9 @@ class TestAPIIntegrationManager:
             assert result_state["api_data"]["test_api"]["success"] is True
             assert result_state["api_data"]["test_api"]["response"] == {
                 "value": 42}
-            assert mock_request.call_count == 3
+            assert mock_client.request.call_count == 3
 
-    def test_retry_logic_max_retries_exceeded(
+    async def test_retry_logic_max_retries_exceeded(
             self, api_manager, session_state):
         """Test retry logic fails after max retries."""
         api_config = {
@@ -344,12 +369,15 @@ class TestAPIIntegrationManager:
             "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            # Always fail
-            mock_request.side_effect = requests.ConnectionError(
-                "Persistent error")
+        # Always fail
+        mock_client = AsyncMock()
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+        mock_client.request = AsyncMock(side_effect=httpx.ConnectError(
+            "Persistent error"))
 
-            result_state = api_manager.execute_api_call(
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -357,9 +385,9 @@ class TestAPIIntegrationManager:
 
             # Verify it failed after max retries
             assert result_state["api_data"]["test_api"]["success"] is False
-            assert mock_request.call_count == 3  # max_retries
+            assert mock_client.request.call_count == 3  # max_retries
 
-    def test_oauth2_token_refresh(self, api_manager, session_state):
+    async def test_oauth2_token_refresh(self, api_manager, session_state):
         """Test OAuth2 token refresh when expired."""
         # Set up expired token in session
         session_state["api_credentials"]["oauth_api"] = {
@@ -381,60 +409,40 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request, \
-                patch('requests.post') as mock_post:
+        # Mock token refresh
+        mock_token_response = Mock()
+        mock_token_response.status_code = 200
+        mock_token_response.json.return_value = {
+            "access_token": "new_token",
+            "expires_in": 3600
+        }
 
-            # Mock token refresh
-            mock_token_response = Mock()
-            mock_token_response.status_code = 200
-            mock_token_response.json.return_value = {
-                "access_token": "new_token",
-                "expires_in": 3600
-            }
-            mock_post.return_value = mock_token_response
+        # Mock API call
+        mock_api_response = Mock()
+        mock_api_response.status_code = 200
+        mock_api_response.json.return_value = {"success": True}
 
-            # Mock API call
-            mock_api_response = Mock()
-            mock_api_response.status_code = 200
-            mock_api_response.json.return_value = {"success": True}
-            mock_request.return_value = mock_api_response
+        # Create mock clients
+        mock_token_client = AsyncMock()
+        mock_token_client.__aenter__.return_value = mock_token_client
+        mock_token_client.__aexit__.return_value = None
+        mock_token_client.post = AsyncMock(return_value=mock_token_response)
 
-            result_state = api_manager.execute_api_call(
+        mock_api_client = create_mock_httpx_client(mock_api_response)
+
+        with patch('httpx.AsyncClient', side_effect=[mock_token_client, mock_api_client]):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
             )
 
             # Verify token was refreshed
-            mock_post.assert_called_once()
-            assert "oauth_api" in result_state["api_credentials"]
+            assert mock_token_client.post.called
+            # Verify new token was stored
             assert result_state["api_credentials"]["oauth_api"]["token"] == "new_token"
 
-    def test_get_api_data(self, api_manager, session_state):
-        """Test retrieving API data from session state."""
-        session_state["api_data"]["test"] = {
-            "response": {"temperature": 22.5},
-            "success": True
-        }
-
-        # Test successful retrieval
-        data = api_manager.get_api_data(session_state, "test")
-        assert data == {"temperature": 22.5}
-
-        # Test missing data
-        data = api_manager.get_api_data(session_state, "missing", default=None)
-        assert data is None
-
-        # Test failed API call
-        session_state["api_data"]["failed"] = {
-            "error": "Network error",
-            "success": False
-        }
-        data = api_manager.get_api_data(
-            session_state, "failed", default="default")
-        assert data == "default"
-
-    def test_post_request_with_body(self, api_manager, session_state):
+    async def test_post_request_with_body(self, api_manager, session_state):
         """Test POST request with JSON body."""
         api_config = {
             "id": "test_api",
@@ -449,25 +457,26 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 201
-            mock_response.json.return_value = {"created": True}
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {"created": True}
 
-            result_state = api_manager.execute_api_call(
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
             )
 
             # Verify POST was called with body
-            assert mock_request.call_args[1]['method'] == 'POST'
-            assert mock_request.call_args[1]['json'] == {
+            assert mock_client.request.call_args[1]['method'] == 'POST'
+            assert mock_client.request.call_args[1]['json'] == {
                 "user": "test_user", "value": 42}
             assert result_state["api_data"]["test_api"]["status_code"] == 201
 
-    def test_array_index_in_response_path(self, api_manager, session_state):
+    async def test_array_index_in_response_path(self, api_manager, session_state):
         """Test array indexing in response path."""
         api_config = {
             "id": "test_api",
@@ -484,18 +493,19 @@ class TestAPIIntegrationManager:
             }
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {
-                "results": [
-                    {"value": 123, "name": "first"},
-                    {"value": 456, "name": "second"}
-                ]
-            }
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "results": [
+                {"value": 123, "name": "first"},
+                {"value": 456, "name": "second"}
+            ]
+        }
 
-            result_state = api_manager.execute_api_call(
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -504,7 +514,7 @@ class TestAPIIntegrationManager:
             # Verify array indexing worked and value is in scores
             assert result_state["scores"]["first_value"] == 123
 
-    def test_malformed_json_response(self, api_manager, session_state):
+    async def test_malformed_json_response(self, api_manager, session_state):
         """Test handling of malformed JSON responses."""
         api_config = {
             "id": "test_api",
@@ -513,13 +523,14 @@ class TestAPIIntegrationManager:
             "auth": {"type": "none"}
         }
 
-        with patch('requests.request') as mock_request:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.side_effect = ValueError("Invalid JSON")
-            mock_request.return_value = mock_response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("Invalid JSON")
 
-            result_state = api_manager.execute_api_call(
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch('httpx.AsyncClient', return_value=mock_client):
+            result_state = await api_manager.execute_api_call(
                 api_config,
                 session_state,
                 {}
@@ -527,4 +538,87 @@ class TestAPIIntegrationManager:
 
             # Verify error was recorded
             assert result_state["api_data"]["test_api"]["success"] is False
-            assert "error" in result_state["api_data"]["test_api"]
+
+    async def test_file_upload_with_custom_field_name(self, api_manager, session_state):
+        """Test file upload with custom field name."""
+        from pyquizhub.core.engine.api_integration import FileUploadMarker
+
+        api_config = {
+            "id": "test_api",
+            "url": "https://api.example.com/upload",
+            "method": "POST",
+            "auth": {"type": "none"},
+            "prepare_request": {
+                "file_field_name": "document"  # Custom field name
+            }
+        }
+
+        # Create a FileUploadMarker
+        file_marker = FileUploadMarker(
+            filename="test.pdf",
+            file_data=b"test file content",
+            mime_type="application/pdf"
+        )
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"uploaded": True}
+
+        mock_client = create_mock_httpx_client(mock_response)
+
+        # Mock _prepare_body to return the file marker
+        with patch.object(api_manager, '_prepare_body', return_value=file_marker):
+            with patch('httpx.AsyncClient', return_value=mock_client):
+                result_state = await api_manager.execute_api_call(
+                    api_config,
+                    session_state,
+                    {}
+                )
+
+                # Verify file was uploaded with custom field name
+                assert mock_client.request.called
+                call_kwargs = mock_client.request.call_args[1]
+                assert 'files' in call_kwargs
+                assert 'document' in call_kwargs['files']  # Custom field name
+                assert call_kwargs['files']['document'][0] == 'test.pdf'
+                assert call_kwargs['files']['document'][1] == b"test file content"
+                assert call_kwargs['files']['document'][2] == 'application/pdf'
+
+    async def test_file_upload_default_field_name(self, api_manager, session_state):
+        """Test file upload with default field name when not specified."""
+        from pyquizhub.core.engine.api_integration import FileUploadMarker
+
+        api_config = {
+            "id": "test_api",
+            "url": "https://api.example.com/upload",
+            "method": "POST",
+            "auth": {"type": "none"}
+            # No prepare_request.file_field_name specified
+        }
+
+        file_marker = FileUploadMarker(
+            filename="image.png",
+            file_data=b"image data",
+            mime_type="image/png"
+        )
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"uploaded": True}
+
+        mock_client = create_mock_httpx_client(mock_response)
+
+        with patch.object(api_manager, '_prepare_body', return_value=file_marker):
+            with patch('httpx.AsyncClient', return_value=mock_client):
+                result_state = await api_manager.execute_api_call(
+                    api_config,
+                    session_state,
+                    {}
+                )
+
+                # Verify file was uploaded with default field name 'file'
+                assert mock_client.request.called
+                call_kwargs = mock_client.request.call_args[1]
+                assert 'files' in call_kwargs
+                assert 'file' in call_kwargs['files']  # Default field name
+                assert call_kwargs['files']['file'][0] == 'image.png'

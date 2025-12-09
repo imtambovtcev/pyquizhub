@@ -34,6 +34,15 @@ from pyquizhub.core.storage.file import (
     LocalStorageBackend,
     ValidationError,
 )
+from pyquizhub.core.api.dependencies import verify_token_and_rate_limit
+from pyquizhub.core.api.errors import (
+    raise_error,
+    validation_error,
+    not_found_error,
+    permission_error,
+    authentication_error,
+    server_error
+)
 
 logger = get_logger(__name__)
 
@@ -84,6 +93,9 @@ def verify_token(
     """
     Verify authorization token and determine role.
 
+    Uses the config system for proper token verification.
+    Token priority: admin > creator > user
+
     Args:
         authorization: Authorization header value
         request: FastAPI request
@@ -95,23 +107,36 @@ def verify_token(
     Raises:
         HTTPException: If token is missing or invalid
     """
-    # TODO: SECURITY - Implement proper token verification with config system
-    # This is a security vulnerability: any authorization header is accepted without validation.
-    # Must integrate with the main authentication system before production use.
-    # See router_quiz.py for proper token verification example.
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header required"
+    from pyquizhub.config.settings import get_config_manager
+
+    config = get_config_manager()
+
+    try:
+        user_id, role = config.verify_token_and_get_role(authorization)
+        return user_id, role
+    except ValueError as e:
+        authentication_error(str(e))
+
+
+def check_file_upload_permission(role: str) -> None:
+    """
+    Check if role has permission to upload files.
+
+    Args:
+        role: User role (admin, creator, user)
+
+    Raises:
+        HTTPException: If role cannot upload files
+    """
+    from pyquizhub.config.settings import get_config_manager
+
+    config = get_config_manager()
+
+    if not config.can_upload_files(role):
+        permission_error(
+            f"File uploads not allowed for role '{role}'",
+            details=["Contact administrator to enable file uploads"]
         )
-
-    # Return test user for any valid authorization header
-    return "test_user", "user"
-
-
-# TODO: Add rate limiting to prevent DoS attacks
-# Consider: per-user limits, per-IP limits, global limits
-# Options: slowapi, fastapi-limiter, or custom implementation
 
 
 @router.post("/upload")
@@ -120,6 +145,7 @@ async def upload_file(
     quiz_id: Optional[str] = Form(None),
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Upload a file with validation and quota checks.
@@ -146,10 +172,14 @@ async def upload_file(
             - 403: Permission denied
             - 413: File too large or quota exceeded
             - 415: Unsupported file type
+            - 429: Rate limit exceeded
             - 503: File uploads disabled
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
+
+    # Check file upload permission for this role
+    check_file_upload_permission(role)
 
     logger.info(
         f"File upload request: user={user_id}, role={role}, filename={
@@ -159,11 +189,20 @@ async def upload_file(
     try:
         file_content = await file.read()
         file_data = io.BytesIO(file_content)
-    except Exception as e:
+    except (OSError, IOError, MemoryError) as e:
         logger.error(f"Failed to read uploaded file: {str(e)}")
-        raise HTTPException(
+        raise_error(
+            message="Failed to read file",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to read file: {str(e)}"
+            details=[str(e)],
+            code="FILE_READ_ERROR"
+        )
+    except UnicodeDecodeError as e:
+        logger.error(f"File encoding error: {str(e)}")
+        raise_error(
+            message="File contains invalid characters or encoding",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code="ENCODING_ERROR"
         )
 
     # Upload file using file manager
@@ -201,29 +240,27 @@ async def upload_file(
 
     except ValidationError as e:
         logger.warning(f"File validation failed: {str(e)}")
-        raise HTTPException(
+        raise_error(
+            message="File validation failed",
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=str(e)
+            details=[str(e)],
+            code="VALIDATION_ERROR"
         )
     except PermissionError as e:
         logger.warning(f"Upload permission denied: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
     except IOError as e:
         # Quota exceeded or storage failure
         logger.error(f"Upload failed: {str(e)}")
         if "quota" in str(e).lower():
-            raise HTTPException(
+            raise_error(
+                message="Quota exceeded",
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=str(e)
+                details=[str(e)],
+                code="QUOTA_EXCEEDED"
             )
         else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Upload failed: {str(e)}"
-            )
+            server_error(f"Upload failed: {str(e)}")
 
 
 @router.get("/download/{file_id}")
@@ -231,6 +268,7 @@ async def download_file(
     file_id: str,
     request: Request,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Download a file with access control.
@@ -253,9 +291,10 @@ async def download_file(
             - 401: Missing or invalid authorization
             - 403: Access denied
             - 404: File not found
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     logger.info(
         f"File download request: file_id={file_id}, user={user_id}, role={role}")
@@ -288,16 +327,10 @@ async def download_file(
         )
 
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id}"
-        )
+        not_found_error("File", file_id)
     except PermissionError as e:
         logger.warning(f"Download permission denied: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
 
 @router.delete("/{file_id}")
@@ -305,6 +338,7 @@ async def delete_file(
     file_id: str,
     request: Request,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Delete a file (admin or uploader only).
@@ -321,9 +355,10 @@ async def delete_file(
             - 401: Missing or invalid authorization
             - 403: Permission denied (only admin or uploader can delete)
             - 404: File not found
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     logger.info(
         f"File deletion request: file_id={file_id}, user={user_id}, role={role}")
@@ -343,22 +378,13 @@ async def delete_file(
                 "message": "File deleted successfully"
             }
         else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"File not found: {file_id}"
-            )
+            not_found_error("File", file_id)
 
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id}"
-        )
+        not_found_error("File", file_id)
     except PermissionError as e:
         logger.warning(f"Delete permission denied: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
 
 @router.get("/quota")
@@ -366,6 +392,7 @@ async def get_quota_info(
     quiz_id: Optional[str] = None,
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Get storage quota information.
@@ -380,9 +407,10 @@ async def get_quota_info(
     Raises:
         HTTPException:
             - 401: Missing or invalid authorization
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # Get quota info
     if role == "admin":
@@ -407,6 +435,7 @@ async def list_files(
     category: Optional[str] = None,
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     List uploaded files with access control.
@@ -423,9 +452,10 @@ async def list_files(
         HTTPException:
             - 401: Missing or invalid authorization
             - 403: Permission denied
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # List files
     try:
@@ -444,10 +474,7 @@ async def list_files(
         }
 
     except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
 
 @router.post("/analyze_text/{file_id}")
@@ -458,6 +485,7 @@ async def analyze_text_file(
     max_matches: int = Form(100),
     request: Request = None,
     file_manager: FileManager = Depends(get_file_manager),
+    auth: tuple[str, str] = Depends(verify_token_and_rate_limit),
 ):
     """
     Analyze a text file with optional regex search.
@@ -485,15 +513,16 @@ async def analyze_text_file(
             - 403: Permission denied
             - 404: File not found
             - 415: File is not a text file
+            - 429: Rate limit exceeded
     """
-    # Verify authorization
-    user_id, role = verify_token(request=request)
+    # Unpack authenticated user info (already verified and rate-limited by dependency)
+    user_id, role = auth
 
     # Validate max_matches parameter
     if max_matches < 1 or max_matches > 1000:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="max_matches must be between 1 and 1000"
+        validation_error(
+            details=["max_matches must be between 1 and 1000"],
+            field="max_matches"
         )
 
     logger.info(
@@ -507,21 +536,17 @@ async def analyze_text_file(
             requester_role=role,
         )
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id}"
-        )
+        not_found_error("File", file_id)
     except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+        permission_error(str(e))
 
     # Check if file is a text file
     if metadata.category not in ["documents"]:
-        raise HTTPException(
+        raise_error(
+            message="File is not a text file",
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"File is not a text file: {metadata.category}"
+            details=[f"File category: {metadata.category}"],
+            code="INVALID_FILE_TYPE"
         )
 
     # Analyze file
@@ -542,19 +567,20 @@ async def analyze_text_file(
 
     except RegexValidationError as e:
         logger.warning(f"Invalid regex pattern: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid regex pattern: {e}"
+        validation_error(
+            details=[f"Invalid regex pattern: {e}"],
+            field="pattern"
         )
     except ValueError as e:
         logger.error(f"Text file analysis failed: {e}")
-        raise HTTPException(
+        validation_error(details=[str(e)])
+    except (UnicodeDecodeError, LookupError) as e:
+        logger.error(f"File encoding error during analysis: {e}")
+        raise_error(
+            message="File contains invalid encoding or unsupported character set",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            code="ENCODING_ERROR"
         )
-    except Exception as e:
-        logger.error(f"Unexpected error during text analysis: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Text analysis failed"
-        )
+    except (OSError, IOError, MemoryError) as e:
+        logger.error(f"File read error during analysis: {e}")
+        server_error("Text analysis failed due to file read error")
