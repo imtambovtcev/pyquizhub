@@ -614,12 +614,9 @@ class DiscordQuizBot(commands.Bot):
             await self._send_question_with_attachments(channel, text, attachments, view)
 
         elif question_type == "multiple_select":
-            text += "\n💡 Select multiple options (comma-separated) or click buttons:\n"
-            view = QuizButtonView(self, user_id, question["options"])
+            text += "\n💡 Select one or more options from the dropdown:"
+            view = MultiSelectView(self, user_id, question["options"])
             await self._send_question_with_attachments(channel, text, attachments, view)
-
-            if user_id in self.user_sessions:
-                self.user_sessions[user_id]["awaiting_input"] = "multiple_select"
 
         elif question_type in ["integer", "float", "text"]:
             type_hint = {
@@ -957,6 +954,77 @@ class QuizButtonView(discord.ui.View):
             await self.bot.submit_answer(interaction.channel, user_id, answer_value)
 
         return button_callback
+
+
+class MultiSelectView(discord.ui.View):
+    """View with a multi-select dropdown for multiple_select questions."""
+
+    def __init__(self, bot: DiscordQuizBot, user_id: int, options: list[dict]):
+        """
+        Initialize the multi-select view.
+
+        Args:
+            bot: The Discord bot instance
+            user_id: The user ID this view is for
+            options: List of option dicts with 'label' and 'value'
+        """
+        super().__init__(timeout=None)
+
+        self.bot = bot
+        self.user_id = user_id
+
+        # Create a Select menu (max 25 options in Discord)
+        select = discord.ui.Select(
+            placeholder="Select one or more options...",
+            min_values=1,
+            max_values=len(options[:25]),
+            options=[
+                discord.SelectOption(
+                    label=opt["label"][:100],
+                    value=opt["value"][:100]
+                )
+                for opt in options[:25]
+            ],
+            custom_id=f"multi_select_{user_id}"
+        )
+        select.callback = self.select_callback
+        self.add_item(select)
+
+    async def select_callback(self, interaction: discord.Interaction):
+        """Handle select menu submission."""
+        user_id = interaction.user.id
+
+        # Only allow the user who started the quiz to answer
+        if user_id != self.user_id:
+            await interaction.response.send_message(
+                "❌ This quiz belongs to another user. Use `/quiz` to start your own.",
+                ephemeral=True
+            )
+            return
+
+        if user_id not in self.bot.user_sessions:
+            await interaction.response.send_message(
+                "❌ No active quiz session. Use `/quiz` to start.",
+                ephemeral=True
+            )
+            return
+
+        # Get selected values (this is already a list)
+        selected_values = interaction.data.get("values", [])
+
+        # Acknowledge the interaction
+        await interaction.response.defer()
+
+        # Disable the select after submission
+        for item in self.children:
+            item.disabled = True
+        try:
+            await interaction.message.edit(view=self)
+        except discord.HTTPException:
+            pass
+
+        # Submit the answer as a list
+        await self.bot.submit_answer(interaction.channel, user_id, selected_values)
 
 
 def main():
