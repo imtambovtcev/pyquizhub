@@ -259,3 +259,89 @@ def test_validate_case_insensitive_extension(mock_config):
 
     category = validator._get_file_category("document.PDF")
     assert category == FileTypeCategory.DOCUMENTS
+
+
+def _create_test_png(width: int, height: int) -> bytes:
+    """Create a valid PNG image with given dimensions using PIL."""
+    from PIL import Image
+    img = Image.new('RGB', (width, height), color='red')
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    return buffer.getvalue()
+
+
+def test_extract_image_dimensions_png(mock_config):
+    """Test image dimension extraction for PNG files."""
+    validator = FileValidator(mock_config)
+
+    # Create a real valid PNG (100x50 pixels)
+    png_data = _create_test_png(100, 50)
+    file_data = io.BytesIO(png_data)
+
+    width, height = validator._extract_image_dimensions(file_data)
+
+    assert width == 100
+    assert height == 50
+
+
+def test_extract_image_dimensions_invalid_file(mock_config):
+    """Test image dimension extraction returns None for invalid files."""
+    validator = FileValidator(mock_config)
+
+    # Not an image
+    invalid_data = b"not an image file"
+    file_data = io.BytesIO(invalid_data)
+
+    width, height = validator._extract_image_dimensions(file_data)
+
+    assert width is None
+    assert height is None
+
+
+def test_extract_image_dimensions_resets_position(mock_config):
+    """Test that image dimension extraction resets file position."""
+    validator = FileValidator(mock_config)
+
+    # Create a real valid PNG
+    png_data = _create_test_png(100, 50)
+    file_data = io.BytesIO(png_data)
+
+    # Move position to middle
+    file_data.seek(10)
+
+    validator._extract_image_dimensions(file_data)
+
+    # Position should be reset to 0
+    assert file_data.tell() == 0
+
+
+def test_validate_upload_includes_image_dimensions(mock_config):
+    """Test that validate_upload includes image dimensions in metadata."""
+    validator = FileValidator(mock_config)
+
+    # Create a real valid PNG with known dimensions
+    png_data = _create_test_png(100, 50)
+    file_data = io.BytesIO(png_data)
+
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "test.png", "admin")
+
+    assert is_valid
+    assert metadata.get("image_width") == 100
+    assert metadata.get("image_height") == 50
+
+
+def test_validate_upload_no_dimensions_for_non_images(mock_config):
+    """Test that non-image files don't have image dimensions."""
+    validator = FileValidator(mock_config)
+
+    # Text file
+    text_data = b"Hello, world!"
+    file_data = io.BytesIO(text_data)
+
+    is_valid, error, metadata = validator.validate_upload(
+        file_data, "test.txt", "admin")
+
+    assert is_valid
+    assert "image_width" not in metadata
+    assert "image_height" not in metadata

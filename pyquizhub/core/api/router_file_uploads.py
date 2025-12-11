@@ -234,7 +234,10 @@ async def upload_file(
             "category": metadata.category,
             "size_bytes": metadata.size_bytes,
             "mime_type": metadata.mime_type,
+            "extension": metadata.extension,
             "checksum": metadata.checksum,
+            "image_width": metadata.image_width,
+            "image_height": metadata.image_height,
             "download_url": download_url,
             "message": "File uploaded successfully"
         }

@@ -1,0 +1,169 @@
+{
+  "metadata": {
+    "title": "Image Info Test",
+    "description": "Test file upload with image validation and metadata display",
+    "author": "PyQuizHub Team",
+    "version": "1.0"
+  },
+  "variables": {
+    "uploaded_file_id": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["private"],
+      "default": ""
+    },
+    "file_size_bytes": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "file_extension": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    },
+    "file_name": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    },
+    "mime_type": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    },
+    "image_width": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "image_height": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "is_valid_image": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "PENDING"
+    },
+    "size_category": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "unknown"
+    },
+    "resolution_category": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "unknown"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "type": "file_upload",
+        "text": "**Image Info Test**\n\nUpload an image file (JPG, PNG, GIF, or WebP) to see its details.\n\nWe will validate it's a real image and display:\n- File size\n- Dimensions (width x height)\n- File type\n- Resolution category",
+        "allowed_types": ["images"],
+        "file_types": ["image/jpeg", "image/png", "image/gif", "image/webp"],
+        "max_size_mb": 10
+      },
+      "score_updates": [
+        {
+          "condition": "answer.file_id != ''",
+          "update": {
+            "uploaded_file_id": "answer.file_id",
+            "file_size_bytes": "answer.size_bytes",
+            "file_extension": "answer.extension",
+            "file_name": "answer.filename",
+            "mime_type": "answer.mime_type",
+            "image_width": "answer.image_width",
+            "image_height": "answer.image_height"
+          }
+        },
+        {
+          "condition": "answer.image_width > 0 and answer.image_height > 0",
+          "update": {
+            "is_valid_image": "'YES - Valid image with dimensions'"
+          }
+        },
+        {
+          "condition": "answer.image_width == 0 or answer.image_height == 0",
+          "update": {
+            "is_valid_image": "'NO - Could not read image dimensions'"
+          }
+        },
+        {
+          "condition": "answer.size_bytes < 100000",
+          "update": {
+            "size_category": "'Small (< 100 KB)'"
+          }
+        },
+        {
+          "condition": "answer.size_bytes >= 100000 and answer.size_bytes < 1000000",
+          "update": {
+            "size_category": "'Medium (100 KB - 1 MB)'"
+          }
+        },
+        {
+          "condition": "answer.size_bytes >= 1000000",
+          "update": {
+            "size_category": "'Large (> 1 MB)'"
+          }
+        },
+        {
+          "condition": "answer.image_width < 640 or answer.image_height < 480",
+          "update": {
+            "resolution_category": "'Low Resolution'"
+          }
+        },
+        {
+          "condition": "answer.image_width >= 640 and answer.image_height >= 480 and answer.image_width < 1920",
+          "update": {
+            "resolution_category": "'Standard Resolution'"
+          }
+        },
+        {
+          "condition": "answer.image_width >= 1920 and answer.image_height >= 1080",
+          "update": {
+            "resolution_category": "'High Resolution (HD+)'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "type": "final_message",
+        "text": "**Image Analysis Results**\n\n**File Information:**\n- Filename: {variables.file_name}\n- Extension: .{variables.file_extension}\n- MIME Type: {variables.mime_type}\n- File Size: {variables.file_size_bytes} bytes\n- Size Category: {variables.size_category}\n\n**Image Details:**\n- Valid Image: {variables.is_valid_image}\n- Width: {variables.image_width} pixels\n- Height: {variables.image_height} pixels\n- Resolution: {variables.resolution_category}\n\n**Test Complete!**\n\nThis quiz demonstrates how quiz creators can access and validate file metadata including image dimensions."
+      }
+    }
+  ],
+  "transitions": {
+    "1": [
+      {
+        "expression": "uploaded_file_id != ''",
+        "next_question_id": 2
+      },
+      {
+        "expression": "true",
+        "next_question_id": 2
+      }
+    ],
+    "2": [
+      {
+        "expression": "true",
+        "next_question_id": null
+      }
+    ]
+  }
+}

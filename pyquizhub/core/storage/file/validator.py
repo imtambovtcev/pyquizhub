@@ -17,6 +17,12 @@ try:
 except ImportError:
     HAS_MAGIC = False
 
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
 
 class FileTypeCategory(str, Enum):
     """File type categories for validation and configuration."""
@@ -314,6 +320,13 @@ class FileValidator:
             if calc_checksum:
                 checksum = self.calculate_checksum(file_data)
                 metadata["checksum"] = checksum
+
+            # 10. Extract image dimensions if applicable
+            if category == FileTypeCategory.IMAGES:
+                width, height = self._extract_image_dimensions(file_data)
+                if width and height:
+                    metadata["image_width"] = width
+                    metadata["image_height"] = height
 
             # All checks passed
             return True, None, metadata
@@ -683,3 +696,27 @@ class FileValidator:
         file_data.seek(0)
 
         return f"{algo}:{h.hexdigest()}"
+
+    def _extract_image_dimensions(
+            self, file_data: BinaryIO) -> tuple[int | None, int | None]:
+        """
+        Extract image dimensions using PIL.
+
+        Args:
+            file_data: File binary data
+
+        Returns:
+            Tuple of (width, height) or (None, None) if extraction fails
+        """
+        if not HAS_PIL:
+            return None, None
+
+        try:
+            file_data.seek(0)
+            with Image.open(file_data) as img:
+                width, height = img.size
+            file_data.seek(0)
+            return width, height
+        except Exception:
+            file_data.seek(0)
+            return None, None

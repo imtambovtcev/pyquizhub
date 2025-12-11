@@ -227,6 +227,11 @@ class QuizEngine:
         # Validate answer format
         self._validate_answer(current_question, answer)
 
+        # Enrich file_upload answer with metadata
+        question_type = current_question["data"]["type"]
+        if question_type == "file_upload":
+            answer = await self._enrich_file_upload_answer(answer)
+
         # Create new state (don't mutate input)
         new_state = {
             "current_question_id": state.get("current_question_id"),
@@ -392,6 +397,62 @@ class QuizEngine:
             self.logger.error(
                 f"Invalid answer for question {question['id']}: {e}")
             raise ValueError(f"Invalid answer: {str(e)}")
+
+    async def _enrich_file_upload_answer(self, answer: dict) -> dict:
+        """
+        Enrich file_upload answer with file metadata.
+
+        Adds the following fields to the answer dict:
+        - size_bytes: File size in bytes (0 if unavailable)
+        - extension: File extension without dot ('' if unavailable)
+        - filename: Original filename ('' if unavailable)
+        - mime_type: MIME type of the file ('' if unavailable)
+        - image_width: Image width in pixels (0 if unavailable or not an image)
+        - image_height: Image height in pixels (0 if unavailable or not an image)
+
+        Default values are always provided so quiz expressions don't fail.
+
+        Args:
+            answer: Original answer dict with file_id
+
+        Returns:
+            Enriched answer dict with metadata fields
+        """
+        # Start with default values so expressions always work
+        enriched = answer.copy()
+        enriched.setdefault("size_bytes", 0)
+        enriched.setdefault("extension", "")
+        enriched.setdefault("filename", "")
+        enriched.setdefault("mime_type", "")
+        enriched.setdefault("image_width", 0)
+        enriched.setdefault("image_height", 0)
+
+        if not self.file_storage:
+            self.logger.warning(
+                "No file storage configured, cannot enrich file_upload answer")
+            return enriched
+
+        file_id = answer.get("file_id")
+        if not file_id:
+            return enriched
+
+        try:
+            metadata = await self.file_storage.get_metadata(file_id)
+            enriched["size_bytes"] = metadata.size_bytes
+            enriched["extension"] = metadata.extension or ""
+            enriched["filename"] = metadata.filename or ""
+            enriched["mime_type"] = metadata.mime_type or ""
+            if metadata.image_width is not None:
+                enriched["image_width"] = metadata.image_width
+            if metadata.image_height is not None:
+                enriched["image_height"] = metadata.image_height
+            return enriched
+        except FileNotFoundError:
+            self.logger.warning(f"File not found for enrichment: {file_id}")
+            return enriched
+        except Exception as e:
+            self.logger.warning(f"Failed to enrich file_upload answer: {e}")
+            return enriched
 
     def _get_next_question(
             self,

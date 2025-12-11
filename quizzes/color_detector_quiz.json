@@ -18,6 +18,30 @@
       "tags": ["private"],
       "default": ""
     },
+    "file_size_bytes": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "file_extension": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    },
+    "image_width": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "image_height": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
     "dominant_color": {
       "type": "string",
       "mutable_by": ["api"],
@@ -82,7 +106,11 @@
         {
           "condition": "answer.file_id != ''",
           "update": {
-            "uploaded_file_id": "answer.file_id"
+            "uploaded_file_id": "answer.file_id",
+            "file_size_bytes": "answer.size_bytes",
+            "file_extension": "answer.extension",
+            "image_width": "answer.image_width",
+            "image_height": "answer.image_height"
           }
         }
       ]
@@ -91,7 +119,7 @@
       "id": 2,
       "data": {
         "type": "final_message",
-        "text": "🎨 **Color Analysis Results**\n\nYour image's dominant color is: **{variables.color_name}**\n\nHex Code: `{variables.dominant_color}`\n\nAnalysis Status: {variables.analysis_status}\n\nThank you for testing the file upload feature! 🎉"
+        "text": "🎨 **Color Analysis Results**\n\n**Image Info:**\n- File size: {variables.file_size_bytes} bytes\n- Extension: {variables.file_extension}\n- Dimensions: {variables.image_width} x {variables.image_height} pixels\n\n**Color Analysis:**\n- Dominant color: **{variables.color_name}**\n- Hex Code: `{variables.dominant_color}`\n- Analysis Status: {variables.analysis_status}\n\nThank you for testing the file upload feature! 🎉"
       }
     }
   ],

@@ -45,6 +45,8 @@ MAIN_QUIZZES = [
     "joke_quiz_dynamic_api.json",    # dynamic API call before each question
     # Attachments (images, audio, video, documents)
     "test_quiz_file_types.json",     # all 19 attachment formats
+    # File upload with image metadata validation
+    "test_quiz_image_info.json",     # image validation and metadata display
 ]
 
 # Production quizzes (file upload with external API)

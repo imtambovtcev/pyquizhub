@@ -20,6 +20,8 @@ class FileMetadata:
         uploader_id: str | None = None,
         quiz_id: str | None = None,
         extension: str | None = None,
+        image_width: int | None = None,
+        image_height: int | None = None,
     ):
         self.file_id = file_id
         self.filename = filename
@@ -30,6 +32,8 @@ class FileMetadata:
         self.uploader_id = uploader_id
         self.quiz_id = quiz_id
         self.extension = extension
+        self.image_width = image_width
+        self.image_height = image_height
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -43,6 +47,8 @@ class FileMetadata:
             "uploader_id": self.uploader_id,
             "quiz_id": self.quiz_id,
             "extension": self.extension,
+            "image_width": self.image_width,
+            "image_height": self.image_height,
         }
 
     @classmethod
@@ -58,6 +64,8 @@ class FileMetadata:
             uploader_id=data.get("uploader_id"),
             quiz_id=data.get("quiz_id"),
             extension=data.get("extension"),
+            image_width=data.get("image_width"),
+            image_height=data.get("image_height"),
         )
 
 

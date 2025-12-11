@@ -355,7 +355,16 @@ class QuizJSONValidator:
                     try:
                         # Create mock answer for validation
                         if current_answer_type == dict:
-                            mock_answer = {"file_id": "mock_file_id"}
+                            # Include all enriched file metadata fields
+                            mock_answer = {
+                                "file_id": "mock_file_id",
+                                "size_bytes": 0,
+                                "extension": "",
+                                "filename": "",
+                                "mime_type": "",
+                                "image_width": 0,
+                                "image_height": 0,
+                            }
                         elif current_answer_type:
                             mock_answer = current_answer_type()
                         else:

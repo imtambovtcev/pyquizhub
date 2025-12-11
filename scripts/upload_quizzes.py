@@ -151,6 +151,8 @@ def main():
         "tests/test_quiz_jsons/joke_quiz_dynamic_api.json",
         # All 19 attachment formats (images, audio, video, documents)
         "tests/test_quiz_jsons/test_quiz_file_types.json",
+        # File upload with image metadata validation
+        "tests/test_quiz_jsons/test_quiz_image_info.json",
     ]
 
     for quiz_file in test_quizzes:

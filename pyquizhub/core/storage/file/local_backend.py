@@ -70,9 +70,23 @@ class LocalStorageBackend(StorageBackend):
                     quiz_id TEXT,
                     storage_path TEXT NOT NULL,
                     created_at TEXT NOT NULL,
+                    image_width INTEGER,
+                    image_height INTEGER,
                     UNIQUE(storage_path)
                 )
             """)
+
+            # Add columns for existing databases (migration)
+            try:
+                await db.execute(
+                    "ALTER TABLE file_metadata ADD COLUMN image_width INTEGER")
+            except aiosqlite.OperationalError:
+                pass  # Column already exists
+            try:
+                await db.execute(
+                    "ALTER TABLE file_metadata ADD COLUMN image_height INTEGER")
+            except aiosqlite.OperationalError:
+                pass  # Column already exists
 
             # Create indexes for common queries
             await db.execute("""
@@ -164,8 +178,8 @@ class LocalStorageBackend(StorageBackend):
                     INSERT INTO file_metadata (
                         file_id, filename, category, extension, size_bytes,
                         mime_type, checksum, uploader_id, quiz_id,
-                        storage_path, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        storage_path, created_at, image_width, image_height
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     file_id,
                     metadata.filename,
@@ -178,6 +192,8 @@ class LocalStorageBackend(StorageBackend):
                     metadata.quiz_id,
                     str(storage_path),
                     datetime.now(timezone.utc).isoformat(),
+                    metadata.image_width,
+                    metadata.image_height,
                 ))
                 await db.commit()
 
@@ -310,7 +326,8 @@ class LocalStorageBackend(StorageBackend):
         async with aiosqlite.connect(str(self.db_path)) as db:
             async with db.execute("""
                 SELECT file_id, filename, category, size_bytes, mime_type,
-                       checksum, uploader_id, quiz_id, extension
+                       checksum, uploader_id, quiz_id, extension,
+                       image_width, image_height
                 FROM file_metadata
                 WHERE file_id = ?
             """, (file_id,)) as cursor:
@@ -328,6 +345,8 @@ class LocalStorageBackend(StorageBackend):
                     uploader_id=row[6],
                     quiz_id=row[7],
                     extension=row[8],
+                    image_width=row[9],
+                    image_height=row[10],
                 )
 
     async def get_download_url(
@@ -410,7 +429,8 @@ class LocalStorageBackend(StorageBackend):
 
         query = """
             SELECT file_id, filename, category, size_bytes, mime_type,
-                   checksum, uploader_id, quiz_id, extension
+                   checksum, uploader_id, quiz_id, extension,
+                   image_width, image_height
             FROM file_metadata
             WHERE 1=1
         """
@@ -444,6 +464,8 @@ class LocalStorageBackend(StorageBackend):
                         uploader_id=row[6],
                         quiz_id=row[7],
                         extension=row[8],
+                        image_width=row[9],
+                        image_height=row[10],
                     ))
 
         return files

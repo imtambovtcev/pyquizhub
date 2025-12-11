@@ -146,6 +146,8 @@ class FileManager:
             uploader_id=uploader_id,
             quiz_id=quiz_id,
             extension=validation_metadata.get("extension"),
+            image_width=validation_metadata.get("image_width"),
+            image_height=validation_metadata.get("image_height"),
         )
 
         # 7. Save to storage backend
