@@ -11,11 +11,9 @@ This module tests the Discord bot adapter functionality including:
 """
 from __future__ import annotations
 
-import asyncio
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch, MagicMock
 import discord
-from discord.ext import commands
 
 from pyquizhub.adapters.discord.bot import DiscordQuizBot, QuizButtonView
 
@@ -60,7 +58,7 @@ class TestDiscordBotInitialization:
             mock_api_base_url,
             mock_user_token):
         """Test bot initializes with correct configuration."""
-        assert discord_bot.token == mock_discord_token
+        assert discord_bot.bot_token == mock_discord_token
         assert discord_bot.api_base_url == mock_api_base_url
         assert discord_bot.user_token == mock_user_token
         assert isinstance(discord_bot.user_sessions, dict)
@@ -130,6 +128,7 @@ class TestQuestionDisplay:
     async def test_send_multiple_choice_question(self, discord_bot):
         """Test sending a multiple choice question."""
         mock_channel = AsyncMock()
+        user_id = 123456789
         question_data = {
             "data": {
                 "type": "multiple_choice",
@@ -142,7 +141,7 @@ class TestQuestionDisplay:
             }
         }
 
-        await discord_bot.send_question(mock_channel, question_data)
+        await discord_bot.send_question(mock_channel, user_id, question_data)
 
         # Verify channel.send was called with text and view
         mock_channel.send.assert_called_once()
@@ -154,6 +153,16 @@ class TestQuestionDisplay:
     async def test_send_text_question(self, discord_bot):
         """Test sending a text input question."""
         mock_channel = AsyncMock()
+        user_id = 123456789
+
+        # Create session for user
+        discord_bot.user_sessions[user_id] = {
+            "quiz_id": "test_quiz",
+            "session_id": "test_session",
+            "channel_id": 987654321,
+            "awaiting_input": None
+        }
+
         question_data = {
             "data": {
                 "type": "text",
@@ -161,7 +170,7 @@ class TestQuestionDisplay:
             }
         }
 
-        await discord_bot.send_question(mock_channel, question_data)
+        await discord_bot.send_question(mock_channel, user_id, question_data)
 
         # Verify channel.send was called with text
         mock_channel.send.assert_called_once()
@@ -173,6 +182,16 @@ class TestQuestionDisplay:
     async def test_send_integer_question(self, discord_bot):
         """Test sending an integer input question."""
         mock_channel = AsyncMock()
+        user_id = 123456789
+
+        # Create session for user
+        discord_bot.user_sessions[user_id] = {
+            "quiz_id": "test_quiz",
+            "session_id": "test_session",
+            "channel_id": 987654321,
+            "awaiting_input": None
+        }
+
         question_data = {
             "data": {
                 "type": "integer",
@@ -180,7 +199,7 @@ class TestQuestionDisplay:
             }
         }
 
-        await discord_bot.send_question(mock_channel, question_data)
+        await discord_bot.send_question(mock_channel, user_id, question_data)
 
         # Verify channel.send was called
         mock_channel.send.assert_called_once()
@@ -192,6 +211,16 @@ class TestQuestionDisplay:
     async def test_send_float_question(self, discord_bot):
         """Test sending a float input question."""
         mock_channel = AsyncMock()
+        user_id = 123456789
+
+        # Create session for user
+        discord_bot.user_sessions[user_id] = {
+            "quiz_id": "test_quiz",
+            "session_id": "test_session",
+            "channel_id": 987654321,
+            "awaiting_input": None
+        }
+
         question_data = {
             "data": {
                 "type": "float",
@@ -199,7 +228,7 @@ class TestQuestionDisplay:
             }
         }
 
-        await discord_bot.send_question(mock_channel, question_data)
+        await discord_bot.send_question(mock_channel, user_id, question_data)
 
         # Verify channel.send was called
         mock_channel.send.assert_called_once()
@@ -211,6 +240,7 @@ class TestQuestionDisplay:
     async def test_send_question_with_image(self, discord_bot):
         """Test sending a question with an image."""
         mock_channel = AsyncMock()
+        user_id = 123456789
         question_data = {
             "data": {
                 "type": "multiple_choice",
@@ -228,7 +258,7 @@ class TestQuestionDisplay:
             }
         }
 
-        await discord_bot.send_question(mock_channel, question_data)
+        await discord_bot.send_question(mock_channel, user_id, question_data)
 
         # Verify channel.send was called with embed
         mock_channel.send.assert_called_once()
@@ -258,7 +288,7 @@ class TestQuestionDisplay:
             }
         }
 
-        await discord_bot.send_question(mock_channel, question_data)
+        await discord_bot.send_question(mock_channel, user_id, question_data)
 
         # Verify final message was sent
         mock_channel.send.assert_called_once()
@@ -267,6 +297,29 @@ class TestQuestionDisplay:
 
         # Verify session was cleared
         assert user_id not in discord_bot.user_sessions
+
+
+def create_mock_aiohttp_session(response_data, status=200):
+    """Create a properly configured mock aiohttp session."""
+    mock_response = MagicMock()
+    mock_response.status = status
+
+    async def mock_json():
+        return response_data
+
+    mock_response.json = mock_json
+
+    class MockContextManager:
+        async def __aenter__(self):
+            return mock_response
+
+        async def __aexit__(self, *args):
+            pass
+
+    mock_session = MagicMock()
+    mock_session.post.return_value = MockContextManager()
+
+    return mock_session
 
 
 class TestAnswerHandling:
@@ -283,26 +336,26 @@ class TestAnswerHandling:
             "quiz_id": "test_quiz",
             "session_id": "test_session",
             "channel_id": 987654321,
-            "awaiting_input": None
+            "awaiting_input": "text"
         }
 
-        # Mock API response
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_session = create_mock_aiohttp_session({
             "question": {
                 "data": {
-                    "type": "text",
-                    "text": "Next question"
+                    "type": "final_message",
+                    "text": "Quiz complete!"
                 }
             }
-        }
+        })
 
-        with patch('requests.post', return_value=mock_response):
-            await discord_bot.submit_answer(mock_channel, user_id, "test_answer")
+        async def mock_get_session():
+            return mock_session
 
-        # Verify awaiting_input was cleared
-        assert discord_bot.user_sessions[user_id]["awaiting_input"] is None
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot.submit_answer(mock_channel, user_id, "test_answer")
+
+        # Session should be cleared after final message
+        assert user_id not in discord_bot.user_sessions
 
     @pytest.mark.asyncio
     async def test_submit_answer_api_error(self, discord_bot):
@@ -318,13 +371,13 @@ class TestAnswerHandling:
             "awaiting_input": None
         }
 
-        # Mock API error response
-        mock_response = Mock()
-        mock_response.status_code = 400
-        mock_response.json.return_value = {"detail": "Invalid answer"}
+        mock_session = create_mock_aiohttp_session({"detail": "Invalid answer"}, status=400)
 
-        with patch('requests.post', return_value=mock_response):
-            await discord_bot.submit_answer(mock_channel, user_id, "test_answer")
+        async def mock_get_session():
+            return mock_session
+
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot.submit_answer(mock_channel, user_id, "test_answer")
 
         # Verify error message was sent
         mock_channel.send.assert_called_once()
@@ -339,6 +392,7 @@ class TestAnswerHandling:
         mock_message.content = "42"
         mock_message.channel = AsyncMock()
         mock_message.channel.id = 987654321
+        mock_message.attachments = []
 
         # Create session awaiting integer input
         discord_bot.user_sessions[123456789] = {
@@ -348,22 +402,21 @@ class TestAnswerHandling:
             "awaiting_input": "integer"
         }
 
-        # Mock API response
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_session = create_mock_aiohttp_session({
             "question": {
                 "data": {
                     "type": "final_message",
                     "text": "Quiz complete!"
                 }
             }
-        }
+        })
 
-        with patch('requests.post', return_value=mock_response):
-            await discord_bot.handle_text_answer(mock_message)
+        async def mock_get_session():
+            return mock_session
 
-        # Verify submit_answer was called (indirectly through API call)
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot.handle_text_answer(mock_message)
+
         # Session should be cleared after final message
         assert 123456789 not in discord_bot.user_sessions
 
@@ -373,6 +426,7 @@ class TestAnswerHandling:
         mock_message = AsyncMock()
         mock_message.author.id = 123456789
         mock_message.content = "not a number"
+        mock_message.attachments = []
 
         # Create session awaiting integer input
         discord_bot.user_sessions[123456789] = {
@@ -396,6 +450,7 @@ class TestAnswerHandling:
         mock_message.author.id = 123456789
         mock_message.content = "3.14"
         mock_message.channel = AsyncMock()
+        mock_message.attachments = []
 
         # Create session awaiting float input
         discord_bot.user_sessions[123456789] = {
@@ -405,23 +460,23 @@ class TestAnswerHandling:
             "awaiting_input": "float"
         }
 
-        # Mock API response
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_session = create_mock_aiohttp_session({
             "question": {
                 "data": {
-                    "type": "text",
-                    "text": "Next question"
+                    "type": "final_message",
+                    "text": "Quiz complete!"
                 }
             }
-        }
+        })
 
-        with patch('requests.post', return_value=mock_response):
-            await discord_bot.handle_text_answer(mock_message)
+        async def mock_get_session():
+            return mock_session
 
-        # Verify awaiting_input was cleared
-        assert discord_bot.user_sessions[123456789]["awaiting_input"] is None
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot.handle_text_answer(mock_message)
+
+        # Session should be cleared after final message
+        assert 123456789 not in discord_bot.user_sessions
 
     @pytest.mark.asyncio
     async def test_handle_multiple_select_answer(self, discord_bot):
@@ -430,6 +485,7 @@ class TestAnswerHandling:
         mock_message.author.id = 123456789
         mock_message.content = "a, b, c"
         mock_message.channel = AsyncMock()
+        mock_message.attachments = []
 
         # Create session awaiting multiple select input
         discord_bot.user_sessions[123456789] = {
@@ -439,24 +495,23 @@ class TestAnswerHandling:
             "awaiting_input": "multiple_select"
         }
 
-        # Mock API response
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_session = create_mock_aiohttp_session({
             "question": {
                 "data": {
-                    "type": "text",
-                    "text": "Next question"
+                    "type": "final_message",
+                    "text": "Quiz complete!"
                 }
             }
-        }
+        })
 
-        with patch('requests.post', return_value=mock_response):
-            await discord_bot.handle_text_answer(mock_message)
+        async def mock_get_session():
+            return mock_session
 
-        # Verify request was made with array
-        # (Can't easily verify the exact call without more mocking)
-        assert discord_bot.user_sessions[123456789]["awaiting_input"] is None
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot.handle_text_answer(mock_message)
+
+        # Session should be cleared after final message
+        assert 123456789 not in discord_bot.user_sessions
 
 
 class TestButtonView:
@@ -497,12 +552,13 @@ class TestButtonView:
     @pytest.mark.asyncio
     async def test_button_callback_no_session(self, discord_bot):
         """Test button callback when user has no active session."""
+        user_id = 123456789
         options = [{"label": "Option 1", "value": "opt1"}]
-        view = QuizButtonView(discord_bot, options)
+        view = QuizButtonView(discord_bot, user_id, options)
 
-        # Mock interaction
+        # Mock interaction from a different user (no session)
         mock_interaction = AsyncMock()
-        mock_interaction.user.id = 123456789
+        mock_interaction.user.id = 123456789  # Same user, but no session
         mock_interaction.channel = AsyncMock()
 
         # Get the button callback
@@ -567,19 +623,131 @@ class TestEdgeCases:
             "awaiting_input": None
         }
 
-        # Mock API response with no question (quiz complete)
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"question": None}
+        mock_session = create_mock_aiohttp_session({"question": None})
 
-        with patch('requests.post', return_value=mock_response):
-            await discord_bot.submit_answer(mock_channel, user_id, "test_answer")
+        async def mock_get_session():
+            return mock_session
+
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot.submit_answer(mock_channel, user_id, "test_answer")
 
         # Verify completion message was sent
         mock_channel.send.assert_called_once()
         call_args = mock_channel.send.call_args
-        assert "Quiz completed" in call_args[0][0] or "completed" in call_args[0][0].lower(
-        )
+        assert "Quiz completed" in call_args[0][0] or "completed" in call_args[0][0].lower()
 
         # Verify session was deleted
         assert user_id not in discord_bot.user_sessions
+
+
+class TestURLValidation:
+    """Test URL validation for SSRF protection."""
+
+    def test_safe_url(self, discord_bot):
+        """Test that safe URLs are allowed."""
+        assert discord_bot._is_url_safe("https://example.com/image.jpg") is True
+        assert discord_bot._is_url_safe("https://cdn.discord.com/image.png") is True
+
+    def test_localhost_blocked(self, discord_bot):
+        """Test that localhost URLs are blocked."""
+        assert discord_bot._is_url_safe("http://localhost/file") is False
+        assert discord_bot._is_url_safe("http://127.0.0.1/file") is False
+        assert discord_bot._is_url_safe("http://0.0.0.0/file") is False
+
+    def test_private_ip_blocked(self, discord_bot):
+        """Test that private IP ranges are blocked."""
+        assert discord_bot._is_url_safe("http://10.0.0.1/file") is False
+        assert discord_bot._is_url_safe("http://192.168.1.1/file") is False
+        assert discord_bot._is_url_safe("http://172.16.0.1/file") is False
+        assert discord_bot._is_url_safe("http://169.254.169.254/latest/meta-data") is False
+
+    def test_invalid_url(self, discord_bot):
+        """Test that invalid URLs return False."""
+        assert discord_bot._is_url_safe("not a url") is False
+        assert discord_bot._is_url_safe("") is False
+
+
+class TestCommandRegistration:
+    """Test command registration functionality."""
+
+    def test_prefix_commands_registered(self, discord_bot):
+        """Test that prefix commands are registered."""
+        command_names = [cmd.name for cmd in discord_bot.commands]
+        assert "quiz" in command_names
+        assert "start" in command_names
+        assert "help" in command_names
+
+    def test_help_command_disabled(self, discord_bot):
+        """Test that default help command is disabled."""
+        # We set help_command=None in __init__
+        assert discord_bot.help_command is None
+
+    def test_slash_commands_registered(self, discord_bot):
+        """Test that slash commands are registered in tree."""
+        # Slash commands are registered via @self.tree.command
+        # We can verify the tree exists
+        assert discord_bot.tree is not None
+
+
+class TestHandleQuizStart:
+    """Test the _handle_quiz_start helper method."""
+
+    @pytest.mark.asyncio
+    async def test_handle_quiz_start_success(self, discord_bot):
+        """Test successful quiz start."""
+        mock_channel = AsyncMock()
+        mock_channel.id = 987654321
+        user_id = 123456789
+        token = "test_token"
+        mock_send = AsyncMock()
+
+        mock_session = create_mock_aiohttp_session({
+            "quiz_id": "test_quiz",
+            "session_id": "test_session",
+            "title": "Test Quiz",
+            "question": {
+                "data": {
+                    "type": "multiple_choice",
+                    "text": "First question?",
+                    "options": [
+                        {"label": "A", "value": "a"},
+                        {"label": "B", "value": "b"}
+                    ]
+                }
+            }
+        })
+
+        async def mock_get_session():
+            return mock_session
+
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot._handle_quiz_start(mock_channel, user_id, token, mock_send)
+
+        # Verify quiz title was sent
+        mock_send.assert_called()
+        assert user_id in discord_bot.user_sessions
+        assert discord_bot.user_sessions[user_id]["quiz_id"] == "test_quiz"
+
+    @pytest.mark.asyncio
+    async def test_handle_quiz_start_api_error(self, discord_bot):
+        """Test quiz start with API error."""
+        mock_channel = AsyncMock()
+        user_id = 123456789
+        token = "invalid_token"
+        mock_send = AsyncMock()
+
+        mock_session = create_mock_aiohttp_session(
+            {"detail": "Token not found"},
+            status=404
+        )
+
+        async def mock_get_session():
+            return mock_session
+
+        discord_bot.get_http_session = mock_get_session
+        await discord_bot._handle_quiz_start(mock_channel, user_id, token, mock_send)
+
+        # Verify error message was sent
+        mock_send.assert_called_once()
+        call_args = mock_send.call_args
+        assert "Failed to start quiz" in call_args[0][0]

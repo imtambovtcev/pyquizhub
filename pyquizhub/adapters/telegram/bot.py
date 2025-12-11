@@ -492,6 +492,25 @@ class TelegramQuizBot:
                     f"URL sending failed for {attachment_type} (format: {format_type}): {e}. File download is disabled. Enable with TELEGRAM_ENABLE_FILE_DOWNLOAD=true")
                 return False
 
+    def _build_multi_select_keyboard(
+        self, options: list[dict], selected: list[str]
+    ) -> list[list[InlineKeyboardButton]]:
+        """Build keyboard for multiple_select with checkmarks for selected items."""
+        keyboard = []
+        for option in options:
+            value = option["value"]
+            label = option["label"]
+            # Add checkmark if selected
+            display = f"✅ {label}" if value in selected else f"⬜ {label}"
+            keyboard.append([
+                InlineKeyboardButton(display, callback_data=f"ms_toggle:{value}")
+            ])
+        # Add submit button
+        keyboard.append([
+            InlineKeyboardButton("✅ Submit Selection", callback_data="ms_submit")
+        ])
+        return keyboard
+
     async def send_question(self, update: Update, question_data: dict) -> None:
         """Send a question to the user."""
         question = question_data["data"]
@@ -557,36 +576,29 @@ class TelegramQuizBot:
                 await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
         elif question_type == "multiple_select":
-            text += "\n💡 Select multiple options (comma-separated) or click buttons:\n"
-            keyboard = []
-            for option in question["options"]:
-                keyboard.append(
-                    [
-                        InlineKeyboardButton(
-                            option["label"], callback_data=option["value"]
-                        )
-                    ]
-                )
+            text += "\n💡 Tap options to select/deselect, then tap ✅ Submit:"
+            # Initialize empty selections for this user
+            user_id = update.effective_user.id
+            if user_id in self.user_sessions:
+                self.user_sessions[user_id]["multi_select_choices"] = []
+                self.user_sessions[user_id]["multi_select_options"] = question["options"]
+                self.user_sessions[user_id]["awaiting_input"] = "multiple_select"
+
+            # Build keyboard with unchecked options
+            keyboard = self._build_multi_select_keyboard(question["options"], [])
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             # Send with attachments if available
             if attachments:
                 sent = await self.send_attachment(update, attachments[0], text, reply_markup)
                 if not sent:
-                    # Fallback to text only
                     await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
-                # Send additional attachments without buttons
                 for attachment in attachments[1:]:
                     caption = attachment.get("caption", "")
                     await self.send_attachment(update, attachment, caption)
             else:
                 await update.effective_message.reply_text(text, reply_markup=reply_markup)
-
-            # Mark that we're awaiting text input
-            user_id = update.effective_user.id
-            if user_id in self.user_sessions:
-                self.user_sessions[user_id]["awaiting_input"] = "multiple_select"
 
         elif question_type in ["integer", "float", "text"]:
             type_hint = {
@@ -674,15 +686,58 @@ class TelegramQuizBot:
     ) -> None:
         """Handle button clicks."""
         query = update.callback_query
-        await query.answer()
-
         user_id = update.effective_user.id
+
         if user_id not in self.user_sessions:
+            await query.answer()
             await query.edit_message_text("❌ No active quiz session. Use /quiz to start.")
             return
 
-        answer_value = query.data
-        await self.submit_answer(update, user_id, answer_value)
+        session = self.user_sessions[user_id]
+        callback_data = query.data
+
+        # Handle multiple_select toggle buttons
+        if callback_data.startswith("ms_toggle:"):
+            value = callback_data.split(":", 1)[1]
+            choices = session.get("multi_select_choices", [])
+
+            # Toggle the selection
+            if value in choices:
+                choices.remove(value)
+            else:
+                choices.append(value)
+            session["multi_select_choices"] = choices
+
+            # Update the keyboard to show new state
+            options = session.get("multi_select_options", [])
+            keyboard = self._build_multi_select_keyboard(options, choices)
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await query.answer()
+            try:
+                await query.edit_message_reply_markup(reply_markup=reply_markup)
+            except Exception:
+                pass  # Ignore if message can't be edited
+            return
+
+        # Handle multiple_select submit button
+        if callback_data == "ms_submit":
+            choices = session.get("multi_select_choices", [])
+            if not choices:
+                await query.answer("Please select at least one option!", show_alert=True)
+                return
+
+            await query.answer()
+            # Clear the multi-select state
+            session.pop("multi_select_choices", None)
+            session.pop("multi_select_options", None)
+            # Submit the selections as a list
+            await self.submit_answer(update, user_id, choices)
+            return
+
+        # Regular button click (multiple_choice)
+        await query.answer()
+        await self.submit_answer(update, user_id, callback_data)
 
     async def file_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE

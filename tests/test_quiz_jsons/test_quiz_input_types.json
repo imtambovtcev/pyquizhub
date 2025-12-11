@@ -1,0 +1,269 @@
+{
+  "metadata": {
+    "title": "Input Types Test - All 5 Types",
+    "description": "Test all input types with mathematical verification",
+    "author": "PyQuizHub Team",
+    "version": "2.0"
+  },
+  "variables": {
+    "total_types": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 5
+    },
+    "passed_count": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["score", "public"],
+      "default": 0
+    },
+    "mc_value": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    },
+    "mc_status": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "PENDING"
+    },
+    "ms_apple": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "ms_cherry": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "ms_status": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "PENDING"
+    },
+    "text_value": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": ""
+    },
+    "text_status": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "PENDING"
+    },
+    "int_value": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "int_doubled": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0
+    },
+    "int_status": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "PENDING"
+    },
+    "float_value": {
+      "type": "float",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0.0
+    },
+    "float_doubled": {
+      "type": "float",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": 0.0
+    },
+    "float_status": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "PENDING"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "type": "multiple_choice",
+        "text": "**TEST 1/5: Multiple Choice**\n\nSelect 'Option B':",
+        "options": [
+          {"value": "option_a", "label": "Option A"},
+          {"value": "option_b", "label": "Option B"},
+          {"value": "option_c", "label": "Option C"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "mc_value": "answer"
+          }
+        },
+        {
+          "condition": "answer == 'option_b'",
+          "update": {
+            "mc_status": "'PASS'",
+            "passed_count": "passed_count + 1"
+          }
+        },
+        {
+          "condition": "answer != 'option_b'",
+          "update": {
+            "mc_status": "'FAIL'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "type": "multiple_select",
+        "text": "**TEST 2/5: Multiple Select**\n\nSelect BOTH 'Apple' AND 'Cherry':",
+        "options": [
+          {"value": "apple", "label": "Apple"},
+          {"value": "banana", "label": "Banana"},
+          {"value": "cherry", "label": "Cherry"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "'apple' in answer",
+          "update": {
+            "ms_apple": "1"
+          }
+        },
+        {
+          "condition": "'cherry' in answer",
+          "update": {
+            "ms_cherry": "1"
+          }
+        },
+        {
+          "condition": "'apple' in answer and 'cherry' in answer",
+          "update": {
+            "ms_status": "'PASS'",
+            "passed_count": "passed_count + 1"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "data": {
+        "type": "text",
+        "text": "**TEST 3/5: Text Input**\n\nType exactly: **test123**"
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "text_value": "answer"
+          }
+        },
+        {
+          "condition": "answer == 'test123'",
+          "update": {
+            "text_status": "'PASS'",
+            "passed_count": "passed_count + 1"
+          }
+        },
+        {
+          "condition": "answer != 'test123'",
+          "update": {
+            "text_status": "'FAIL'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "data": {
+        "type": "integer",
+        "text": "**TEST 4/5: Integer Input**\n\nEnter: **42**\n\n(We will verify by calculating 42 × 2 = 84)"
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "int_value": "answer",
+            "int_doubled": "answer * 2"
+          }
+        },
+        {
+          "condition": "answer == 42",
+          "update": {
+            "int_status": "'PASS'",
+            "passed_count": "passed_count + 1"
+          }
+        },
+        {
+          "condition": "answer != 42",
+          "update": {
+            "int_status": "'FAIL'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "data": {
+        "type": "float",
+        "text": "**TEST 5/5: Float Input**\n\nEnter: **3.14**\n\n(We will verify by calculating 3.14 × 2 = 6.28)"
+      },
+      "score_updates": [
+        {
+          "condition": "true",
+          "update": {
+            "float_value": "answer",
+            "float_doubled": "answer * 2"
+          }
+        },
+        {
+          "condition": "answer > 3.13 and answer < 3.15",
+          "update": {
+            "float_status": "'PASS'",
+            "passed_count": "passed_count + 1"
+          }
+        },
+        {
+          "condition": "answer <= 3.13 or answer >= 3.15",
+          "update": {
+            "float_status": "'FAIL'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "data": {
+        "type": "final_message",
+        "text": "**INPUT TYPES TEST RESULTS**\n\n**Score: {variables.passed_count}/{variables.total_types} PASSED**\n\n---\n\n**1. Multiple Choice:** {variables.mc_status}\n   • Value stored: {variables.mc_value}\n   • Expected: option_b\n\n**2. Multiple Select:** {variables.ms_status}\n   • Apple selected: {variables.ms_apple} (expected: 1)\n   • Cherry selected: {variables.ms_cherry} (expected: 1)\n\n**3. Text Input:** {variables.text_status}\n   • Value stored: {variables.text_value}\n   • Expected: test123\n\n**4. Integer Input:** {variables.int_status}\n   • Value stored: {variables.int_value}\n   • Doubled: {variables.int_doubled} (expected: 84)\n\n**5. Float Input:** {variables.float_status}\n   • Value stored: {variables.float_value}\n   • Doubled: {variables.float_doubled} (expected: 6.28)\n\n---\n\nAll tests should show PASS if the adapter handles input types correctly."
+      }
+    }
+  ],
+  "transitions": {
+    "1": [{"expression": "true", "next_question_id": 2}],
+    "2": [{"expression": "true", "next_question_id": 3}],
+    "3": [{"expression": "true", "next_question_id": 4}],
+    "4": [{"expression": "true", "next_question_id": 5}],
+    "5": [{"expression": "true", "next_question_id": 6}],
+    "6": [{"expression": "true", "next_question_id": null}]
+  }
+}

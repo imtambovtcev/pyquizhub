@@ -56,9 +56,8 @@ def clean_database():
             if delete_response.status_code == 200:
                 deleted += 1
             else:
-                print(
-                    f"   ⚠️  Failed to delete quiz {quiz_id}: {
-                        delete_response.status_code}")
+                status = delete_response.status_code
+                print(f"   ⚠️  Failed to delete quiz {quiz_id}: {status}")
 
         print(f"✅ Database cleaned: deleted {deleted}/{quiz_count} quizzes\n")
         return deleted == quiz_count
@@ -142,14 +141,16 @@ def main():
 
     quizzes_uploaded = {}
 
-    # Upload main test quizzes
-    print("=== Main Test Quizzes ===")
+    # Upload comprehensive test quizzes
+    print("=== Adapter Test Quizzes ===")
     test_quizzes = [
-        "tests/test_quiz_jsons/simple_quiz.json",
-        "tests/test_quiz_jsons/complex_weather_quiz.json",
+        # All 5 input types in one quiz with verification
+        "tests/test_quiz_jsons/test_quiz_input_types.json",
+        # API integration (static and dynamic)
         "tests/test_quiz_jsons/joke_quiz_static_api.json",
         "tests/test_quiz_jsons/joke_quiz_dynamic_api.json",
-        "tests/test_quiz_jsons/test_quiz_file_types.json"
+        # All 19 attachment formats (images, audio, video, documents)
+        "tests/test_quiz_jsons/test_quiz_file_types.json",
     ]
 
     for quiz_file in test_quizzes:
@@ -163,30 +164,10 @@ def main():
         else:
             print(f"⚠️  File not found: {quiz_file}\n")
 
-    # Upload image quizzes (demos for image feature)
-    print("=== Image Quizzes (Demo) ===")
-    image_quizzes = [
-        "tests/test_quiz_jsons/test_quiz_with_image.json",  # Fixed image URL
-        "tests/test_quiz_jsons/test_quiz_image_variable.json",  # Variable substitution
-        "tests/test_quiz_jsons/test_quiz_image_from_api.json",  # API-fetched image
-    ]
-
-    for quiz_file in image_quizzes:
-        if os.path.exists(quiz_file):
-            quiz_id, token = upload_quiz(quiz_file)
-            if quiz_id:
-                quizzes_uploaded[Path(quiz_file).stem] = {
-                    "quiz_id": quiz_id,
-                    "token": token
-                }
-        else:
-            print(f"⚠️  File not found: {quiz_file}\n")
-
     # Upload file upload quizzes (demos for file upload feature)
-    print("=== File Upload Quizzes (Demo) ===")
+    print("=== File Upload (with Color API) ===")
     file_upload_quizzes = [
         "quizzes/color_detector_quiz.json",  # Color analysis with file upload
-        "quizzes/text_analysis_quiz.json",  # Text file analysis with regex search
     ]
 
     for quiz_file in file_upload_quizzes:
