@@ -371,7 +371,8 @@ class TestAnswerHandling:
             "awaiting_input": None
         }
 
-        mock_session = create_mock_aiohttp_session({"detail": "Invalid answer"}, status=400)
+        mock_session = create_mock_aiohttp_session(
+            {"detail": "Invalid answer"}, status=400)
 
         async def mock_get_session():
             return mock_session
@@ -634,7 +635,8 @@ class TestEdgeCases:
         # Verify completion message was sent
         mock_channel.send.assert_called_once()
         call_args = mock_channel.send.call_args
-        assert "Quiz completed" in call_args[0][0] or "completed" in call_args[0][0].lower()
+        assert "Quiz completed" in call_args[0][0] or "completed" in call_args[0][0].lower(
+        )
 
         # Verify session was deleted
         assert user_id not in discord_bot.user_sessions
@@ -645,8 +647,10 @@ class TestURLValidation:
 
     def test_safe_url(self, discord_bot):
         """Test that safe URLs are allowed."""
-        assert discord_bot._is_url_safe("https://example.com/image.jpg") is True
-        assert discord_bot._is_url_safe("https://cdn.discord.com/image.png") is True
+        assert discord_bot._is_url_safe(
+            "https://example.com/image.jpg") is True
+        assert discord_bot._is_url_safe(
+            "https://cdn.discord.com/image.png") is True
 
     def test_localhost_blocked(self, discord_bot):
         """Test that localhost URLs are blocked."""
@@ -659,7 +663,8 @@ class TestURLValidation:
         assert discord_bot._is_url_safe("http://10.0.0.1/file") is False
         assert discord_bot._is_url_safe("http://192.168.1.1/file") is False
         assert discord_bot._is_url_safe("http://172.16.0.1/file") is False
-        assert discord_bot._is_url_safe("http://169.254.169.254/latest/meta-data") is False
+        assert discord_bot._is_url_safe(
+            "http://169.254.169.254/latest/meta-data") is False
 
     def test_invalid_url(self, discord_bot):
         """Test that invalid URLs return False."""

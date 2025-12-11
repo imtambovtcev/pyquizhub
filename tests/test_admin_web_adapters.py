@@ -3,6 +3,7 @@ Tests for admin web adapter status functionality.
 
 This module tests the /api/adapters/status endpoint in the admin web interface.
 """
+from admin_web.app import app as admin_app
 import pytest
 import json
 from unittest.mock import patch, MagicMock
@@ -18,7 +19,6 @@ os.environ.setdefault('ADMIN_PORT', '8081')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'admin_web'))
 
 # Now import - env vars are set
-from admin_web.app import app as admin_app
 
 
 @pytest.fixture

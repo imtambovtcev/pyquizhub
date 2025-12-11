@@ -37,7 +37,8 @@ PROD_QUIZ_DIR = Path(__file__).parent.parent / "quizzes"
 
 # Main test quizzes - comprehensive tests for all adapter features
 MAIN_QUIZZES = [
-    # All input types in one quiz (multiple_choice, multiple_select, text, integer, float)
+    # All input types in one quiz (multiple_choice, multiple_select, text,
+    # integer, float)
     "test_quiz_input_types.json",    # 5 input types with verification
     # API integration
     "joke_quiz_static_api.json",     # static API call at quiz start

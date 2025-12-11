@@ -54,7 +54,8 @@ class DiscordQuizBot(commands.Bot):
         self.api_base_url = api_base_url
         self.user_token = user_token
 
-        # Store user sessions: {user_id: {quiz_id, session_id, channel_id, awaiting_input}}
+        # Store user sessions: {user_id: {quiz_id, session_id, channel_id,
+        # awaiting_input}}
         self.user_sessions: dict[int, dict[str, Any]] = {}
 
         # HTTP session for async requests
@@ -93,7 +94,9 @@ class DiscordQuizBot(commands.Bot):
                     error_data = await response.json()
                     detail = error_data.get('detail', 'Unknown error')
                     if isinstance(detail, dict):
-                        detail = detail.get('error', {}).get('message', 'Unknown error')
+                        detail = detail.get(
+                            'error', {}).get(
+                            'message', 'Unknown error')
                     await send_func(f"❌ Failed to start quiz: {detail}")
                     return
 
@@ -130,17 +133,22 @@ class DiscordQuizBot(commands.Bot):
             """Called when bot is ready."""
             logger.info(f"Discord bot logged in as {bot.user}")
             try:
-                # Try guild-specific sync first (instant) if DISCORD_GUILD_ID is set
+                # Try guild-specific sync first (instant) if DISCORD_GUILD_ID
+                # is set
                 guild_id = os.getenv("DISCORD_GUILD_ID")
                 if guild_id:
                     guild = discord.Object(id=int(guild_id))
                     bot.tree.copy_global_to(guild=guild)
                     synced = await bot.tree.sync(guild=guild)
-                    logger.info(f"Synced {len(synced)} slash command(s) to guild {guild_id}")
+                    logger.info(
+                        f"Synced {
+                            len(synced)} slash command(s) to guild {guild_id}")
                 else:
                     # Global sync (can take up to 1 hour)
                     synced = await bot.tree.sync()
-                    logger.info(f"Synced {len(synced)} slash command(s) globally")
+                    logger.info(
+                        f"Synced {
+                            len(synced)} slash command(s) globally")
             except Exception as e:
                 logger.error(f"Failed to sync commands: {e}")
 
@@ -254,7 +262,8 @@ class DiscordQuizBot(commands.Bot):
                 "just type your answer - don't use commands!"
             )
 
-        @self.tree.command(name="quiz", description="Start a quiz with a token")
+        @self.tree.command(name="quiz",
+                           description="Start a quiz with a token")
         @app_commands.describe(token="The quiz token to start")
         async def quiz_command(interaction: discord.Interaction, token: str):
             """Handle /quiz command to start a quiz."""
@@ -302,9 +311,12 @@ class DiscordQuizBot(commands.Bot):
                 logger.error(f"Error starting quiz: {e}")
                 await interaction.followup.send(f"❌ Error: {str(e)}")
 
-        @self.tree.command(name="continue", description="Continue an unfinished quiz")
+        @self.tree.command(name="continue",
+                           description="Continue an unfinished quiz")
         @app_commands.describe(token="The quiz token to continue")
-        async def continue_command(interaction: discord.Interaction, token: str):
+        async def continue_command(
+                interaction: discord.Interaction,
+                token: str):
             """Handle /continue command to continue a quiz."""
             user_id = interaction.user.id
 
@@ -349,7 +361,8 @@ class DiscordQuizBot(commands.Bot):
                 logger.error(f"Error continuing quiz: {e}")
                 await interaction.followup.send(f"❌ Error: {str(e)}")
 
-        @self.tree.command(name="status", description="Check your active quiz session")
+        @self.tree.command(name="status",
+                           description="Check your active quiz session")
         async def status_command(interaction: discord.Interaction):
             """Handle /status command."""
             user_id = interaction.user.id
@@ -440,7 +453,9 @@ class DiscordQuizBot(commands.Bot):
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
                 if response.status != 200:
-                    logger.error(f"Failed to download file from {url}: HTTP {response.status}")
+                    logger.error(
+                        f"Failed to download file from {url}: HTTP {
+                            response.status}")
                     return False
 
                 # Check Content-Length header
@@ -460,7 +475,8 @@ class DiscordQuizBot(commands.Bot):
                     async for chunk in response.content.iter_chunked(8192):
                         downloaded_size += len(chunk)
                         if downloaded_size > MAX_FILE_SIZE:
-                            logger.error(f"File exceeded size limit: {downloaded_size} bytes")
+                            logger.error(
+                                f"File exceeded size limit: {downloaded_size} bytes")
                             os.remove(tmp_path)
                             return False
                         tmp_file.write(chunk)
@@ -474,7 +490,8 @@ class DiscordQuizBot(commands.Bot):
                 else:
                     await channel.send(file=discord_file, view=view)
 
-                logger.info(f"Successfully sent {attachment_type} via file upload")
+                logger.info(
+                    f"Successfully sent {attachment_type} via file upload")
                 return True
 
             finally:
@@ -514,7 +531,9 @@ class DiscordQuizBot(commands.Bot):
         if not url:
             return False
 
-        enable_download = os.getenv('DISCORD_ENABLE_FILE_DOWNLOAD', 'true').lower() == 'true'
+        enable_download = os.getenv(
+            'DISCORD_ENABLE_FILE_DOWNLOAD',
+            'true').lower() == 'true'
 
         # Check if this is an embeddable image (jpg, png, gif, webp)
         if self._is_embeddable_image(attachment):
@@ -535,14 +554,16 @@ class DiscordQuizBot(commands.Bot):
 
         # For non-embeddable images and other types, download and upload as file
         # This includes SVG, TIFF, BMP, audio, video, documents
-        if enable_download and attachment_type in ("image", "audio", "video", "document", "file"):
+        if enable_download and attachment_type in (
+                "image", "audio", "video", "document", "file"):
             success = await self.download_and_send_file(
                 channel, url, attachment_type, format_type, caption, view
             )
             if success:
                 return True
             # Fall back to link if download fails
-            logger.info(f"File download failed for {attachment_type}, falling back to link")
+            logger.info(
+                f"File download failed for {attachment_type}, falling back to link")
 
         # Fallback: show link in embed
         try:
@@ -554,7 +575,8 @@ class DiscordQuizBot(commands.Bot):
             }
             icon = type_icons.get(attachment_type, "📎")
             type_label = attachment_type.title() if attachment_type else "File"
-            embed.description = (caption or "") + f"\n{icon} [{type_label}]({url})"
+            embed.description = (caption or "") + \
+                f"\n{icon} [{type_label}]({url})"
             await channel.send(embed=embed, view=view)
             return True
         except discord.HTTPException as e:
@@ -574,7 +596,8 @@ class DiscordQuizBot(commands.Bot):
 
         # Check if it's a final message
         if question_type == "final_message":
-            final_text = f"🎉 {question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
+            final_text = f"🎉 {
+                question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
 
             if attachments:
                 first_att = attachments[0]
@@ -587,7 +610,8 @@ class DiscordQuizBot(commands.Bot):
                     embed.set_image(url=first_att["url"])
                     await channel.send(embed=embed)
                 else:
-                    # Non-embeddable attachment: download and upload with typing indicator
+                    # Non-embeddable attachment: download and upload with
+                    # typing indicator
                     async with channel.typing():
                         await channel.send(final_text)
                         await self.send_attachment(channel, first_att, first_att.get("caption"))
@@ -624,7 +648,8 @@ class DiscordQuizBot(commands.Bot):
                 "float": "decimal number",
                 "text": "text",
             }
-            text += f"\n💡 Please type your answer ({type_hint[question_type]}):"
+            text += f"\n💡 Please type your answer ({
+                type_hint[question_type]}):"
             await self._send_question_with_attachments(channel, text, attachments)
 
             if user_id in self.user_sessions:
@@ -1039,8 +1064,12 @@ def main():
         raise ValueError("DISCORD_BOT_TOKEN environment variable not set")
 
     # Get API configuration
-    api_base_url = os.getenv("PYQUIZHUB_API__BASE_URL", config_manager.api_base_url)
-    user_token = os.getenv("PYQUIZHUB_USER_TOKEN", config_manager.get_token("user"))
+    api_base_url = os.getenv(
+        "PYQUIZHUB_API__BASE_URL",
+        config_manager.api_base_url)
+    user_token = os.getenv(
+        "PYQUIZHUB_USER_TOKEN",
+        config_manager.get_token("user"))
 
     # Create and run bot
     bot = DiscordQuizBot(discord_token, api_base_url, user_token)
