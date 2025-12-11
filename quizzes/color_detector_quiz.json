@@ -46,7 +46,8 @@
       "prepare_request": {
         "url_template": "http://172.18.0.1:5001/analyze",
         "required_variables": ["uploaded_file_id"],
-        "body_template": "{file_upload:variables.uploaded_file_id}"
+        "body_template": "{file_upload:variables.uploaded_file_id}",
+        "file_field_name": "image"
       },
       "extract_response": {
         "variables": {
@@ -72,6 +73,7 @@
       "data": {
         "type": "file_upload",
         "text": "Please upload an image file (JPG, PNG, GIF, or WebP)",
+        "allowed_types": ["images"],
         "file_types": ["image/jpeg", "image/png", "image/gif", "image/webp"],
         "max_size_mb": 10,
         "description": "We'll analyze your image and tell you the dominant color!"

@@ -114,10 +114,10 @@ class APIIntegrationManager:
         try:
             # Prepare request URL (new format: url or
             # prepare_request.url_template)
-            url = self._prepare_url(api_config, context or {})
+            url = await self._prepare_url(api_config, context or {})
             method = api_config.get("method", "GET").upper()
             headers = self._prepare_headers(api_config, session_state)
-            body = self._prepare_body(api_config, context or {})
+            body = await self._prepare_body(api_config, context or {})
 
             # Check if we need to refresh auth token
             await self._refresh_auth_if_needed(api_config, session_state)
@@ -164,7 +164,7 @@ class APIIntegrationManager:
 
         return session_state
 
-    def _prepare_url(
+    async def _prepare_url(
         self,
         api_config: dict[str, Any],
         context: dict[str, Any]
@@ -184,7 +184,7 @@ class APIIntegrationManager:
             prepare_request = api_config["prepare_request"]
             if "url_template" in prepare_request:
                 url_template = prepare_request["url_template"]
-                rendered = self._render_template(url_template, context)
+                rendered = await self._render_template(url_template, context)
                 # URL shouldn't contain file uploads
                 if isinstance(rendered, FileUploadMarker):
                     raise ValueError("File upload markers not allowed in URLs")
@@ -355,7 +355,7 @@ class APIIntegrationManager:
 
             self.logger.info(f"Refreshed OAuth token for {api_id}")
 
-    def _prepare_body(
+    async def _prepare_body(
         self,
         api_config: dict[str, Any],
         context: dict[str, Any]
@@ -377,9 +377,9 @@ class APIIntegrationManager:
                 body_template = prepare_request["body_template"]
                 # Render template with context
                 if isinstance(body_template, dict):
-                    return self._render_dict_template(body_template, context)
+                    return await self._render_dict_template(body_template, context)
                 elif isinstance(body_template, str):
-                    rendered = self._render_template(body_template, context)
+                    rendered = await self._render_template(body_template, context)
                     # Check if it's a file upload marker
                     if isinstance(rendered, FileUploadMarker):
                         return rendered
@@ -387,10 +387,10 @@ class APIIntegrationManager:
 
         return None
 
-    def _render_template(self,
-                         template: str,
-                         context: dict[str,
-                                       Any]) -> str | FileUploadMarker:
+    async def _render_template(self,
+                               template: str,
+                               context: dict[str,
+                                             Any]) -> str | FileUploadMarker:
         """
         Render a string template with context variables.
 
@@ -424,22 +424,12 @@ class APIIntegrationManager:
                     file_storage = context.get('_file_storage')
                     if file_storage:
                         try:
-                            # Import here to avoid circular dependencies
-                            import asyncio
-
                             # Download file from storage
                             self.logger.info(
                                 f"Downloading file {file_id} for API request")
 
-                            # Run async retrieve in sync context
-                            loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(loop)
-                            try:
-                                file_data, metadata = loop.run_until_complete(
-                                    file_storage.retrieve(file_id)
-                                )
-                            finally:
-                                loop.close()
+                            # Await async retrieve directly
+                            file_data, metadata = await file_storage.retrieve(file_id)
 
                             # Return FileUploadMarker to signal
                             # multipart/form-data
@@ -478,7 +468,7 @@ class APIIntegrationManager:
                 result = result.replace(placeholder, str(value))
         return result
 
-    def _render_dict_template(
+    async def _render_dict_template(
         self,
         template: dict[str, Any],
         context: dict[str, Any]
@@ -496,15 +486,17 @@ class APIIntegrationManager:
         result = {}
         for key, value in template.items():
             if isinstance(value, str):
-                result[key] = self._render_template(value, context)
+                result[key] = await self._render_template(value, context)
             elif isinstance(value, dict):
-                result[key] = self._render_dict_template(value, context)
+                result[key] = await self._render_dict_template(value, context)
             elif isinstance(value, list):
-                result[key] = [
-                    self._render_template(item, context)
-                    if isinstance(item, str) else item
-                    for item in value
-                ]
+                rendered_list = []
+                for item in value:
+                    if isinstance(item, str):
+                        rendered_list.append(await self._render_template(item, context))
+                    else:
+                        rendered_list.append(item)
+                result[key] = rendered_list
             else:
                 result[key] = value
         return result

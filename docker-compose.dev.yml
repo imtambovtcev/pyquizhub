@@ -28,6 +28,7 @@ services:
     volumes:
       - ./scripts:/app/scripts
       - ./tests:/app/tests
+      - ./quizzes:/app/quizzes
     depends_on:
       - api
     networks:
@@ -42,6 +43,8 @@ services:
       - .env
     environment:
       - PYQUIZHUB_DEBUG=true
+      # Enable user file uploads for testing color_detector_quiz
+      - PYQUIZHUB_SECURITY__PERMISSIONS__USER__FILE_UPLOADS__ENABLED=true
     volumes:
       - app_data:/app/data
       - ./pyquizhub:/app/pyquizhub  # Live code reloading
