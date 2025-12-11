@@ -502,13 +502,11 @@ class TelegramQuizBot:
             label = option["label"]
             # Add checkmark if selected
             display = f"✅ {label}" if value in selected else f"⬜ {label}"
-            keyboard.append([
-                InlineKeyboardButton(display, callback_data=f"ms_toggle:{value}")
-            ])
+            keyboard.append([InlineKeyboardButton(
+                display, callback_data=f"ms_toggle:{value}")])
         # Add submit button
-        keyboard.append([
-            InlineKeyboardButton("✅ Submit Selection", callback_data="ms_submit")
-        ])
+        keyboard.append([InlineKeyboardButton(
+            "✅ Submit Selection", callback_data="ms_submit")])
         return keyboard
 
     async def send_question(self, update: Update, question_data: dict) -> None:
@@ -585,7 +583,8 @@ class TelegramQuizBot:
                 self.user_sessions[user_id]["awaiting_input"] = "multiple_select"
 
             # Build keyboard with unchecked options
-            keyboard = self._build_multi_select_keyboard(question["options"], [])
+            keyboard = self._build_multi_select_keyboard(
+                question["options"], [])
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             # Send with attachments if available
