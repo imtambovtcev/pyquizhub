@@ -1,0 +1,136 @@
+{
+  "metadata": {
+    "title": "Text Formatting Demo",
+    "description": "A quiz demonstrating cross-platform text formatting capabilities",
+    "author": "PyQuizHub Team",
+    "version": "1.0",
+    "tags": ["formatting", "demo", "test"]
+  },
+  "variables": {
+    "score": {
+      "type": "integer",
+      "mutable_by": ["engine"],
+      "tags": ["score", "leaderboard", "public"],
+      "default": 0
+    },
+    "user_name": {
+      "type": "string",
+      "mutable_by": ["user", "engine"],
+      "tags": ["user_input", "public"],
+      "default": "Quiz Taker"
+    },
+    "formatting_level": {
+      "type": "string",
+      "mutable_by": ["engine"],
+      "tags": ["public"],
+      "default": "Beginner"
+    }
+  },
+  "questions": [
+    {
+      "id": 1,
+      "data": {
+        "type": "multiple_choice",
+        "text": "Welcome to the **Text Formatting Demo**!\n\nThis quiz demonstrates how *different formatting styles* work across platforms.\n\nIn standard Markdown, `**bold**` creates **bold text**.\n\nWhat character surrounds bold text?",
+        "options": [
+          {"label": "Single asterisk (*)", "value": "single"},
+          {"label": "Double asterisks (**)", "value": "double"},
+          {"label": "Underscore (_)", "value": "underscore"},
+          {"label": "Tilde (~)", "value": "tilde"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'double'",
+          "update": {
+            "score": "score + 25"
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "data": {
+        "type": "multiple_choice",
+        "text": "Great! Now let's look at *italic* text.\n\nIn our standard format:\n- `*italic*` creates *italic text*\n- `_text_` is also sometimes used for italic\n\nWhat about ~~strikethrough~~? What characters create it?",
+        "options": [
+          {"label": "Double tilde (~~)", "value": "tilde"},
+          {"label": "Double dash (--)", "value": "dash"},
+          {"label": "Single asterisk (*)", "value": "asterisk"},
+          {"label": "Underscore (_)", "value": "underscore"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'tilde'",
+          "update": {
+            "score": "score + 25"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "data": {
+        "type": "multiple_choice",
+        "text": "Excellent! Let's explore code formatting.\n\nInline code uses backticks: `print('Hello')`\n\nCode blocks use triple backticks:\n```python\ndef greet(name):\n    return f'Hello, {name}!'\n```\n\nWhich of these is correct for inline code?",
+        "options": [
+          {"label": "`code`", "value": "backtick"},
+          {"label": "'code'", "value": "quote"},
+          {"label": "\"code\"", "value": "double_quote"},
+          {"label": "(code)", "value": "paren"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'backtick'",
+          "update": {
+            "score": "score + 25"
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "data": {
+        "type": "multiple_choice",
+        "text": "Last question! Links in Markdown use square brackets and parentheses.\n\nExample: [Click here](https://example.com) creates a clickable link.\n\nWhat is the correct format for a link?",
+        "options": [
+          {"label": "[text](url)", "value": "correct"},
+          {"label": "(text)[url]", "value": "reversed"},
+          {"label": "{text}(url)", "value": "braces"},
+          {"label": "<text>(url)", "value": "angle"}
+        ]
+      },
+      "score_updates": [
+        {
+          "condition": "answer == 'correct'",
+          "update": {
+            "score": "score + 25",
+            "formatting_level": "'Expert'"
+          }
+        },
+        {
+          "condition": "answer != 'correct' and score >= 50",
+          "update": {
+            "formatting_level": "'Intermediate'"
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "data": {
+        "type": "final_message",
+        "text": "**Quiz Complete!**\n\nYour Results:\n- Score: **{variables.score}** out of 100\n- Level: *{variables.formatting_level}*\n\n~~You failed~~ Just kidding! Great job learning about text formatting!\n\nThis message demonstrates:\n- **Bold text** using `**text**`\n- *Italic text* using `*text*`\n- ~~Strikethrough~~ using `~~text~~`\n- `Inline code` using backticks\n\nThanks for testing the formatting system! Check out more at [PyQuizHub](https://github.com/pyquizhub)."
+      }
+    }
+  ],
+  "transitions": {
+    "1": [{"expression": "true", "next_question_id": 2}],
+    "2": [{"expression": "true", "next_question_id": 3}],
+    "3": [{"expression": "true", "next_question_id": 4}],
+    "4": [{"expression": "true", "next_question_id": 5}],
+    "5": [{"expression": "true", "next_question_id": null}]
+  }
+}

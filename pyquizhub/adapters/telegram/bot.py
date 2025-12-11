@@ -23,8 +23,12 @@ from telegram.ext import (
 import requests
 
 from pyquizhub.config.settings import get_config_manager, get_logger
+from pyquizhub.core.engine.text_formatter import TelegramFormatter
 
 logger = get_logger(__name__)
+
+# Text formatter for converting standard Markdown to Telegram MarkdownV2
+_formatter = TelegramFormatter()
 
 
 class TelegramQuizBot:
@@ -72,6 +76,24 @@ class TelegramQuizBot:
         # Store user sessions: {user_id: {quiz_id, session_id, quiz_token,
         # awaiting_input}}
         self.user_sessions: dict[int, dict[str, Any]] = {}
+
+    def format_text(self, text: str) -> str:
+        """
+        Format text for Telegram using MarkdownV2.
+
+        Converts standard Markdown (Discord-style) to Telegram format:
+        - **bold** -> *bold*
+        - *italic* -> _italic_
+        - ~~strike~~ -> ~strike~
+        - `code` -> `code`
+
+        Args:
+            text: Text in standard Markdown format
+
+        Returns:
+            Text formatted for Telegram MarkdownV2
+        """
+        return _formatter.format(text)
 
     async def start_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -406,7 +428,8 @@ class TelegramQuizBot:
             update: Update,
             attachment: dict,
             caption: str | None = None,
-            reply_markup=None) -> bool:
+            reply_markup=None,
+            parse_mode: str | None = None) -> bool:
         """
         Send an attachment using the appropriate Telegram method based on attachment type and format.
 
@@ -415,6 +438,7 @@ class TelegramQuizBot:
             attachment: Attachment dict with 'type', 'format', and 'url'
             caption: Optional caption text
             reply_markup: Optional reply markup for buttons
+            parse_mode: Optional parse mode for caption (e.g., "MarkdownV2")
 
         Returns:
             True if sent successfully, False otherwise
@@ -433,40 +457,46 @@ class TelegramQuizBot:
                     await update.effective_message.reply_animation(
                         animation=url,
                         caption=caption,
-                        reply_markup=reply_markup
+                        reply_markup=reply_markup,
+                        parse_mode=parse_mode
                     )
                 elif format_type in ["jpeg", "jpg", "png", "webp"]:
                     await update.effective_message.reply_photo(
                         photo=url,
                         caption=caption,
-                        reply_markup=reply_markup
+                        reply_markup=reply_markup,
+                        parse_mode=parse_mode
                     )
                 else:
                     await update.effective_message.reply_document(
                         document=url,
                         caption=caption,
-                        reply_markup=reply_markup
+                        reply_markup=reply_markup,
+                        parse_mode=parse_mode
                     )
 
             elif attachment_type == "audio":
                 await update.effective_message.reply_audio(
                     audio=url,
                     caption=caption,
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
+                    parse_mode=parse_mode
                 )
 
             elif attachment_type == "video":
                 await update.effective_message.reply_video(
                     video=url,
                     caption=caption,
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
+                    parse_mode=parse_mode
                 )
 
             elif attachment_type in ["document", "file"]:
                 await update.effective_message.reply_document(
                     document=url,
                     caption=caption,
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
+                    parse_mode=parse_mode
                 )
 
             else:
@@ -517,24 +547,32 @@ class TelegramQuizBot:
 
         # Check if it's a final message
         if question_type == "final_message":
-            # Send final message with attachments if present
-            final_text = f"🎉 {
-                question['text']}\n\nQuiz completed! Use /quiz to start another quiz."
+            # Format the quiz text for Telegram MarkdownV2
+            formatted_question_text = self.format_text(question['text'])
+            # Build final text - format_text handles escaping
+            outro = self.format_text("Quiz completed! Use /quiz to start another quiz.")
+            final_text = f"🎉 {formatted_question_text}\n\n{outro}"
 
             if attachments:
                 # Send first attachment with caption, then remaining
                 # attachments
-                sent = await self.send_attachment(update, attachments[0], final_text)
+                sent = await self.send_attachment(
+                    update, attachments[0], final_text,
+                    reply_markup=None, parse_mode="MarkdownV2"
+                )
                 if not sent:
                     # Fallback to text only if first attachment fails
-                    await update.effective_message.reply_text(final_text)
+                    await update.effective_message.reply_text(final_text, parse_mode="MarkdownV2")
 
                 # Send additional attachments if present
                 for attachment in attachments[1:]:
-                    caption = attachment.get("caption", "")
-                    await self.send_attachment(update, attachment, caption)
+                    caption = self.format_text(attachment.get("caption", ""))
+                    await self.send_attachment(
+                        update, attachment, caption,
+                        reply_markup=None, parse_mode="MarkdownV2"
+                    )
             else:
-                await update.effective_message.reply_text(final_text)
+                await update.effective_message.reply_text(final_text, parse_mode="MarkdownV2")
 
             # Clear session
             user_id = update.effective_user.id
@@ -542,8 +580,9 @@ class TelegramQuizBot:
                 del self.user_sessions[user_id]
             return
 
-        # Send question text
-        text = f"❓ {question['text']}\n"
+        # Format question text for Telegram MarkdownV2
+        formatted_question = self.format_text(question['text'])
+        text = f"❓ {formatted_question}\n"
 
         # Handle different question types
         if question_type == "multiple_choice":
@@ -561,20 +600,31 @@ class TelegramQuizBot:
 
             # Send with attachments if available
             if attachments:
-                sent = await self.send_attachment(update, attachments[0], text, reply_markup)
+                sent = await self.send_attachment(
+                    update, attachments[0], text, reply_markup,
+                    parse_mode="MarkdownV2"
+                )
                 if not sent:
                     # Fallback to text only
-                    await update.effective_message.reply_text(text, reply_markup=reply_markup)
+                    await update.effective_message.reply_text(
+                        text, reply_markup=reply_markup, parse_mode="MarkdownV2"
+                    )
 
                 # Send additional attachments without buttons
                 for attachment in attachments[1:]:
-                    caption = attachment.get("caption", "")
-                    await self.send_attachment(update, attachment, caption)
+                    caption = self.format_text(attachment.get("caption", ""))
+                    await self.send_attachment(
+                        update, attachment, caption,
+                        parse_mode="MarkdownV2" if caption else None
+                    )
             else:
-                await update.effective_message.reply_text(text, reply_markup=reply_markup)
+                await update.effective_message.reply_text(
+                    text, reply_markup=reply_markup, parse_mode="MarkdownV2"
+                )
 
         elif question_type == "multiple_select":
-            text += "\n💡 Tap options to select/deselect, then tap ✅ Submit:"
+            hint = self.format_text("Tap options to select/deselect, then tap ✅ Submit:")
+            text += f"\n💡 {hint}"
             # Initialize empty selections for this user
             user_id = update.effective_user.id
             if user_id in self.user_sessions:
@@ -589,15 +639,25 @@ class TelegramQuizBot:
 
             # Send with attachments if available
             if attachments:
-                sent = await self.send_attachment(update, attachments[0], text, reply_markup)
+                sent = await self.send_attachment(
+                    update, attachments[0], text, reply_markup,
+                    parse_mode="MarkdownV2"
+                )
                 if not sent:
-                    await update.effective_message.reply_text(text, reply_markup=reply_markup)
+                    await update.effective_message.reply_text(
+                        text, reply_markup=reply_markup, parse_mode="MarkdownV2"
+                    )
 
                 for attachment in attachments[1:]:
-                    caption = attachment.get("caption", "")
-                    await self.send_attachment(update, attachment, caption)
+                    caption = self.format_text(attachment.get("caption", ""))
+                    await self.send_attachment(
+                        update, attachment, caption,
+                        parse_mode="MarkdownV2" if caption else None
+                    )
             else:
-                await update.effective_message.reply_text(text, reply_markup=reply_markup)
+                await update.effective_message.reply_text(
+                    text, reply_markup=reply_markup, parse_mode="MarkdownV2"
+                )
 
         elif question_type in ["integer", "float", "text"]:
             type_hint = {
@@ -605,22 +665,30 @@ class TelegramQuizBot:
                 "float": "decimal number",
                 "text": "text",
             }
-            text += f"\n💡 Please type your answer ({
-                type_hint[question_type]}):"
+            hint = self.format_text(f"Please type your answer ({type_hint[question_type]}):")
+            text += f"\n💡 {hint}"
 
             # Send with attachments if available
             if attachments:
-                sent = await self.send_attachment(update, attachments[0], text)
+                sent = await self.send_attachment(
+                    update, attachments[0], text,
+                    parse_mode="MarkdownV2"
+                )
                 if not sent:
                     # Fallback to text only
-                    await update.effective_message.reply_text(text)
+                    await update.effective_message.reply_text(
+                        text, parse_mode="MarkdownV2"
+                    )
 
                 # Send additional attachments
                 for attachment in attachments[1:]:
-                    caption = attachment.get("caption", "")
-                    await self.send_attachment(update, attachment, caption)
+                    caption = self.format_text(attachment.get("caption", ""))
+                    await self.send_attachment(
+                        update, attachment, caption,
+                        parse_mode="MarkdownV2" if caption else None
+                    )
             else:
-                await update.effective_message.reply_text(text)
+                await update.effective_message.reply_text(text, parse_mode="MarkdownV2")
 
             # Mark that we're awaiting text input
             user_id = update.effective_user.id
@@ -632,27 +700,38 @@ class TelegramQuizBot:
             max_size = question.get("max_size_mb", 10)
             description = question.get("description", "")
 
-            text += f"\n📎 Please send a file"
+            text += self.format_text("\n📎 Please send a file")
             if file_types:
-                text += f"\n💡 Accepted types: {', '.join(file_types)}"
+                types_text = self.format_text(f"\n💡 Accepted types: {', '.join(file_types)}")
+                text += types_text
             if max_size:
-                text += f"\n💡 Max size: {max_size}MB"
+                size_text = self.format_text(f"\n💡 Max size: {max_size}MB")
+                text += size_text
             if description:
-                text += f"\n\n{description}"
+                desc_text = self.format_text(f"\n\n{description}")
+                text += desc_text
 
             # Send with attachments if available
             if attachments:
-                sent = await self.send_attachment(update, attachments[0], text)
+                sent = await self.send_attachment(
+                    update, attachments[0], text,
+                    parse_mode="MarkdownV2"
+                )
                 if not sent:
                     # Fallback to text only
-                    await update.effective_message.reply_text(text)
+                    await update.effective_message.reply_text(
+                        text, parse_mode="MarkdownV2"
+                    )
 
                 # Send additional attachments
                 for attachment in attachments[1:]:
-                    caption = attachment.get("caption", "")
-                    await self.send_attachment(update, attachment, caption)
+                    caption = self.format_text(attachment.get("caption", ""))
+                    await self.send_attachment(
+                        update, attachment, caption,
+                        parse_mode="MarkdownV2" if caption else None
+                    )
             else:
-                await update.effective_message.reply_text(text)
+                await update.effective_message.reply_text(text, parse_mode="MarkdownV2")
 
             # Mark that we're awaiting file upload
             user_id = update.effective_user.id
@@ -660,21 +739,32 @@ class TelegramQuizBot:
                 self.user_sessions[user_id]["awaiting_input"] = "file_upload"
 
         else:
-            text_with_hint = text + "\n💡 Please type your answer:"
+            hint = self.format_text("Please type your answer:")
+            text_with_hint = text + f"\n💡 {hint}"
 
             # Send with attachments if available
             if attachments:
-                sent = await self.send_attachment(update, attachments[0], text_with_hint)
+                sent = await self.send_attachment(
+                    update, attachments[0], text_with_hint,
+                    parse_mode="MarkdownV2"
+                )
                 if not sent:
                     # Fallback to text only
-                    await update.effective_message.reply_text(text_with_hint)
+                    await update.effective_message.reply_text(
+                        text_with_hint, parse_mode="MarkdownV2"
+                    )
 
                 # Send additional attachments
                 for attachment in attachments[1:]:
-                    caption = attachment.get("caption", "")
-                    await self.send_attachment(update, attachment, caption)
+                    caption = self.format_text(attachment.get("caption", ""))
+                    await self.send_attachment(
+                        update, attachment, caption,
+                        parse_mode="MarkdownV2" if caption else None
+                    )
             else:
-                await update.effective_message.reply_text(text_with_hint)
+                await update.effective_message.reply_text(
+                    text_with_hint, parse_mode="MarkdownV2"
+                )
 
             user_id = update.effective_user.id
             if user_id in self.user_sessions:

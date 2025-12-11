@@ -19,8 +19,13 @@ from discord import app_commands
 import aiohttp
 
 from pyquizhub.config.settings import get_config_manager, get_logger
+from pyquizhub.core.engine.text_formatter import DiscordFormatter
 
 logger = get_logger(__name__)
+
+# Text formatter for converting standard Markdown to Discord format
+# Discord uses standard Markdown, so this is mostly a passthrough
+_formatter = DiscordFormatter()
 
 # Security constants
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB limit
@@ -63,6 +68,22 @@ class DiscordQuizBot(commands.Bot):
 
         # Register commands
         self.setup_commands()
+
+    def format_text(self, text: str) -> str:
+        """
+        Format text for Discord using standard Markdown.
+
+        Discord uses standard Markdown syntax which matches our standard format,
+        so this is mostly a passthrough. However, using the formatter ensures
+        consistency if the standard format ever changes.
+
+        Args:
+            text: Text in standard Markdown format
+
+        Returns:
+            Text formatted for Discord
+        """
+        return _formatter.format(text)
 
     async def get_http_session(self) -> aiohttp.ClientSession:
         """Get or create the HTTP session."""
@@ -596,8 +617,9 @@ class DiscordQuizBot(commands.Bot):
 
         # Check if it's a final message
         if question_type == "final_message":
-            final_text = f"🎉 {
-                question['text']}\n\nQuiz completed! Use `/quiz` to start another quiz."
+            # Format the quiz text for Discord Markdown
+            formatted_text = self.format_text(question['text'])
+            final_text = f"🎉 {formatted_text}\n\nQuiz completed! Use `/quiz` to start another quiz."
 
             if attachments:
                 first_att = attachments[0]
@@ -629,8 +651,9 @@ class DiscordQuizBot(commands.Bot):
                 del self.user_sessions[user_id]
             return
 
-        # Build question text
-        text = f"❓ **{question['text']}**\n"
+        # Build and format question text for Discord Markdown
+        formatted_question = self.format_text(question['text'])
+        text = f"❓ **{formatted_question}**\n"
 
         # Handle different question types
         if question_type == "multiple_choice":
